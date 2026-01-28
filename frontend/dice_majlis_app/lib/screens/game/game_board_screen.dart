@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/glow_container.dart';
 import 'widgets/board_widget.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/player_token.dart';

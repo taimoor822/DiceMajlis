@@ -1,6 +1,4 @@
-from django.shortcuts import render
-
-# Create your views import random
+import random
 import string
 
 from rest_framework.decorators import api_view
@@ -9,6 +7,7 @@ from rest_framework import status
 
 from .models import Room, Player
 from .serializers import RoomSerializer, PlayerSerializer
+
 
 
 def generate_room_code():

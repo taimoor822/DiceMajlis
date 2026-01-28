@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../app/routes.dart';
 
-
 class JoinRoomScreen extends StatefulWidget {
   const JoinRoomScreen({super.key});
 
@@ -35,25 +34,32 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
 
             SizedBox(
               width: double.infinity,
-              child: NeonButton(text: 'JOIN', onPressed: () async {
-  try {
-    final result = await ApiService.joinRoom(
-      code: roomCodeController.text.trim(),
-      name: 'Player',
-      color: 'blue',
-    );
+              child: NeonButton(
+                text: 'JOIN',
+                onPressed: () async {
+                  try {
+                    final result = await ApiService.joinRoom(
+                      code: roomCodeController.text.trim(),
+                      name: 'Player',
+                      color: 'blue',
+                    );
 
-    Navigator.pushNamed(
-      context,
-      AppRoutes.waitingRoom,
-      arguments: result,
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to join room')),
-    );
-  }
-},),
+                    if (!context.mounted) return;
+
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.waitingRoom,
+                      arguments: result,
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to join room')),
+                    );
+                  }
+                },
+              ),
             ),
           ],
         ),

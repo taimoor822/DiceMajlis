@@ -3,7 +3,6 @@ import '../../widgets/neon_button.dart';
 import '../../services/api_service.dart';
 import '../../app/routes.dart';
 
-
 class CreateRoomScreen extends StatefulWidget {
   const CreateRoomScreen({super.key});
 
@@ -23,10 +22,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Max Players',
-              style: TextStyle(fontSize: 18),
-            ),
+            const Text('Max Players', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 16),
 
             Row(
@@ -51,24 +47,28 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               child: NeonButton(
                 text: 'CREATE',
                 onPressed: () async {
-  try {
-    final result = await ApiService.createRoom(
-      name: 'Player 1',
-      color: 'red',
-      maxPlayers: selectedPlayers,
-    );
+                  try {
+                    final result = await ApiService.createRoom(
+                      name: 'Player 1',
+                      color: 'red',
+                      maxPlayers: selectedPlayers,
+                    );
 
-    Navigator.pushNamed(
-      context,
-      AppRoutes.waitingRoom,
-      arguments: result,
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to create room')),
-    );
-  }
-},
+                    if (!context.mounted) return;
+
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.waitingRoom,
+                      arguments: result,
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to create room')),
+                    );
+                  }
+                },
               ),
             ),
           ],
