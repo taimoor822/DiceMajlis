@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/neon_button.dart';
+import '../../services/api_service.dart';
+import '../../app/routes.dart';
 
 
 class CreateRoomScreen extends StatefulWidget {
@@ -48,10 +50,25 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               width: double.infinity,
               child: NeonButton(
                 text: 'CREATE',
-                onPressed: () {
-                  // TODO: Create room via backend
-                  Navigator.pushNamed(context, '/waiting-room');
-                },
+                onPressed: () async {
+  try {
+    final result = await ApiService.createRoom(
+      name: 'Player 1',
+      color: 'red',
+      maxPlayers: selectedPlayers,
+    );
+
+    Navigator.pushNamed(
+      context,
+      AppRoutes.waitingRoom,
+      arguments: result,
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to create room')),
+    );
+  }
+},
               ),
             ),
           ],

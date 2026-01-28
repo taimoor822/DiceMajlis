@@ -8,9 +8,8 @@ class WaitingRoomScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TEMP mock data (later from backend)
-    final String roomCode = "AB12";
-    final List<String> players = ["Player 1", "Player 2"];
-    final bool isHost = true;
+    final String roomCode = room['code'];
+    final bool isHost = player['is_host'];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Waiting Room')),

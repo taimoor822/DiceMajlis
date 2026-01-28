@@ -1,5 +1,8 @@
 import 'package:dice_majlis_app/widgets/neon_button.dart';
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import '../../app/routes.dart';
+
 
 class JoinRoomScreen extends StatefulWidget {
   const JoinRoomScreen({super.key});
@@ -32,10 +35,25 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
 
             SizedBox(
               width: double.infinity,
-              child: NeonButton(text: 'JOIN', onPressed: () {
-                // TODO: Join room via backend
-                Navigator.pushNamed(context, '/waiting-room');
-              }),
+              child: NeonButton(text: 'JOIN', onPressed: () async {
+  try {
+    final result = await ApiService.joinRoom(
+      code: roomCodeController.text.trim(),
+      name: 'Player',
+      color: 'blue',
+    );
+
+    Navigator.pushNamed(
+      context,
+      AppRoutes.waitingRoom,
+      arguments: result,
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to join room')),
+    );
+  }
+},),
             ),
           ],
         ),
