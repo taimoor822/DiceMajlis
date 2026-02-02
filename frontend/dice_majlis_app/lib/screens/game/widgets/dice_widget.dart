@@ -72,7 +72,7 @@ class _DiceWidgetState extends State<DiceWidget>
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF12172A),
+                  color: Color(0xFF12172A),
                 ),
               ),
             ),

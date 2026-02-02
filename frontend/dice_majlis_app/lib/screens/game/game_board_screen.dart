@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Custom widgets
 import 'widgets/board_widget.dart';
 import 'widgets/dice_widget.dart';
 import 'widgets/player_token.dart';
@@ -10,16 +11,23 @@ class GameBoardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ---------- TOP BAR ----------
       appBar: AppBar(
         title: const Text('Dice Majlis'),
         centerTitle: true,
       ),
+
+      // ---------- MAIN BODY ----------
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
+
+          // Stack lets us place items on top of each other
           child: Stack(
             children: [
-              // ================= CENTER BOARD =================
+              // =================================================
+              // 1️⃣ GAME BOARD (CENTER)
+              // =================================================
               Center(
                 child: SizedBox(
                   width: 280,
@@ -28,9 +36,11 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // ================= PLAYER TOKENS =================
+              // =================================================
+              // 2️⃣ PLAYER TOKENS (AROUND BOARD)
+              // =================================================
 
-              // Bottom (Player 1)
+              // Player 1 – Bottom
               const Positioned(
                 bottom: 100,
                 left: 0,
@@ -43,7 +53,7 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // Top (Player 2)
+              // Player 2 – Top
               const Positioned(
                 top: 100,
                 left: 0,
@@ -56,7 +66,7 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // Left (Player 3)
+              // Player 3 – Left
               const Positioned(
                 left: 100,
                 top: 0,
@@ -69,7 +79,7 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // Right (Player 4)
+              // Player 4 – Right
               const Positioned(
                 right: 100,
                 top: 0,
@@ -82,7 +92,9 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // ================= DICE =================
+              // =================================================
+              // 3️⃣ DICE (BOTTOM RIGHT)
+              // =================================================
               Align(
                 alignment: Alignment.bottomRight,
                 child: Padding(
@@ -104,11 +116,13 @@ class GameBoardScreen extends StatelessWidget {
                 ),
               ),
 
-              // ================= TURN INDICATOR =================
-              Align(
+              // =================================================
+              // 4️⃣ TURN INDICATOR (BOTTOM LEFT)
+              // =================================================
+              const Align(
                 alignment: Alignment.bottomLeft,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
+                  padding: EdgeInsets.only(bottom: 20),
                   child: Text(
                     'Current Turn: Player 1',
                     style: TextStyle(
