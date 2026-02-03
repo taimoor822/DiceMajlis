@@ -51,7 +51,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     final result = await ApiService.createRoom(
                       name: 'Player 1',
                       color: 'red',
-                      // maxPlayers: selectedPlayers,
+                      maxPlayers: selectedPlayers,
                     );
 
                     if (!context.mounted) return;

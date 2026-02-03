@@ -18,7 +18,7 @@ class NeonButton extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.6),
+            color: glowColor.withValues(alpha: 0.6),
             blurRadius: 12,
             spreadRadius: 0,
           ),

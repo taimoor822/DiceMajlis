@@ -89,7 +89,14 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
             break;
 
           case 'game_started':
-            Navigator.pushReplacementNamed(context, AppRoutes.gameBoard);
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.gameBoard,
+              arguments: {
+                'room_code': roomCode,
+                'player_id': playerId,
+              },
+            );
             break;
         }
       } catch (e) {
@@ -156,6 +163,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                   icon: const Icon(Icons.copy),
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: roomCode!));
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Room code copied')),
                     );

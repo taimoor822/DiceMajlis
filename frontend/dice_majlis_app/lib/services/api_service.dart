@@ -20,11 +20,12 @@ class ApiService {
   static Future<Map<String, dynamic>> createRoom({
     required String name,
     required String color,
+    int maxPlayers = 4,
   }) async {
     try {
       final response = await _dio.post(
         'create-room/',
-        data: {'name': name, 'color': color, 'max_players': 4},
+        data: {'name': name, 'color': color, 'max_players': maxPlayers},
       );
 
       return Map<String, dynamic>.from(response.data);
@@ -74,10 +75,15 @@ class ApiService {
     required String roomCode,
     required String playerId,
   }) async {
-    await dio.post(
-      '/api/game/roll-dice/',
-      data: {'code': roomCode, 'player_id': playerId},
-    );
+    try {
+      await _dio.post(
+        'roll-dice/',
+        data: {'code': roomCode, 'player_id': playerId},
+      );
+    } on DioException catch (e) {
+      debugPrint('ROLL DICE ERROR: ${e.response?.data}');
+      throw Exception(e.response?.data ?? 'Failed to roll dice');
+    }
   }
 
   // ================= MOVE TOKEN =================
@@ -87,9 +93,14 @@ class ApiService {
     required String playerId,
     required String tokenId,
   }) async {
-    await _dio.post(
-      'move-token/',
-      data: {'code': code, 'player_id': playerId, 'token_id': tokenId},
-    );
+    try {
+      await _dio.post(
+        'move-token/',
+        data: {'code': code, 'player_id': playerId, 'token_id': tokenId},
+      );
+    } on DioException catch (e) {
+      debugPrint('MOVE TOKEN ERROR: ${e.response?.data}');
+      throw Exception(e.response?.data ?? 'Failed to move token');
+    }
   }
 }

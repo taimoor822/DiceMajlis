@@ -1,51 +1,67 @@
-# Example path length (Ludo-style)
+from __future__ import annotations
+
+BASE_POSITION = -1
+ENTRY_POSITION = 0
 PATH_LENGTH = 52
 HOME_POSITION = 100
 
-def is_valid_move(token, dice):
-    # Token already finished
-    if token.is_finished:
+
+def is_valid_move(token, dice: int) -> bool:
+    if dice is None:
         return False
 
-    # Token in base: must roll 6 to enter
-    if token.position == -1:
-        return dice == 6
-
-    # Token on path
-    next_pos = token.position + dice
-
-    # Cannot overshoot home
-    if next_pos > PATH_LENGTH:
+    try:
+        dice_value = int(dice)
+    except (TypeError, ValueError):
         return False
 
-    return True
+    if dice_value < 1 or dice_value > 6:
+        return False
+
+    position = getattr(token, 'position', None)
+    is_finished = getattr(token, 'is_finished', False) or position == HOME_POSITION
+
+    if is_finished:
+        return False
+
+    if position == BASE_POSITION:
+        return dice_value == 6
+
+    if position is None:
+        return False
+
+    next_pos = position + dice_value
+    return next_pos <= PATH_LENGTH
 
 
-def calculate_new_position(token, dice):
-    if token.position == -1:
-        return 0  # enter board
+def calculate_new_position(token, dice: int) -> int:
+    position = getattr(token, 'position', BASE_POSITION)
 
-    next_pos = token.position + dice
+    dice_value = int(dice)
 
+    if position == BASE_POSITION:
+        return ENTRY_POSITION
+
+    next_pos = position + dice_value
     if next_pos == PATH_LENGTH:
         return HOME_POSITION
 
     return next_pos
 
-def get_next_player(room, current_player):
-    players = list(room.players.order_by('created_at'))
 
-    if len(players) == 0:
+def get_next_player(room, current_player):
+    players = list(room.players.order_by('joined_at'))
+    if not players:
         return None
 
-    current_index = players.index(current_player)
+    try:
+        current_index = players.index(current_player)
+    except ValueError:
+        current_index = 0
 
     for i in range(1, len(players) + 1):
         next_player = players[(current_index + i) % len(players)]
-
-        # Skip players who finished all tokens
-        unfinished_tokens = next_player.tokens.filter(is_finished=False)
-        if unfinished_tokens.exists():
+        if next_player.tokens.filter(is_finished=False).exists():
             return next_player
 
     return None

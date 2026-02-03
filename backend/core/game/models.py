@@ -52,6 +52,8 @@ class Game(models.Model):
     
 
 class Token(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     player = models.ForeignKey(
         Player,
         related_name='tokens',
@@ -64,6 +66,7 @@ class Token(models.Model):
     # 100 = finished (home end)
 
     is_finished = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Token {self.id} ({self.player.name}) @ {self.position}"

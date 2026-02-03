@@ -8,7 +8,7 @@ from rest_framework import status
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from .game_logic import is_valid_move, calculate_new_position
+from .game_logic import calculate_new_position, get_next_player, is_valid_move
 
 from .models import Room, Player, Game, Token
 from .serializers import RoomSerializer, PlayerSerializer
@@ -176,7 +176,7 @@ def start_game(request):
     room.is_started = True
     room.save()
 
-    Game.objects.create(
+    game = Game.objects.create(
         room=room,
         current_turn=host
     )
@@ -187,11 +187,36 @@ def start_game(request):
             Token.objects.create(player=player)
 
     # 🔔 WebSocket: game started
+    players_payload = [
+        {
+            'id': str(p.id),
+            'name': p.name,
+            'color': p.color,
+            'is_host': p.is_host,
+        }
+        for p in room.players.all()
+    ]
+
+    tokens_payload = [
+        {
+            'id': str(t.id),
+            'player_id': str(t.player_id),
+            'position': t.position,
+            'is_finished': t.is_finished,
+        }
+        for t in Token.objects.filter(player__room=room).select_related('player')
+    ]
+
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'lobby_{room.code}',
         {
-            'type': 'game_started'
+            'type': 'game_started',
+            'room_code': room.code,
+            'current_turn_player_id': str(game.current_turn.id) if game.current_turn else None,
+            'players': players_payload,
+            'tokens': tokens_payload,
+            'last_dice': game.last_dice,
         }
     )
 

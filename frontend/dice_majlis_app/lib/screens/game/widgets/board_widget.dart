@@ -62,7 +62,7 @@ class BoardWidget extends StatelessWidget {
         width: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter ? 60 : 16,
         height: alignment == Alignment.centerLeft || alignment == Alignment.centerRight ? 60 : 16,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.8),
+          color: color.withValues(alpha: 0.8),
           boxShadow: [
             BoxShadow(
               color: color,
@@ -79,7 +79,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..strokeWidth = 1;
 
     const divisions = 7;

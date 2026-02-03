@@ -23,7 +23,7 @@ class GlowContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.4),
+            color: glowColor.withValues(alpha: 0.4),
             blurRadius: 20,
             spreadRadius: 1,
           ),
