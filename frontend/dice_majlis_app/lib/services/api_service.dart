@@ -70,20 +70,26 @@ class ApiService {
   }
 
   // ================= ROLL DICE =================
-  static Future<Map<String, dynamic>> rollDice({
-    required String gameId,
+  static Future<void> rollDice({
+    required String roomCode,
     required String playerId,
   }) async {
-    try {
-      final response = await _dio.post(
-        'roll-dice/',
-        data: {'game_id': gameId, 'player_id': playerId},
-      );
+    await dio.post(
+      '/api/game/roll-dice/',
+      data: {'code': roomCode, 'player_id': playerId},
+    );
+  }
 
-      return Map<String, dynamic>.from(response.data);
-    } on DioException catch (e) {
-      debugPrint('ROLL DICE ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to roll dice');
-    }
+  // ================= MOVE TOKEN =================
+
+  static Future<void> moveToken({
+    required String code,
+    required String playerId,
+    required String tokenId,
+  }) async {
+    await _dio.post(
+      'move-token/',
+      data: {'code': code, 'player_id': playerId, 'token_id': tokenId},
+    );
   }
 }

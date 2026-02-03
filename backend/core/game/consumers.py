@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Room
 from asgiref.sync import sync_to_async
+from .models import Room
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
@@ -25,6 +25,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+    # ==================================================
+    # 🔄 PLAYERS
+    # ==================================================
     async def broadcast_players(self):
         players = await self.get_players()
         print("📢 BROADCAST PLAYERS:", players)
@@ -43,34 +46,59 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'players': event['players'],
         }))
 
+    # ==================================================
+    # 🎮 GAME FLOW EVENTS
+    # ==================================================
     async def game_started(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'game_started'
+            'type': 'game_started',
         }))
 
     async def dice_rolled(self, event):
         await self.send(text_data=json.dumps({
             'type': 'dice_rolled',
+            'player_id': event['player_id'],
             'dice': event['dice'],
-            'next_player_id': event['next_player_id'],
         }))
 
+    async def token_moved(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'token_moved',
+            'player_id': event['player_id'],
+            'token_id': event['token_id'],
+            'from': event['from'],
+            'to': event['to'],
+            'dice': event['dice'],
+            'killed': event['killed'],
+        }))
+
+    async def turn_changed(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'turn_changed',
+            'player_id': event['player_id'],
+        }))
+
+    async def game_finished(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'game_finished',
+            'winner_id': event['winner_id'],
+        }))
+
+    # ==================================================
+    # 🧠 DB ACCESS
+    # ==================================================
     @sync_to_async
     def get_players(self):
         try:
             room = Room.objects.get(code=self.room_code)
-            players = []
-
-            for p in room.players.all():
-                players.append({
-                    'id': str(p.id),          # ✅ UUID → string
+            return [
+                {
+                    'id': str(p.id),       # UUID safe
                     'name': p.name,
                     'color': p.color,
                     'is_host': p.is_host,
-                })
-
-            return players
-
+                }
+                for p in room.players.all()
+            ]
         except Room.DoesNotExist:
             return []
-

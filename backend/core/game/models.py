@@ -27,17 +27,47 @@ class Player(models.Model):
 
 
 class Game(models.Model):
-    room = models.OneToOneField(Room, related_name='game', on_delete=models.CASCADE)
+    room = models.OneToOneField(
+        Room,
+        related_name='game',
+        on_delete=models.CASCADE
+    )
+
     current_turn = models.ForeignKey(
         Player,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='current_games'
     )
+
+    current_turn_index = models.IntegerField(default=0)
+
     last_dice = models.IntegerField(null=True, blank=True)
+
     is_finished = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Game in room {self.room.code}"
+    
+
+class Token(models.Model):
+    player = models.ForeignKey(
+        Player,
+        related_name='tokens',
+        on_delete=models.CASCADE
+    )
+
+    position = models.IntegerField(default=-1)
+    # -1 = home
+    # 0+ = path index
+    # 100 = finished (home end)
+
+    is_finished = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Token {self.id} ({self.player.name}) @ {self.position}"
+
 
 
 class Turn(models.Model):
