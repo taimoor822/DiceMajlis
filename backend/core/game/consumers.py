@@ -31,6 +31,18 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'last_dice': game_state['last_dice'],
             }))
 
+            # If it's currently the bot's turn, ensure the bot resumes playing.
+            current_turn_id = game_state.get('current_turn_player_id')
+            players = game_state.get('players') or []
+            is_bot_turn = any(
+                p.get('id') == current_turn_id and p.get('is_bot') is True
+                for p in players
+                if isinstance(p, dict)
+            )
+            if is_bot_turn and game_state.get('last_dice') is None:
+                from .views import _schedule_ai_turn
+                _schedule_ai_turn(self.room_code)
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.group_name,
@@ -121,8 +133,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                     'name': p.name,
                     'color': p.color,
                     'is_host': p.is_host,
+                    'is_bot': p.is_bot,
                 }
-                for p in room.players.all()
+                for p in room.players.order_by('joined_at')
             ]
         except Room.DoesNotExist:
             return []
@@ -140,8 +153,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'name': p.name,
                 'color': p.color,
                 'is_host': p.is_host,
+                'is_bot': p.is_bot,
             }
-            for p in room.players.all()
+            for p in room.players.order_by('joined_at')
         ]
 
         tokens = [
@@ -151,7 +165,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'position': t.position,
                 'is_finished': t.is_finished,
             }
-            for t in Token.objects.filter(player__room=room).select_related('player')
+            for t in Token.objects.filter(player__room=room)
+            .select_related('player')
+            .order_by('created_at')
         ]
 
         current_turn_player_id = None

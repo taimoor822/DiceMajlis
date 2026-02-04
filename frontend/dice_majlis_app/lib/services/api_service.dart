@@ -89,14 +89,14 @@ class ApiService {
   // ================= MOVE TOKEN =================
 
   static Future<void> moveToken({
-    required String code,
+    required String roomCode,
     required String playerId,
     required String tokenId,
   }) async {
     try {
       await _dio.post(
         'move-token/',
-        data: {'code': code, 'player_id': playerId, 'token_id': tokenId},
+        data: {'code': roomCode, 'player_id': playerId, 'token_id': tokenId},
       );
     } on DioException catch (e) {
       debugPrint('MOVE TOKEN ERROR: ${e.response?.data}');
