@@ -71,15 +71,21 @@ class ApiService {
   }
 
   // ================= ROLL DICE =================
-  static Future<void> rollDice({
+  static Future<int> rollDice({
     required String roomCode,
     required String playerId,
   }) async {
     try {
-      await _dio.post(
+      final response = await _dio.post(
         'roll-dice/',
         data: {'code': roomCode, 'player_id': playerId},
       );
+      final data = response.data;
+      if (data is Map && data['dice'] != null) {
+        final dice = (data['dice'] as num).toInt();
+        if (dice >= 1 && dice <= 6) return dice;
+      }
+      throw Exception('Invalid dice response');
     } on DioException catch (e) {
       debugPrint('ROLL DICE ERROR: ${e.response?.data}');
       throw Exception(e.response?.data ?? 'Failed to roll dice');
@@ -88,16 +94,19 @@ class ApiService {
 
   // ================= MOVE TOKEN =================
 
-  static Future<void> moveToken({
+  static Future<Map<String, dynamic>> moveToken({
     required String roomCode,
     required String playerId,
     required String tokenId,
   }) async {
     try {
-      await _dio.post(
+      final response = await _dio.post(
         'move-token/',
         data: {'code': roomCode, 'player_id': playerId, 'token_id': tokenId},
       );
+      final data = response.data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return const <String, dynamic>{};
     } on DioException catch (e) {
       debugPrint('MOVE TOKEN ERROR: ${e.response?.data}');
       throw Exception(e.response?.data ?? 'Failed to move token');

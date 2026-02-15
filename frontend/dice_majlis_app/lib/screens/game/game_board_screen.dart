@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../game/ludo_path.dart';
 import '../../services/api_service.dart';
 import '../../services/socket_service.dart';
 import '../../services/session_storage.dart';
@@ -59,10 +60,7 @@ class _TokenInfo {
     required this.isFinished,
   });
 
-  _TokenInfo copyWith({
-    int? position,
-    bool? isFinished,
-  }) {
+  _TokenInfo copyWith({int? position, bool? isFinished}) {
     final nextPosition = position ?? this.position;
     return _TokenInfo(
       id: id,
@@ -106,8 +104,10 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
   final Map<String, _PlayerInfo> _playersById = {};
   final List<String> _playerOrder = [];
-  final Map<String, int> _seatByPlayerId = {};
   final Map<String, _TokenInfo> _tokensById = {};
+
+  Duration _moveStepDuration = const Duration(milliseconds: 140);
+  int _syncVersion = 0;
 
   @override
   void initState() {
@@ -126,8 +126,12 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     final stored = SessionStorage.load();
 
-    final parsedRoomCode = (args is Map ? args['room_code'] : null)?.toString() ?? stored?.roomCode;
-    final parsedPlayerId = (args is Map ? args['player_id'] : null)?.toString() ?? stored?.playerId;
+    final parsedRoomCode =
+        (args is Map ? args['room_code'] : null)?.toString() ??
+        stored?.roomCode;
+    final parsedPlayerId =
+        (args is Map ? args['player_id'] : null)?.toString() ??
+        stored?.playerId;
 
     if (parsedRoomCode == null || parsedPlayerId == null) {
       _redirectHome();
@@ -187,7 +191,10 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       return;
     }
 
-    final delaySeconds = math.min(20, math.pow(2, _reconnectAttempts - 1).toInt());
+    final delaySeconds = math.min(
+      20,
+      math.pow(2, _reconnectAttempts - 1).toInt(),
+    );
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
       if (!mounted) return;
@@ -210,18 +217,22 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   }
 
   bool get isMyTurn =>
-      myPlayerId != null && currentTurnPlayerId != null && myPlayerId == currentTurnPlayerId;
+      myPlayerId != null &&
+      currentTurnPlayerId != null &&
+      myPlayerId == currentTurnPlayerId;
 
   bool _canMoveToken(_TokenInfo token) {
     final dice = lastDice;
     if (!isMyTurn || dice == null) return false;
-    if (token.isFinished) return false;
+    if (token.isFinished || token.position == 100) return false;
 
-    if (token.position == -1) {
+    if (token.position < 0) {
       return dice == 6;
     }
 
-    return token.position + dice <= 100;
+    final lastIndex = LudoPath.redPath.length - 1;
+    if (token.position >= lastIndex) return false;
+    return token.position + dice <= lastIndex;
   }
 
   void _redirectHome() {
@@ -318,27 +329,28 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       }
     }
 
-    final nextSeatByPlayerId = _computeSeatMap(nextPlayerOrder);
-
     setState(() {
+      _syncVersion += 1;
       _playersById
         ..clear()
         ..addAll(nextPlayersById);
       _playerOrder
         ..clear()
         ..addAll(nextPlayerOrder);
-      _seatByPlayerId
-        ..clear()
-        ..addAll(nextSeatByPlayerId);
       _tokensById
         ..clear()
         ..addAll(nextTokensById);
+      _flashingTokenIds.clear();
       currentTurnPlayerId = data['current_turn_player_id']?.toString();
       lastDice = (data['last_dice'] as num?)?.toInt();
       _reconnectAttempts = 0;
       _isReconnecting = false;
       _isRollingDice = false;
+      _isAnimatingMove = false;
+      _moveStepDuration = const Duration(milliseconds: 140);
     });
+
+    _animationQueue = Future.value();
   }
 
   void _applyPlayersUpdated(Map<String, dynamic> data) {
@@ -357,17 +369,12 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       }
     }
 
-    final nextSeatByPlayerId = _computeSeatMap(nextOrder);
-
     setState(() {
       _playersById.addAll(nextPlayersById);
       if (nextOrder.isNotEmpty) {
         _playerOrder
           ..clear()
           ..addAll(nextOrder);
-        _seatByPlayerId
-          ..clear()
-          ..addAll(nextSeatByPlayerId);
       }
     });
   }
@@ -390,6 +397,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       }
     }
 
+    final syncVersion = _syncVersion;
     _animationQueue = _animationQueue.then((_) {
       return _animateTokenMove(
         tokenId: tokenId,
@@ -397,6 +405,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
         to: to,
         dice: dice,
         killedTokenIds: killed,
+        syncVersion: syncVersion,
       );
     });
   }
@@ -407,20 +416,44 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     required int to,
     required int? dice,
     required List<String> killedTokenIds,
+    required int syncVersion,
   }) async {
-    if (!mounted) return;
+    if (!mounted || syncVersion != _syncVersion) return;
 
     final startToken = _tokensById[tokenId];
     if (startToken == null) return;
 
-    final start = from ?? startToken.position;
-    final steps = <int>[];
+    final lastIndex = LudoPath.redPath.length - 1;
 
-    if (start == -1) {
-      steps.add(0);
+    int toUi;
+    if (to == 100) {
+      toUi = lastIndex;
+    } else if (to < 0) {
+      toUi = -1;
     } else {
-      for (int p = start + 1; p <= to; p++) {
-        steps.add(p);
+      toUi = to.clamp(0, lastIndex);
+    }
+
+    final startRaw = from ?? startToken.position;
+    int startUi;
+    if (startRaw == 100) {
+      startUi = lastIndex;
+    } else if (startRaw < 0) {
+      startUi = -1;
+    } else {
+      startUi = startRaw.clamp(0, lastIndex);
+    }
+
+    final steps = <int>[];
+    if (toUi >= 0) {
+      if (startUi < 0) {
+        for (int p = 0; p <= toUi; p++) {
+          steps.add(p);
+        }
+      } else {
+        for (int p = startUi + 1; p <= toUi; p++) {
+          steps.add(p);
+        }
       }
     }
 
@@ -428,12 +461,15 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       _isAnimatingMove = true;
     });
 
-    // Movement time scales with dice value (more steps, slightly faster per step).
     final perStepMs = dice == null ? 140 : (180 - (dice * 15)).clamp(80, 160);
     final stepDelay = Duration(milliseconds: perStepMs);
 
+    setState(() {
+      _moveStepDuration = stepDelay;
+    });
+
     for (final p in steps) {
-      if (!mounted) return;
+      if (!mounted || syncVersion != _syncVersion) return;
 
       setState(() {
         final current = _tokensById[tokenId];
@@ -445,27 +481,42 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       await Future.delayed(stepDelay);
     }
 
-    if (!mounted) return;
+    if (!mounted || syncVersion != _syncVersion) return;
+
+    if (to == 100) {
+      setState(() {
+        final current = _tokensById[tokenId];
+        if (current != null) {
+          _tokensById[tokenId] = current.copyWith(
+            position: 100,
+            isFinished: true,
+          );
+        }
+      });
+    }
 
     if (killedTokenIds.isNotEmpty) {
       setState(() {
         for (final killedId in killedTokenIds) {
           final killedToken = _tokensById[killedId];
           if (killedToken != null) {
-            _tokensById[killedId] = killedToken.copyWith(position: -1, isFinished: false);
+            _tokensById[killedId] = killedToken.copyWith(
+              position: -1,
+              isFinished: false,
+            );
             _flashingTokenIds.add(killedId);
           }
         }
       });
 
       await Future.delayed(const Duration(milliseconds: 550));
-      if (!mounted) return;
+      if (!mounted || syncVersion != _syncVersion) return;
       setState(() {
         _flashingTokenIds.removeAll(killedTokenIds);
       });
     }
 
-    if (!mounted) return;
+    if (!mounted || syncVersion != _syncVersion) return;
 
     setState(() {
       lastDice = null;
@@ -484,7 +535,13 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     });
 
     try {
-      await ApiService.rollDice(roomCode: room, playerId: me);
+      final rolled = await ApiService.rollDice(roomCode: room, playerId: me);
+      if (mounted && lastDice == null) {
+        setState(() {
+          lastDice = rolled;
+          _isRollingDice = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -492,9 +549,9 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
         });
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -505,12 +562,16 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     if (_isReconnecting || _isAnimatingMove) return;
 
     try {
-      await ApiService.moveToken(roomCode: room, playerId: me, tokenId: tokenId);
+      await ApiService.moveToken(
+        roomCode: room,
+        playerId: me,
+        tokenId: tokenId,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -522,6 +583,8 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
         return Colors.blue;
       case 'green':
         return Colors.green;
+      case 'yellow':
+        return Colors.amber;
       case 'orange':
         return Colors.orange;
       default:
@@ -529,81 +592,86 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     }
   }
 
-  Map<String, int> _computeSeatMap(List<String> playerOrder) {
-    if (playerOrder.isEmpty) return {};
-
-    final me = myPlayerId;
-    if (me == null) {
-      return {for (int i = 0; i < playerOrder.length; i++) playerOrder[i]: i};
-    }
-
-    final myIndex = playerOrder.indexOf(me);
-    if (myIndex == -1) {
-      return {for (int i = 0; i < playerOrder.length; i++) playerOrder[i]: i};
-    }
-
-    final rotated = <String>[
-      ...playerOrder.skip(myIndex),
-      ...playerOrder.take(myIndex),
-    ];
-
-    return {for (int i = 0; i < rotated.length; i++) rotated[i]: i};
+  String _pathColorForBackend(String color) {
+    final c = color.trim().toLowerCase();
+    if (c == 'orange') return 'yellow';
+    if (c == 'amber') return 'yellow';
+    return c;
   }
 
-  int _seatForPlayerId(String playerId) => _seatByPlayerId[playerId] ?? 0;
+  int _seatForBackendColor(String color) {
+    switch (_pathColorForBackend(color)) {
+      case 'red':
+        return 0;
+      case 'yellow':
+        return 1;
+      case 'green':
+        return 2;
+      case 'blue':
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
+  static const Map<String, List<math.Point<int>>> _baseGridByColor = {
+    'red': <math.Point<int>>[
+      math.Point<int>(1, 13),
+      math.Point<int>(3, 13),
+      math.Point<int>(1, 11),
+      math.Point<int>(3, 11),
+    ],
+    'blue': <math.Point<int>>[
+      math.Point<int>(1, 1),
+      math.Point<int>(3, 1),
+      math.Point<int>(1, 3),
+      math.Point<int>(3, 3),
+    ],
+    'green': <math.Point<int>>[
+      math.Point<int>(11, 1),
+      math.Point<int>(13, 1),
+      math.Point<int>(11, 3),
+      math.Point<int>(13, 3),
+    ],
+    'yellow': <math.Point<int>>[
+      math.Point<int>(11, 13),
+      math.Point<int>(13, 13),
+      math.Point<int>(11, 11),
+      math.Point<int>(13, 11),
+    ],
+  };
+
+  math.Point<int> _baseGridForToken(String pathColor, int tokenIndex) {
+    final list = _baseGridByColor[pathColor] ?? _baseGridByColor['red']!;
+    return list[tokenIndex % list.length];
+  }
+
+  int _uiIndexForToken(_TokenInfo token, int pathLength) {
+    if (token.isFinished || token.position == 100) return pathLength - 1;
+    if (token.position < 0) return -1;
+    if (token.position >= pathLength) return pathLength - 1;
+    return token.position;
+  }
+
+  math.Point<int> _gridForToken({
+    required _TokenInfo token,
+    required String pathColor,
+    required int tokenIndex,
+  }) {
+    if (token.position < 0 && !token.isFinished) {
+      return _baseGridForToken(pathColor, tokenIndex);
+    }
+
+    final path = LudoPath.getPath(pathColor);
+    final idx = _uiIndexForToken(token, path.length);
+    if (idx < 0) return _baseGridForToken(pathColor, tokenIndex);
+    return path[idx];
+  }
 
   Offset _spreadOffset(int index, int count, double radius) {
     if (count <= 1) return Offset.zero;
     final angle = (2 * math.pi) * (index / count);
     return Offset(math.cos(angle) * radius, math.sin(angle) * radius);
-  }
-
-  Offset _homeAnchorForSeat(int seat, Size size) {
-    final margin = size.width * 0.18;
-    return switch (seat % 4) {
-      0 => Offset(size.width * 0.5, size.height - margin),
-      1 => Offset(size.width - margin, size.height * 0.5),
-      2 => Offset(size.width * 0.5, margin),
-      _ => Offset(margin, size.height * 0.5),
-    };
-  }
-
-  Offset _finishAnchorForSeat(int seat, Size size) {
-    final center = Offset(size.width * 0.5, size.height * 0.5);
-    final pull = size.width * 0.12;
-    return switch (seat % 4) {
-      0 => center + Offset(0, pull),
-      1 => center + Offset(pull, 0),
-      2 => center + Offset(0, -pull),
-      _ => center + Offset(-pull, 0),
-    };
-  }
-
-  Offset _boardAnchorForPosition(int position, Size size) {
-    final center = Offset(size.width * 0.5, size.height * 0.5);
-    final padding = size.width * 0.12;
-    final radius = (size.width * 0.5) - padding;
-    final angle = (-math.pi / 2) + (2 * math.pi) * (position / 100.0);
-    return center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
-  }
-
-  Offset _tokenAnchor({
-    required _TokenInfo token,
-    required Size boardSize,
-    required int stackIndex,
-    required int stackCount,
-  }) {
-    final seat = _seatForPlayerId(token.playerId);
-
-    if (token.position == -1) {
-      return _homeAnchorForSeat(seat, boardSize) + _spreadOffset(stackIndex, stackCount, 16);
-    }
-
-    if (token.position >= 100) {
-      return _finishAnchorForSeat(seat, boardSize) + _spreadOffset(stackIndex, stackCount, 14);
-    }
-
-    return _boardAnchorForPosition(token.position, boardSize) + _spreadOffset(stackIndex, stackCount, 10);
   }
 
   Widget _buildPlayerPanel(_PlayerInfo player, int seat) {
@@ -643,16 +711,10 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -681,14 +743,14 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     final text = currentTurnPlayerId == null
         ? 'Syncing...'
         : isMyTurn
-            ? 'Your Turn'
-            : 'Opponent Turn';
+        ? 'Your Turn'
+        : 'Opponent Turn';
 
     final color = currentTurnPlayerId == null
         ? Colors.white70
         : isMyTurn
-            ? Colors.greenAccent
-            : Colors.redAccent;
+        ? Colors.greenAccent
+        : Colors.redAccent;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -742,9 +804,11 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     }
 
     final tokenLabels = <String, String>{};
+    final tokenIndexById = <String, int>{};
     for (final entry in tokensByPlayer.entries) {
       final tokens = entry.value;
       for (int i = 0; i < tokens.length; i++) {
+        tokenIndexById[tokens[i].id] = i;
         tokenLabels[tokens[i].id] = '${i + 1}';
       }
     }
@@ -752,13 +816,15 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     final playersInSeat = List<_PlayerInfo?>.filled(4, null);
     for (final id in _playerOrder) {
       final info = _playersById[id];
-      final seat = _seatByPlayerId[id];
-      if (info != null && seat != null && seat >= 0 && seat < 4) {
+      if (info == null) continue;
+      final seat = _seatForBackendColor(info.color);
+      if (seat >= 0 && seat < 4) {
         playersInSeat[seat] = info;
       }
     }
 
-    final canRollDice = currentTurnPlayerId != null &&
+    final canRollDice =
+        currentTurnPlayerId != null &&
         isMyTurn &&
         lastDice == null &&
         !_isRollingDice &&
@@ -770,58 +836,76 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final shortest = math.min(constraints.maxWidth, constraints.maxHeight);
+            final shortest = math.min(
+              constraints.maxWidth,
+              constraints.maxHeight,
+            );
             final boardSide = (shortest - 140).clamp(260.0, 520.0);
-            final boardSize = Size(boardSide, boardSide);
 
             final tokenGroups = <String, List<_TokenInfo>>{};
+            final tokenGridById = <String, math.Point<int>>{};
             for (final token in _tokensById.values) {
-              final key = token.position == -1
-                  ? 'home:${token.playerId}'
-                  : token.position >= 100
-                      ? 'finish:${token.playerId}'
-                      : 'pos:${token.position}';
+              final player = _playersById[token.playerId];
+              final pathColor = _pathColorForBackend(player?.color ?? '');
+              final tokenIndex = tokenIndexById[token.id] ?? 0;
+              final grid = _gridForToken(
+                token: token,
+                pathColor: pathColor,
+                tokenIndex: tokenIndex,
+              );
+              tokenGridById[token.id] = grid;
+              final key = 'g:${grid.x}:${grid.y}';
               (tokenGroups[key] ??= []).add(token);
             }
             for (final group in tokenGroups.values) {
               group.sort((a, b) => a.id.compareTo(b.id));
             }
 
-            const tokenVisualSize = 44.0;
+            final tileSize = boardSide / 15;
+            final tokenVisualSize = (tileSize * 0.9).clamp(22.0, 48.0);
+            final stackRadius = (tileSize * 0.22).clamp(
+              3.0,
+              tokenVisualSize * 0.25,
+            );
 
             final tokenWidgets = <Widget>[];
             for (final group in tokenGroups.values) {
               for (int i = 0; i < group.length; i++) {
                 final token = group[i];
                 final player = _playersById[token.playerId];
-                final color = player == null ? Colors.grey : _playerColor(player.color);
+                final color = player == null
+                    ? Colors.grey
+                    : _playerColor(player.color);
 
                 final isMine = token.playerId == me;
-                final canTap = isMine && !_isAnimatingMove && !_isReconnecting && _canMoveToken(token);
+                final canTap =
+                    isMine &&
+                    !_isAnimatingMove &&
+                    !_isReconnecting &&
+                    _canMoveToken(token);
 
-                final anchor = _tokenAnchor(
-                  token: token,
-                  boardSize: boardSize,
-                  stackIndex: i,
-                  stackCount: group.length,
+                final grid = tokenGridById[token.id];
+                if (grid == null) continue;
+
+                final baseCenter = LudoPath.gridToPixel(
+                  x: grid.x,
+                  y: grid.y,
+                  boardSize: boardSide,
                 );
+                final center =
+                    baseCenter + _spreadOffset(i, group.length, stackRadius);
 
                 tokenWidgets.add(
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 140),
-                    curve: Curves.easeInOut,
-                    left: anchor.dx - (tokenVisualSize / 2),
-                    top: anchor.dy - (tokenVisualSize / 2),
-                    child: SizedBox(
-                      width: tokenVisualSize,
-                      height: tokenVisualSize,
-                      child: PlayerToken(
-                        color: color,
-                        label: tokenLabels[token.id] ?? '',
-                        enabled: isMine ? canTap : true,
-                        flashing: _flashingTokenIds.contains(token.id),
-                        onTap: canTap ? () => _moveToken(token.id) : null,
-                      ),
+                  AnimatedPlayerToken(
+                    center: center,
+                    size: tokenVisualSize,
+                    duration: _moveStepDuration,
+                    child: PlayerToken(
+                      color: color,
+                      label: tokenLabels[token.id] ?? '',
+                      enabled: isMine ? canTap : true,
+                      flashing: _flashingTokenIds.contains(token.id),
+                      onTap: canTap ? () => _moveToken(token.id) : null,
                     ),
                   ),
                 );
@@ -838,7 +922,8 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                     const Positioned.fill(child: BoardWidget()),
                     ...tokenWidgets,
                     for (int seat = 0; seat < playersInSeat.length; seat++)
-                      if (playersInSeat[seat] != null) _buildPlayerPanel(playersInSeat[seat]!, seat),
+                      if (playersInSeat[seat] != null)
+                        _buildPlayerPanel(playersInSeat[seat]!, seat),
                     Positioned(
                       left: -10,
                       bottom: -10,
@@ -850,6 +935,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                       child: DiceWidget(
                         value: lastDice,
                         enabled: canRollDice,
+                        rolling: _isRollingDice,
                         onTap: _rollDice,
                       ),
                     ),
@@ -861,7 +947,9 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
                             color: Colors.black.withValues(alpha: 0.18),
                             child: Center(
                               child: Text(
-                                _isReconnecting ? 'Reconnecting...' : 'Moving...',
+                                _isReconnecting
+                                    ? 'Reconnecting...'
+                                    : 'Moving...',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,

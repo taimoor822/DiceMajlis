@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class PlayerToken extends StatelessWidget {
@@ -18,37 +19,85 @@ class PlayerToken extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 180),
-        opacity: enabled ? 1.0 : 0.4,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: flashing ? Colors.white : Colors.transparent,
-              width: 2,
-            ),
-            boxShadow: flashing
-                ? [
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      blurRadius: 12,
-                      spreadRadius: 1,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = math.min(constraints.maxWidth, constraints.maxHeight);
+        final borderWidth = (side * 0.08).clamp(1.0, 2.5);
+        final fontSize = (side * 0.42).clamp(10.0, 18.0);
+        final glow = (side * 0.3).clamp(6.0, 14.0);
+
+        return GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 180),
+            opacity: enabled ? 1.0 : 0.4,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.all(side * 0.05),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: flashing ? Colors.white : Colors.transparent,
+                  width: borderWidth,
+                ),
+                boxShadow: flashing
+                    ? [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          blurRadius: glow,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: fontSize,
                     ),
-                  ]
-                : const [],
+                  ),
+                ),
+              ),
+            ),
           ),
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: color,
-            child: Text(label, style: const TextStyle(color: Colors.white)),
-          ),
-        ),
-      ),
+        );
+      },
+    );
+  }
+}
+
+class AnimatedPlayerToken extends StatelessWidget {
+  final Offset center;
+  final double size;
+  final Duration duration;
+  final Curve curve;
+  final Widget child;
+
+  const AnimatedPlayerToken({
+    super.key,
+    required this.center,
+    required this.size,
+    required this.duration,
+    this.curve = Curves.easeInOut,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPositioned(
+      duration: duration,
+      curve: curve,
+      left: center.dx - (size / 2),
+      top: center.dy - (size / 2),
+      child: SizedBox(width: size, height: size, child: child),
     );
   }
 }

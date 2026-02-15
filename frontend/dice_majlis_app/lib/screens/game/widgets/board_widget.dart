@@ -1,97 +1,81 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/glow_container.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-class BoardWidget extends StatelessWidget {
-  const BoardWidget({super.key});
+class BoardWidget extends StatefulWidget {
+  final String assetPath;
+
+  const BoardWidget({
+    super.key,
+    this.assetPath = 'assets/board/majlis_board.svg',
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return GlowContainer(
-      glowColor: const Color(0xFF9D4EDD),
-      padding: const EdgeInsets.all(12),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Stack(
-          children: [
-            // GRID BACKGROUND
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _GridPainter(),
-              ),
-            ),
-
-            // CENTER HOME
-            Center(
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B1F3B),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0xFF9D4EDD),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    'HOME',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-
-            // LANES
-            _lane(Alignment.topCenter, Colors.blue),
-            _lane(Alignment.bottomCenter, Colors.red),
-            _lane(Alignment.centerLeft, Colors.green),
-            _lane(Alignment.centerRight, Colors.orange),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _lane(Alignment alignment, Color color) {
-    return Align(
-      alignment: alignment,
-      child: Container(
-        width: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter ? 60 : 16,
-        height: alignment == Alignment.centerLeft || alignment == Alignment.centerRight ? 60 : 16,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.8),
-          boxShadow: [
-            BoxShadow(
-              color: color,
-              blurRadius: 10,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  State<BoardWidget> createState() => _BoardWidgetState();
 }
 
-class _GridPainter extends CustomPainter {
+class _BoardWidgetState extends State<BoardWidget> {
+  Future<String>? _svgFuture;
+  AssetBundle? _bundle;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..strokeWidth = 1;
-
-    const divisions = 7;
-    final step = size.width / divisions;
-
-    for (int i = 1; i < divisions; i++) {
-      final offset = step * i;
-      canvas.drawLine(Offset(offset, 0), Offset(offset, size.height), paint);
-      canvas.drawLine(Offset(0, offset), Offset(size.width, offset), paint);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextBundle = DefaultAssetBundle.of(context);
+    if (_svgFuture == null || _bundle != nextBundle) {
+      _bundle = nextBundle;
+      _svgFuture = nextBundle.loadString(widget.assetPath);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  void didUpdateWidget(covariant BoardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assetPath != widget.assetPath) {
+      final bundle = _bundle ?? DefaultAssetBundle.of(context);
+      _bundle = bundle;
+      _svgFuture = bundle.loadString(widget.assetPath);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: FutureBuilder<String>(
+        future: _svgFuture,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return SvgPicture.string(
+              snapshot.data!,
+              fit: BoxFit.fill,
+              alignment: Alignment.center,
+            );
+          }
+
+          if (snapshot.hasError) {
+            return const ColoredBox(
+              color: Color(0xFF12172A),
+              child: Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: 36,
+                  color: Colors.white70,
+                ),
+              ),
+            );
+          }
+
+          return const ColoredBox(
+            color: Color(0xFF12172A),
+            child: Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
