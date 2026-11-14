@@ -3,7 +3,6 @@ import unittest
 
 import ludo_engine as le
 from ludo_engine import (
-    GameNotActive,
     IllegalMove,
     InvalidAction,
     InvalidDiceValue,
@@ -223,6 +222,13 @@ class ValidationTests(unittest.TestCase):
         for token in (1, 4, -1, True, "0"):  # 1 is in base and 3 cannot enter
             with self.subTest(token=token), self.assertRaises(IllegalMove):
                 le.move(rolled, "a", token)
+
+    def test_check_roll_validates_without_rolling(self):
+        self.assertEqual(le.check_roll(self.state, "a"), 0)
+        with self.assertRaises(NotYourTurn):
+            le.check_roll(self.state, "b")
+        with self.assertRaises(WrongPhase):
+            le.check_roll(le.roll(self.state, "a", 4).state, "a")
 
     def test_failed_action_changes_nothing(self):
         before = self.state.to_dict()

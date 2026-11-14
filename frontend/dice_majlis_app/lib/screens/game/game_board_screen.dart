@@ -47,6 +47,10 @@ class _PlayerInfo {
   }
 }
 
+/// Server sends progress 0..56 (56 = home). 100 is the pre-engine "home" value.
+bool _isHomePosition(int position) =>
+    position == 100 || position >= LudoPath.homeProgress;
+
 class _TokenInfo {
   final String id;
   final String playerId;
@@ -66,7 +70,8 @@ class _TokenInfo {
       id: id,
       playerId: playerId,
       position: nextPosition,
-      isFinished: isFinished ?? this.isFinished || nextPosition == 100,
+      isFinished:
+          isFinished ?? this.isFinished || _isHomePosition(nextPosition),
     );
   }
 
@@ -76,7 +81,7 @@ class _TokenInfo {
       id: json['id']?.toString() ?? '',
       playerId: json['player_id']?.toString() ?? '',
       position: position,
-      isFinished: json['is_finished'] == true || position == 100,
+      isFinished: json['is_finished'] == true || _isHomePosition(position),
     );
   }
 }
@@ -92,6 +97,9 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
   String? currentTurnPlayerId;
   int? lastDice;
+
+  /// Tokens the server says can move with [lastDice]; null until it tells us.
+  Set<String>? _movableTokenIds;
 
   bool _isRollingDice = false;
   bool _isAnimatingMove = false;
@@ -224,15 +232,15 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   bool _canMoveToken(_TokenInfo token) {
     final dice = lastDice;
     if (!isMyTurn || dice == null) return false;
-    if (token.isFinished || token.position == 100) return false;
 
-    if (token.position < 0) {
-      return dice == 6;
-    }
+    // The server is the authority; use its list as soon as it arrives.
+    final movable = _movableTokenIds;
+    if (movable != null) return movable.contains(token.id);
 
-    final lastIndex = LudoPath.redPath.length - 1;
-    if (token.position >= lastIndex) return false;
-    return token.position + dice <= lastIndex;
+    // Same rules as the server engine, for the moment before its message lands.
+    if (token.isFinished || _isHomePosition(token.position)) return false;
+    if (token.position < 0) return dice == 6;
+    return token.position + dice <= LudoPath.homeProgress;
   }
 
   void _redirectHome() {
@@ -268,6 +276,10 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
         case 'dice_rolled':
           setState(() {
             lastDice = (data['dice'] as num?)?.toInt();
+            final movable = data['movable_token_ids'];
+            _movableTokenIds = movable is List
+                ? movable.map((id) => id.toString()).toSet()
+                : null;
             final rollerId = data['player_id']?.toString();
             if (rollerId != null && rollerId == myPlayerId) {
               _isRollingDice = false;
@@ -283,6 +295,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
           setState(() {
             currentTurnPlayerId = data['player_id']?.toString();
             lastDice = null;
+            _movableTokenIds = null;
             _isRollingDice = false;
           });
           break;
@@ -343,6 +356,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       _flashingTokenIds.clear();
       currentTurnPlayerId = data['current_turn_player_id']?.toString();
       lastDice = (data['last_dice'] as num?)?.toInt();
+      _movableTokenIds = null;
       _reconnectAttempts = 0;
       _isReconnecting = false;
       _isRollingDice = false;
@@ -426,7 +440,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     final lastIndex = LudoPath.redPath.length - 1;
 
     int toUi;
-    if (to == 100) {
+    if (_isHomePosition(to)) {
       toUi = lastIndex;
     } else if (to < 0) {
       toUi = -1;
@@ -436,7 +450,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     final startRaw = from ?? startToken.position;
     int startUi;
-    if (startRaw == 100) {
+    if (_isHomePosition(startRaw)) {
       startUi = lastIndex;
     } else if (startRaw < 0) {
       startUi = -1;
@@ -483,12 +497,12 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     if (!mounted || syncVersion != _syncVersion) return;
 
-    if (to == 100) {
+    if (_isHomePosition(to)) {
       setState(() {
         final current = _tokensById[tokenId];
         if (current != null) {
           _tokensById[tokenId] = current.copyWith(
-            position: 100,
+            position: LudoPath.homeProgress,
             isFinished: true,
           );
         }
@@ -520,6 +534,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     setState(() {
       lastDice = null;
+      _movableTokenIds = null;
       _isAnimatingMove = false;
     });
   }
@@ -647,7 +662,9 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   }
 
   int _uiIndexForToken(_TokenInfo token, int pathLength) {
-    if (token.isFinished || token.position == 100) return pathLength - 1;
+    if (token.isFinished || _isHomePosition(token.position)) {
+      return pathLength - 1;
+    }
     if (token.position < 0) return -1;
     if (token.position >= pathLength) return pathLength - 1;
     return token.position;

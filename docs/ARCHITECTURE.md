@@ -29,20 +29,21 @@ What already works (Feb 2026 code):
 - A refreshed client gets the full game state over the socket
 - Flutter screens: splash, home, create room, join room, waiting room, board, win
 
-Bugs found while reviewing. The rules bugs are fixed in the new engine (live once step
-1.1 wires it in); the rest are scheduled in §10:
+Bugs found while reviewing, and where each one is handled:
 
-| Bug | Where | Effect |
-|---|---|---|
-| Captures compare each player's *relative* progress | `game/utils.py` `kill_enemy_tokens` | Tokens get captured from a different square; tokens on the same square don't |
-| Server finishes at 100, app's board path has 57 cells and blocks moves past 56 | `game/utils.py`, `game_board_screen.dart` | Human players can never bring a token home; only bots can win |
-| Safe squares are `{0,10,…,90}` | `game/utils.py` | Don't match the stars/start squares on the board |
-| Dice uses `random.randint` | `game/views.py` | Not cryptographically secure |
-| Red path includes `(6,14)` then jumps diagonally into the home column | `ludo_path.dart` | Wrong animation at the end of the lap |
-| No row locking on roll/move | `game/views.py` | Two fast requests can both pass the "already rolled?" check |
-| Two copies of the rules (`game_logic.py` unused, `utils.py` used) | `game/` | Easy to fix one and not the other |
-| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server |
-| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand |
+| Bug | Where | Effect | Status |
+|---|---|---|---|
+| Captures compare each player's *relative* progress | `game/utils.py` `kill_enemy_tokens` | Tokens get captured from a different square; tokens on the same square don't | ✅ 1.1 |
+| Server finishes at 100, app's board path has 57 cells and blocks moves past 56 | `game/utils.py`, `game_board_screen.dart` | Human players can never bring a token home; only bots can win | ✅ 1.1 |
+| Safe squares are `{0,10,…,90}` | `game/utils.py` | Don't match the stars/start squares on the board | ✅ 1.1 |
+| Dice uses `random.randint` | `game/views.py` | Not cryptographically secure | ✅ 1.1 |
+| Red path includes `(6,14)` then jumps diagonally into the home column | `ludo_path.dart` | Wrong animation at the end of the lap | ✅ 1.1 |
+| No row locking on roll/move | `game/views.py` | Two fast requests can both pass the "already rolled?" check | ✅ 1.1 (row lock + version check) |
+| Two copies of the rules (`game_logic.py` unused, `utils.py` used) | `game/` | Easy to fix one and not the other | ✅ 1.1 (both removed) |
+| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server | 1.3 |
+| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | 1.3 |
+| Create Room always sends `red`, Join Room always sends `blue` | `create_room_screen.dart`, `join_room_screen.dart` | 3rd/4th players share a colour and a board path | ✅ 1.1 (server reassigns clashing colours to free seats) |
+| `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | 1.3 |
 
 ---
 
@@ -229,8 +230,9 @@ backend/
     ├── ludo_engine/           # ✅ BUILT — pure Python rules, no Django imports
     │   ├── board.py  rules.py  state.py  engine.py  events.py
     │   ├── dice.py   bot.py    errors.py
-    │   └── tests/             # 70 tests incl. 300 simulated full games
-    ├── game/                  # existing rooms + REST + WS (split into rooms/ + gameplay/ later)
+    │   └── tests/             # 71 tests incl. 300 simulated full games
+    ├── game/                  # rooms + REST + WS; services.py = the only code that changes game state
+    │                          # (split into rooms/ + gameplay/ later)
     ├── users/                 # existing, empty → replaced by accounts/
     │
     │  planned apps (each added in the phase that needs it)
@@ -277,7 +279,7 @@ append-only.
 | 1 | `profiles_profile` | user (1:1), display_name, avatar, country, xp, level |
 | 1→2 | `gameplay_game` | id, room, mode (2p/4p/team), ranked, status, rules (JSONB), initial_state (JSONB), final_state (JSONB), winner, started_at, ended_at |
 | 2 | `gameplay_game_player` | game, user, seat, place, rating_before/after — unique(game, seat), unique(game, user) |
-| 2 | `gameplay_game_action` | game, version, action (JSONB), created_at — unique(game, version). **The audit log for disputes and replays** |
+| ✅ 1.1 | `game_gameaction` (→ `gameplay_game_action`) | game, version, action (JSONB), created_at — unique(game, version). **The audit log for disputes and replays** |
 | 2 | `rooms_room` | id, code (unique), host, mode, visibility, max_players, status |
 | 3 | `ranking_rating` | user, season, rating, rd (Glicko), wins, losses, games, streak, league |
 | 3 | `ranking_season`, `ranking_league` | |
@@ -382,7 +384,7 @@ result — `replay()` rebuilds any game from `gameplay_game_action` for disputes
 after a Redis loss. The client can never send a dice value or a position: it only says
 *"roll"* or *"move token 2"*, and the engine rejects anything illegal with a coded error.
 
-### Tests (`python manage.py test ludo_engine` — 70 tests)
+### Tests (`python manage.py test ludo_engine` — 71 tests)
 
 Board maths, rules validation, dice ranges, entering, extra turns, three sixes,
 captures (including a regression test for the old bug), safe squares, home column,
@@ -562,8 +564,8 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 
 | # | Step | Done when |
 |---|---|---|
-| 1.0 | ✅ **Engine** — `ludo_engine` + 70 tests | Tests pass under Django and plain unittest |
-| 1.1 | **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
+| 1.0 | ✅ **Engine** — `ludo_engine` + 71 tests | Tests pass under Django and plain unittest |
+| 1.1 | ✅ **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
 | 1.2 | **Turn timer** — Redis sorted set + worker command; `turn_started` carries the deadline; auto-move; 3 misses → forfeit. Flutter countdown ring | An idle player is auto-played, then removed; game never freezes |
 | 1.3 | **Dev & CI foundation** — Daphne + `psycopg` in requirements, settings split (dev/prod), `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`, Docker Compose, GitHub Actions running backend tests + `flutter analyze` | Fresh clone runs with the documented commands; CI green on every push |
 | 1.4 | **Flutter foundation refactor** (no behaviour change) — Riverpod, GoRouter, Freezed; move files to `core/` `shared/` `features/`; Majlis theme tokens (Dark + Light); l10n scaffold (en, ar, ur); delete empty files | Same screens and flows, new structure; no hard-coded colours in moved widgets |

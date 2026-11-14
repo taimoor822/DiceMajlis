@@ -48,8 +48,37 @@ class Game(models.Model):
 
     is_finished = models.BooleanField(default=False)
 
+    # Authoritative ludo_engine snapshot (GameState.to_dict()). current_turn,
+    # last_dice, is_finished and Token rows are mirrors of it for existing reads.
+    # Only game.services may write these. NULL = game started before the engine.
+    state = models.JSONField(null=True, blank=True)
+    initial_state = models.JSONField(null=True, blank=True)
+    version = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return f"Game in room {self.room.code}"
+
+
+class GameAction(models.Model):
+    """
+    Every accepted action, in order, including the server's dice value.
+    ludo_engine.replay(initial_state, actions) rebuilds the game exactly:
+    used for disputes, anti-cheat review and recovery.
+    """
+
+    game = models.ForeignKey(Game, related_name='actions', on_delete=models.CASCADE)
+    version = models.PositiveIntegerField()
+    action = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['version']
+        constraints = [
+            models.UniqueConstraint(fields=['game', 'version'], name='unique_game_action_version'),
+        ]
+
+    def __str__(self):
+        return f"{self.game} v{self.version}: {self.action.get('type')}"
     
 
 class Token(models.Model):

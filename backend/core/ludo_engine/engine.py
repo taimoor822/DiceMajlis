@@ -202,12 +202,21 @@ class _Step:
         return Transition(replace(self.state, version=self.version), tuple(self.events))
 
 
-def roll(state: GameState, player_id: str, value: int) -> Transition:
-    """Apply a server-rolled dice value for the current player."""
+def check_roll(state: GameState, player_id: str) -> int:
+    """
+    Raise unless ``player_id`` may roll now; return their player index.
+    The server calls this BEFORE rolling, so invalid requests never touch the dice.
+    """
     _require_playing(state)
     index = _require_turn(state, player_id)
     if state.phase is not TurnPhase.AWAITING_ROLL:
         raise WrongPhase("dice already rolled: move a token")
+    return index
+
+
+def roll(state: GameState, player_id: str, value: int) -> Transition:
+    """Apply a server-rolled dice value for the current player."""
+    index = check_roll(state, player_id)
     _check_die(value)
     step = _Step(_reset_missed_turns(state, index))
     _apply_roll(step, value)
