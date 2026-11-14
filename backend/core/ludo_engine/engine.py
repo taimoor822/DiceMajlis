@@ -257,9 +257,7 @@ def timeout(
     timer that fires just after the player acted is rejected instead of
     punishing the next player.
     """
-    _require_playing(state)
-    if expected_turn is not None and expected_turn != state.turn_number:
-        raise InvalidAction("stale timeout: that turn is already over")
+    check_timeout(state, expected_turn)
     if state.phase is TurnPhase.AWAITING_ROLL:
         if dice_value is None:
             raise InvalidDiceValue("a server dice value is needed to auto-roll")
@@ -291,6 +289,13 @@ def timeout(
 
     _apply_move(step, choose_move(step.state).token_index)
     return step.done()
+
+
+def check_timeout(state: GameState, expected_turn: int | None = None) -> None:
+    """Raise unless a timeout for ``expected_turn`` can apply now (call before rolling)."""
+    _require_playing(state)
+    if expected_turn is not None and expected_turn != state.turn_number:
+        raise InvalidAction("stale timeout: that turn is already over")
 
 
 def forfeit(state: GameState, player_id: str, *, reason: str = "left") -> Transition:

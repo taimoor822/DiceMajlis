@@ -14,16 +14,19 @@ Socket messages keep the names the Flutter app already handles
 from __future__ import annotations
 
 import logging
+import math
 import random
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.db import close_old_connections, transaction
+from django.utils import timezone
 
 import ludo_engine as engine
 from ludo_engine import EngineError, EventType, GameState, SecureDice, TurnPhase
@@ -43,6 +46,12 @@ class GameConflict(Exception):
     """Another request changed the game first. The client should resync and retry."""
 
     code = "stale_version"
+
+
+class TimerNotDue(Exception):
+    """A timeout was requested before the turn's deadline (e.g. a racing timer sweep)."""
+
+    code = "timer_not_due"
 
 
 class LegacyGame(Exception):
@@ -130,6 +139,7 @@ def start_game(room: Room, host: Player) -> tuple[Game, GameState]:
         state=snapshot,
         initial_state=snapshot,
         version=state.version,
+        turn_deadline=timezone.now() + turn_duration(state),
     )
     for player in players:
         for _ in range(state.rules.tokens_per_player):
@@ -155,14 +165,27 @@ def token_ids_by_player(room: Room) -> dict[str, list[str]]:
     return result
 
 
-def perform(room_code: str, action: dict[str, Any]) -> ActionResult:
+def turn_duration(state: GameState) -> timedelta:
+    return timedelta(seconds=state.rules.turn_timeout_seconds)
+
+
+def seconds_left(deadline: datetime | None, now: datetime | None = None) -> int | None:
+    """Whole seconds until ``deadline`` (never negative), or None when there is no timer."""
+    if deadline is None:
+        return None
+    remaining = (deadline - (now or timezone.now())).total_seconds()
+    return max(0, math.ceil(remaining))
+
+
+def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = None) -> ActionResult:
     """
     Apply one action. ``action`` uses ludo_engine.apply_action's format, plus:
       - "roll" without "value": the server rolls with SecureDice
       - "bot_move": the server picks the move with ludo_engine.choose_move
-    Raises EngineError (rule violations), GameConflict, LegacyGame,
+    Raises EngineError (rule violations), GameConflict, LegacyGame, TimerNotDue,
     Room.DoesNotExist / Game.DoesNotExist.
     """
+    now = now or timezone.now()
     with transaction.atomic():
         room = Room.objects.select_for_update().get(code=room_code)
         game = Game.objects.select_for_update().get(room=room)
@@ -172,6 +195,10 @@ def perform(room_code: str, action: dict[str, Any]) -> ActionResult:
         state = GameState.from_dict(game.state)
         if state.version != game.version:
             raise GameConflict("stored state and version disagree")
+        if action.get("type") == "timeout" and (
+            game.turn_deadline is None or game.turn_deadline > now
+        ):
+            raise TimerNotDue("this turn has not run out yet")
 
         resolved = _resolve(state, action)
         transition = engine.apply_action(state, resolved)
@@ -180,12 +207,19 @@ def perform(room_code: str, action: dict[str, Any]) -> ActionResult:
         # Optimistic check: only save if nobody saved a newer version meanwhile.
         # (SQLite ignores SELECT ... FOR UPDATE, so this is the real guard there.)
         current = new_state.current_player.player_id
+        if new_state.is_finished:
+            deadline = None
+        elif new_state.turn_number != state.turn_number:
+            deadline = now + turn_duration(new_state)  # a new turn gets a fresh clock
+        else:
+            deadline = game.turn_deadline  # same turn (roll -> move): clock keeps running
         saved = Game.objects.filter(pk=game.pk, version=state.version).update(
             state=new_state.to_dict(),
             version=new_state.version,
             current_turn_id=current,
             last_dice=new_state.dice_value,
             is_finished=new_state.is_finished,
+            turn_deadline=deadline,
         )
         if saved != 1:
             raise GameConflict("the game changed while this action was running")
@@ -193,7 +227,7 @@ def perform(room_code: str, action: dict[str, Any]) -> ActionResult:
         GameAction.objects.create(game=game, version=new_state.version, action=resolved)
         token_ids = token_ids_by_player(room)
         _mirror_tokens(state, new_state, token_ids)
-        messages = socket_messages(transition, token_ids)
+        messages = socket_messages(transition, token_ids, deadline=deadline, now=now)
         next_is_bot = (
             not new_state.is_finished
             and Player.objects.filter(id=current, is_bot=True).exists()
@@ -220,8 +254,15 @@ def _resolve(state: GameState, action: dict[str, Any]) -> dict[str, Any]:
             raise engine.NotYourTurn("not the bot's turn")
         chosen = engine.choose_move(state)
         return {"type": "move", "player_id": str(action["player_id"]), "token_index": chosen.token_index}
-    if kind == "timeout" and "dice_value" not in action:
-        return {**action, "dice_value": SecureDice().roll()}
+    if kind == "timeout":
+        expected_turn = action.get("turn_number", state.turn_number)
+        engine.check_timeout(state, expected_turn)  # stale timers never touch the dice
+        rolling = state.phase is TurnPhase.AWAITING_ROLL
+        return {
+            "type": "timeout",
+            "turn_number": expected_turn,
+            "dice_value": SecureDice().roll() if rolling else None,
+        }
     return dict(action)
 
 
@@ -240,8 +281,15 @@ def _mirror_tokens(old: GameState, new: GameState, token_ids: dict[str, list[str
 # ---------------------------------------------------------------------------
 
 
-def socket_messages(transition: engine.Transition, token_ids: dict[str, list[str]]) -> list[dict]:
+def socket_messages(
+    transition: engine.Transition,
+    token_ids: dict[str, list[str]],
+    *,
+    deadline: datetime | None = None,
+    now: datetime | None = None,
+) -> list[dict]:
     """Engine events → the messages the Flutter app already understands (+ version)."""
+    rules = transition.state.rules
 
     def token_id(player_id: str, index: int) -> str | None:
         ids = token_ids.get(player_id, [])
@@ -281,6 +329,10 @@ def socket_messages(transition: engine.Transition, token_ids: dict[str, list[str
                 "player_id": data["player_id"],
                 "turn_number": data["turn_number"],
                 "extra_turn": data["extra_turn"],
+                # Countdown for the app. seconds_left avoids trusting the phone's clock.
+                "seconds_left": seconds_left(deadline, now),
+                "turn_deadline": deadline.isoformat() if deadline else None,
+                "warning_seconds": rules.timeout_warning_seconds,
                 "version": version,
             })
         elif event.type is EventType.GAME_FINISHED:
@@ -290,11 +342,14 @@ def socket_messages(transition: engine.Transition, token_ids: dict[str, list[str
                 "standings": data["standings"],
                 "version": version,
             })
-        elif event.type in (
-            EventType.PLAYER_TIMEOUT,
-            EventType.PLAYER_FINISHED,
-            EventType.PLAYER_FORFEITED,
-        ):
+        elif event.type is EventType.PLAYER_TIMEOUT:
+            payloads.append({
+                "type": "player_timeout",
+                **data,
+                "max_missed_turns": rules.max_missed_turns,
+                "version": version,
+            })
+        elif event.type in (EventType.PLAYER_FINISHED, EventType.PLAYER_FORFEITED):
             payloads.append({"type": event.type.value, **data, "version": version})
         # token_captured / token_finished / turn_ended are folded into the messages above.
     return [{"type": "game_event", "payload": p} for p in payloads]

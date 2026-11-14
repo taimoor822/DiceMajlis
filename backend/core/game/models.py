@@ -55,6 +55,10 @@ class Game(models.Model):
     initial_state = models.JSONField(null=True, blank=True)
     version = models.PositiveIntegerField(default=0)
 
+    # When the current turn runs out. Written in the same transaction as
+    # ``state`` so the two can never disagree. NULL = no timer (game over).
+    turn_deadline = models.DateTimeField(null=True, blank=True, db_index=True)
+
     def __str__(self):
         return f"Game in room {self.room.code}"
 

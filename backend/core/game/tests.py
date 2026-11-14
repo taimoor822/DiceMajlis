@@ -5,17 +5,21 @@ scripted where a test needs a specific roll.
 """
 
 from dataclasses import replace
+from datetime import timedelta
+from io import StringIO
 from unittest import mock
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.core.management import call_command
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 import ludo_engine as le
 from ludo_engine import GameState, TurnPhase
 
-from . import services
+from . import services, timers
 from .consumers import LobbyConsumer
 from .models import Game, GameAction, Player, Token
 
@@ -323,3 +327,130 @@ class SocketDeliveryTests(GameApiTestCase):
         async_to_sync(consumer.game_event)({"type": "game_event", "payload": payload})
         consumer.send.assert_awaited_once()
         self.assertIn('"version": 9', consumer.send.await_args.kwargs["text_data"])
+
+
+class TurnTimerTests(GameApiTestCase):
+    """game/timers.py: overdue turns are auto-played; idle players are removed."""
+
+    def later(self, seconds=3600):
+        return timezone.now() + timedelta(seconds=seconds)
+
+    def test_a_new_game_starts_the_clock_for_the_first_turn(self):
+        code, _, _ = self.two_humans()
+        left = services.seconds_left(self.game(code).turn_deadline)
+        self.assertTrue(28 <= left <= 30, left)
+
+    def test_each_new_turn_tells_the_app_how_long_it_has(self):
+        code, host, guest = self.two_humans()
+        self.dice(3)
+        self.post("roll-dice", code=code, player_id=host)
+        turn = next(m for m in self.sent if m["type"] == "turn_changed")
+        self.assertEqual(turn["player_id"], guest)
+        self.assertTrue(28 <= turn["seconds_left"] <= 30)
+        self.assertEqual(turn["warning_seconds"], 10)
+
+    def test_rolling_does_not_reset_the_clock_moving_to_a_new_turn_does(self):
+        code, host, _ = self.two_humans()
+        game = self.game(code)
+        game.turn_deadline = timezone.now() + timedelta(seconds=12)
+        game.save(update_fields=["turn_deadline"])
+        self.dice(6)
+        self.post("roll-dice", code=code, player_id=host)  # same turn: still ~12s
+        self.assertLessEqual(services.seconds_left(self.game(code).turn_deadline), 12)
+        self.post("move-token", code=code, player_id=host, token_id=self.token_ids(code, host)[0])
+        self.assertGreaterEqual(services.seconds_left(self.game(code).turn_deadline), 28)  # extra turn
+
+    def test_nothing_happens_before_the_deadline(self):
+        code, _, _ = self.two_humans()
+        self.assertEqual(timers.process_due_turns(), 0)
+        self.assertEqual(self.game(code).version, 0)
+
+    def test_an_idle_player_is_played_for_and_the_turn_moves_on(self):
+        code, host, guest = self.two_humans()
+        self.dice(4)
+        self.assertEqual(timers.process_due_turns(now=self.later()), 1)
+
+        state = self.state(code)
+        self.assertEqual(state.player(host).missed_turns, 1)
+        self.assertEqual(state.current_player.player_id, guest)
+        timeout = next(m for m in self.sent if m["type"] == "player_timeout")
+        self.assertEqual((timeout["player_id"], timeout["missed_turns"], timeout["max_missed_turns"]), (host, 1, 3))
+        self.assertEqual(GameAction.objects.last().action["type"], "timeout")
+
+    def test_idle_player_with_a_rolled_dice_gets_moved(self):
+        code, host, guest = self.two_humans()
+        self.set_positions(code, {host: [10, -1, -1, -1]})
+        self.dice(4)
+        self.post("roll-dice", code=code, player_id=host)  # rolled, then walked away
+        timers.process_due_turns(now=self.later())
+        self.assertEqual(Token.objects.get(id=self.token_ids(code, host)[0]).position, 14)
+        self.assertEqual(str(self.game(code).current_turn_id), guest)
+
+    def test_three_missed_turns_in_a_row_remove_the_player(self):
+        code, host, guest = self.two_humans()
+        self.dice(*[3] * 10)  # nobody can ever move, so turns just time out
+        for hour in range(1, 6):  # host, guest, host, guest, host — each sweep later than the last
+            timers.process_due_turns(now=self.later(3600 * hour))
+
+        state = self.state(code)
+        self.assertEqual(state.player(host).status.value, "forfeited")
+        self.assertEqual(state.winner_id, guest)
+        self.assertTrue(self.game(code).is_finished)
+        self.assertIsNone(self.game(code).turn_deadline)
+        self.assertIn("player_forfeited", self.sent_types())
+        self.assertEqual(timers.process_due_turns(now=self.later(3600 * 24)), 0)  # finished: ignored
+
+    def test_playing_resets_the_missed_turn_count(self):
+        code, host, guest = self.two_humans()
+        self.dice(3, 3, 3)
+        timers.process_due_turns(now=self.later())  # host misses once
+        self.post("roll-dice", code=code, player_id=guest)
+        self.post("roll-dice", code=code, player_id=host)  # host is back
+        self.assertEqual(self.state(code).player(host).missed_turns, 0)
+
+    def test_a_timer_for_a_turn_that_already_ended_does_nothing(self):
+        code, host, _ = self.two_humans()
+        stale_turn = self.state(code).turn_number
+        Game.objects.filter(room__code=code).update(turn_deadline=timezone.now() - timedelta(seconds=1))
+        self.dice(3)
+        self.post("roll-dice", code=code, player_id=host)  # host acts at the last moment
+        Game.objects.filter(room__code=code).update(turn_deadline=timezone.now() - timedelta(seconds=1))
+        with self.assertRaises(le.InvalidAction):
+            services.perform(code, {"type": "timeout", "turn_number": stale_turn})
+
+    def test_timeouts_before_the_deadline_are_refused(self):
+        code, _, _ = self.two_humans()
+        with self.assertRaises(services.TimerNotDue):
+            services.perform(code, {"type": "timeout"})
+
+    def test_an_overdue_bot_just_plays_without_penalty(self):
+        code, host = self.create_room()
+        self.start(code, host)
+        bot = str(Player.objects.get(room__code=code, is_bot=True).id)
+        self.dice(*[3] * 10)
+        self.post("roll-dice", code=code, player_id=host)  # passes to bot, bot plays inline
+        # Simulate a dead bot thread: hand the turn back to the bot and let the clock run out.
+        game = self.game(code)
+        state = replace(self.state(code), current_index=self.state(code).index_of(bot))
+        Game.objects.filter(pk=game.pk).update(
+            state=state.to_dict(), current_turn_id=bot,
+            turn_deadline=timezone.now() - timedelta(seconds=1),
+        )
+        self.assertEqual(timers.process_due_turns(), 1)
+        self.assertEqual(self.state(code).player(bot).missed_turns, 0)
+        self.assertEqual(self.state(code).current_player.player_id, host)
+
+    def test_reconnecting_clients_get_the_time_left(self):
+        code, _, _ = self.two_humans()
+        consumer = LobbyConsumer()
+        consumer.room_code = code
+        snapshot = async_to_sync(consumer.get_game_state)()
+        self.assertTrue(28 <= snapshot["seconds_left"] <= 30)
+
+    def test_management_command_runs_one_sweep(self):
+        self.two_humans()
+        Game.objects.update(turn_deadline=timezone.now() - timedelta(seconds=1))
+        self.dice(3)
+        out = StringIO()
+        call_command("run_turn_timers", "--once", stdout=out)
+        self.assertIn("Handled 1", out.getvalue())

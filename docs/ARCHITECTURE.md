@@ -139,14 +139,24 @@ Apps can become separate services later if metrics demand it — not before.
 If Redis loses a game, it is rebuilt from Postgres with `ludo_engine.replay(initial, actions)`.
 That only works because the engine is deterministic (§6).
 
-### Turn timer
+### Turn timer ✅ (step 1.2, `game/timers.py`)
 
-On every `turn_started`, the server adds `"{game_id}:{turn_number}"` to the Redis sorted
-set `timers:turns` with the deadline as score. A worker polls every second for expired
-entries and calls `ludo_engine.timeout(state, dice_value=SecureDice().roll(),
-expected_turn=turn_number)`. A player who acted just before the deadline gets a newer
-`turn_number`, so the stale timer is rejected instead of punishing the next player.
-Timeout length comes from `Rules.turn_timeout_seconds` (default 30, warning at 10).
+Each running game stores `Game.turn_deadline`, written **in the same transaction as the
+game state**, so the clock and the state can never disagree. A new turn gets a fresh 30 s;
+rolling doesn't reset it. A sweep runs every second, finds overdue turns and calls
+`ludo_engine.timeout(..., expected_turn=turn_number)`: the server rolls, the bot logic
+moves, and 3 missed turns in a row forfeit the player. A player who acted just before
+the deadline already has a newer `turn_number`, so the stale timer is rejected. An
+overdue **bot** just plays (its thread died; no penalty).
+
+Where the sweep runs: inside every ASGI server process (`core/asgi.py`, on by default),
+or as its own process with `GAME_TIMER_IN_PROCESS=false` + `python manage.py
+run_turn_timers`. Several sweeps at once are safe. The app gets `seconds_left` (not a
+timestamp, so a wrong phone clock doesn't matter) in `turn_changed` and on reconnect.
+
+*Why the database and not a Redis sorted set (the original plan):* one source of truth
+and one transaction, works on SQLite in development, and an indexed query per second is
+cheap at this scale. Move to Redis when live games reach the tens of thousands.
 
 ### Scaling path
 
@@ -230,7 +240,7 @@ backend/
     ├── ludo_engine/           # ✅ BUILT — pure Python rules, no Django imports
     │   ├── board.py  rules.py  state.py  engine.py  events.py
     │   ├── dice.py   bot.py    errors.py
-    │   └── tests/             # 71 tests incl. 300 simulated full games
+    │   └── tests/             # 72 tests incl. 300 simulated full games
     ├── game/                  # rooms + REST + WS; services.py = the only code that changes game state
     │                          # (split into rooms/ + gameplay/ later)
     ├── users/                 # existing, empty → replaced by accounts/
@@ -303,7 +313,7 @@ The client never sends amounts.
 |---|---|---|---|
 | `game:{id}:state` | string (JSON snapshot) | Live authoritative state | 24 h after game end |
 | `game:{id}:events` | list (last 200) | Delta sync on reconnect | with state |
-| `timers:turns` | sorted set (deadline) | Turn timer worker | removed when fired |
+| `timers:turns` | sorted set (deadline) | Turn timer — *later*; today `Game.turn_deadline` (§2) | removed when fired |
 | `ws:req:{user}:{req_id}` | string | Idempotent replies | 60 s |
 | `rate:{user}:{bucket}` | counter | Rate limiting | window |
 | `presence:{user}` | string | Online status (heartbeat) | 60 s |
@@ -384,7 +394,7 @@ result — `replay()` rebuilds any game from `gameplay_game_action` for disputes
 after a Redis loss. The client can never send a dice value or a position: it only says
 *"roll"* or *"move token 2"*, and the engine rejects anything illegal with a coded error.
 
-### Tests (`python manage.py test ludo_engine` — 71 tests)
+### Tests (`python manage.py test ludo_engine` — 72 tests)
 
 Board maths, rules validation, dice ranges, entering, extra turns, three sixes,
 captures (including a regression test for the old bug), safe squares, home column,
@@ -525,13 +535,12 @@ cp ../.env.example ../.env       # SQLite by default. For the Docker Postgres:
                                  #   set DB_ENGINE=postgres and pip install "psycopg[binary]"
 cd core
 python manage.py migrate
-python manage.py runserver 0.0.0.0:8000               # see note below
+pip install "uvicorn[standard]"                       # WebSocket server; joins requirements in 1.3
+uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 ```
 
-> **Note — WebSockets need an ASGI server.** `requirements.txt` doesn't include one yet.
-> Until step 1.3 adds it: `pip install "daphne>=4"` and put `"daphne"` first in
-> `INSTALLED_APPS`, so `runserver` serves WebSockets. Or run
-> `uvicorn core.asgi:application --reload` (`pip install "uvicorn[standard]"`).
+> Plain `python manage.py runserver` does **not** serve WebSockets with the current
+> settings. The turn timer starts automatically inside the uvicorn process.
 
 ### Tests
 
@@ -564,9 +573,9 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 
 | # | Step | Done when |
 |---|---|---|
-| 1.0 | ✅ **Engine** — `ludo_engine` + 71 tests | Tests pass under Django and plain unittest |
+| 1.0 | ✅ **Engine** — `ludo_engine` + 72 tests | Tests pass under Django and plain unittest |
 | 1.1 | ✅ **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
-| 1.2 | **Turn timer** — Redis sorted set + worker command; `turn_started` carries the deadline; auto-move; 3 misses → forfeit. Flutter countdown ring | An idle player is auto-played, then removed; game never freezes |
+| 1.2 | ✅ **Turn timer** — deadline on `Game` (same transaction as state), sweep in the server process or `run_turn_timers`; `turn_changed` carries `seconds_left`; auto-move; 3 misses → forfeit. Flutter countdown in the turn chip + idle messages | An idle player is auto-played, then removed; game never freezes |
 | 1.3 | **Dev & CI foundation** — Daphne + `psycopg` in requirements, settings split (dev/prod), `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`, Docker Compose, GitHub Actions running backend tests + `flutter analyze` | Fresh clone runs with the documented commands; CI green on every push |
 | 1.4 | **Flutter foundation refactor** (no behaviour change) — Riverpod, GoRouter, Freezed; move files to `core/` `shared/` `features/`; Majlis theme tokens (Dark + Light); l10n scaffold (en, ar, ur); delete empty files | Same screens and flows, new structure; no hard-coded colours in moved widgets |
 | 1.5 | **Guest accounts + JWT** — `accounts` app, `/api/auth/guest`, `/refresh`, `/me`; Flutter splash restores session; room APIs use the logged-in user | Reinstall-free relaunch keeps the same player; name no longer typed each game |

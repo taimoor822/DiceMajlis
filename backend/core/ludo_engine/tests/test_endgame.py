@@ -86,6 +86,12 @@ class TimeoutTests(unittest.TestCase):
         self.assertEqual(t.state.player("a").tokens[0], 14)
         self.assertEqual(t.state.current_player.player_id, "b")
 
+    def test_check_timeout_validates_without_rolling(self):
+        state = le.new_game("g", ["a", "b"])
+        le.check_timeout(state, expected_turn=state.turn_number)
+        with self.assertRaises(InvalidAction):
+            le.check_timeout(state, expected_turn=state.turn_number + 1)
+
     def test_stale_timer_is_rejected(self):
         state = le.new_game("g", ["a", "b"])
         after_turn = le.roll(state, "a", 3).state  # turn already passed to b

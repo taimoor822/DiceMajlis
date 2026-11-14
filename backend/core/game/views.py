@@ -263,6 +263,7 @@ def start_game(request):
             'tokens': tokens_payload,
             'last_dice': game.last_dice,
             'version': game.version,
+            'seconds_left': services.seconds_left(game.turn_deadline),
         }
     )
 

@@ -5,9 +5,9 @@ Rule: build vertically, keep the app runnable after every step.
 
 ## Phase 1 — Foundation
 
-- [x] **1.0** Pure-Python Ludo engine (`backend/core/ludo_engine/`) + 71 tests
+- [x] **1.0** Pure-Python Ludo engine (`backend/core/ludo_engine/`) + tests
 - [x] **1.1** Wire the engine into the current game (fixes: humans can't win, wrong-square captures, safe squares, colour clashes) + Flutter board path fix
-- [ ] **1.2** Server turn timer, auto-move, 3 misses → forfeit, countdown ring
+- [x] **1.2** Server turn timer, auto-move, 3 misses → forfeit, countdown in the app
 - [ ] **1.3** Dev & CI: Daphne + psycopg, settings split, `--dart-define` URLs, GitHub Actions
 - [ ] **1.4** Flutter refactor to `core/ shared/ features/` with Riverpod, GoRouter, Freezed, Majlis theme, l10n
 - [ ] **1.5** Guest accounts + JWT + splash session restore

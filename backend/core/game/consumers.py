@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from . import services
 from .models import Room, Token
 
 
@@ -30,6 +31,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'tokens': game_state['tokens'],
                 'last_dice': game_state['last_dice'],
                 'version': game_state.get('version'),
+                'seconds_left': game_state.get('seconds_left'),
             }))
 
             # If it's currently the bot's turn, ensure the bot resumes playing.
@@ -90,6 +92,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             payload['last_dice'] = event['last_dice']
         if 'version' in event:
             payload['version'] = event['version']
+        if 'seconds_left' in event:
+            payload['seconds_left'] = event['seconds_left']
 
         await self.send(text_data=json.dumps(payload))
 
@@ -180,10 +184,12 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         current_turn_player_id = None
         last_dice = None
         version = None
+        seconds_left = None
         if hasattr(room, 'game'):
             current_turn_player_id = str(room.game.current_turn_id) if room.game.current_turn_id else None
             last_dice = room.game.last_dice
             version = room.game.version
+            seconds_left = services.seconds_left(room.game.turn_deadline)
 
         return {
             'room_code': room.code,
@@ -193,4 +199,5 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'players': players,
             'tokens': tokens,
             'version': version,
+            'seconds_left': seconds_left,
         }
