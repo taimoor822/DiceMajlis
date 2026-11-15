@@ -58,6 +58,7 @@ DiceMajlis/
 ├── docs/
 │   ├── ARCHITECTURE.md          # technical foundation and design decisions
 │   ├── SOCIAL_MAJLIS.md         # profiles, Majlis rooms and gift economy design
+│   ├── ROYAL_VIP_ECONOMY.md     # store, VIP, Royal levels, items, entitlements design
 │   └── planning.md              # progress tracker
 └── docker-compose.dev.yml       # Redis + PostgreSQL for local development
 ```
@@ -153,9 +154,14 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 | 4 — Economy & gifts | Gold coins and diamonds wallet, gift catalog, sending gifts, gift animations |
 | 5 — Majlis rooms | Persistent social rooms: chat, members, mic seats, music, room gifts |
 | 6 — Room social loop | Moments, contribution and attraction rankings, room levels, room events |
-| 7–10 | Competitive leagues · tournaments · purchases & VIP · voice and polish |
+| 7–8 | Competitive leagues · tournaments |
+| 9 — Store | Gold and diamond packages through App Store / Google Play |
+| 10 — VIP & Royal | VIP Knight / Baron subscriptions, Royal levels and privileges, Reward Tower |
+| 11 — Premium extras | Magic cards, props, fragment exchange, visitor history, chat extras, support |
+| 12 | Voice and polish |
 
-Design for phases 3–6: [docs/SOCIAL_MAJLIS.md](docs/SOCIAL_MAJLIS.md).
+Designs: phases 3–6 [docs/SOCIAL_MAJLIS.md](docs/SOCIAL_MAJLIS.md) ·
+phases 9–11 [docs/ROYAL_VIP_ECONOMY.md](docs/ROYAL_VIP_ECONOMY.md).
 Step-by-step progress: [docs/planning.md](docs/planning.md).
 
 ---

@@ -2,6 +2,8 @@
 
 > Status: design, not built yet. Added 2026-11-15.
 > Extends [ARCHITECTURE.md](ARCHITECTURE.md). Progress in [planning.md](planning.md).
+> Store, real-money purchases, VIP, Royal levels, items and the entitlement engine are in
+> [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md), which extends §3–§7 below.
 
 **Contents**
 
@@ -192,7 +194,7 @@ configurable). This is separate from the app's own display language (ARCHITECTUR
 | | 🪙 Gold coins | 💎 Diamonds |
 |---|---|---|
 | Role | Everyday currency | Premium currency |
-| Earned by | Daily login, games, missions, achievements, events | Event prizes, admin grants; **purchases later** (Phase 9) |
+| Earned by | Daily login, games, missions, achievements, events; **purchases** (Phase 9) | Event prizes, admin grants; **purchases** (Phase 9) |
 | Buys | Common gifts, some cosmetics | Premium gifts, premium cosmetics, VIP, pass |
 
 ### Rules
@@ -658,7 +660,7 @@ Phase 2 delivers `/ws/v1/`, presence and the domain-event outbox.
 | S1 | Profile page: header, Player ID copy/search, languages, privacy, tabs; social graph (follow, friends, block, report) with relationship-aware buttons | Two accounts can find, friend and block each other |
 | S2 | `PlayerStatistics` from real online games | Playing a game updates both players' stats |
 | S3 | Achievements engine + first 15 achievements | Winning a first game unlocks First Victory exactly once |
-| S4 | Cosmetics catalog + inventory + equip: dice, nameplates, frames | Equipped dice shows on the profile and in game |
+| S4 | Item system (ROYAL_VIP_ECONOMY §4) with cosmetics first: dice, nameplates, frames — own + equip | Equipped dice shows on the profile and in game |
 
 ### Phase 4 — Economy and gifts (prompt steps 5–8)
 
@@ -699,8 +701,8 @@ Then: **Competitive** (ratings, leagues, seasons — fills the league fields),
 
 ## 18. Decisions needed
 
-1. **Real money:** will diamonds be sold for real money? (Assumed yes, in Phase 9 via
-   App Store / Google Play only.)
+1. **Real money:** ✅ answered yes — gold, diamonds and VIP via App Store / Google Play
+   (Phase 9, see ROYAL_VIP_ECONOMY.md).
 2. **Cash-out:** can received gifts ever be turned into money? (Assumed **no**, see §5.)
 3. **Voice:** is v1 without audio acceptable (slots, mute states and UI only)? (Assumed yes.)
 4. **Age:** minimum age for public rooms, voice and purchases.

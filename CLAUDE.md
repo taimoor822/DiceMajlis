@@ -14,6 +14,7 @@ keep replies short (often read on a phone), and always say how to try the change
 | `docs/planning.md` | **Current step** and progress checklist — start here |
 | `docs/ARCHITECTURE.md` | Stack decisions, system design, engine, WebSocket protocol, auth, dev setup |
 | `docs/SOCIAL_MAJLIS.md` | Design for profiles, Majlis rooms, wallet/ledger, gifts (phases 3–6) |
+| `docs/ROYAL_VIP_ECONOMY.md` | Store/purchases, VIP, Royal levels, items, rewards, entitlements (phases 9–11) |
 | `README.md` | What works today, how to run it |
 
 The owner may send an updated plan. When the plan changes, update `docs/planning.md`
@@ -40,8 +41,12 @@ docs/                      plans and designs
    rows or game broadcasts anywhere else.
 3. **`ludo_engine` stays pure:** no Django, no database, no clock, no randomness.
    The server rolls with `SecureDice` and passes values in; that keeps games replayable.
-4. **Money (when built):** balances change only through the wallet ledger service,
-   append-only, with idempotency keys, inside one DB transaction (SOCIAL_MAJLIS §5–7).
+4. **Money and items (when built):** balances and item counts change only through the
+   wallet / item ledgers, append-only, with idempotency keys, inside one DB transaction.
+   Every reward goes through the one `grant()` engine. Purchases are granted only after
+   server verification with Apple/Google (SOCIAL_MAJLIS §5–7, ROYAL_VIP_ECONOMY §3–6).
+   Privileges are checked only through the entitlement engine — no `if user.isVip`.
+   VIP/Royal never affect ratings, leagues or matchmaking (no pay-to-win).
 5. **No hard-coded gameplay numbers or prices in Flutter.** Rules live in
    `ludo_engine/rules.py`; gift prices and catalogs come from the server.
 6. **Build vertically, one plan step at a time.** Keep the app runnable after every
@@ -104,5 +109,8 @@ See `docs/planning.md`. Done: engine (1.0), live game on engine (1.1), turn time
 (1.2), dev setup + CI (1.3). Next: 1.4 Flutter restructure + Majlis theme, then 1.5
 accounts with permanent Player ID.
 
-Open owner decisions (answer when that phase starts): real-money diamonds, gift
-cash-out (assumed no), voice in v1, minimum age, Punjabi script.
+Decided: real money yes (gold, diamonds, VIP via App Store / Google Play).
+Open owner decisions (answer when that phase starts): purchase service vs own
+verification, Super Value Surprise free-only, reward-day reset time, gift cash-out
+(assumed no), voice in v1, minimum age and spending limits, magic cards in ranked
+(assumed never), Punjabi script.

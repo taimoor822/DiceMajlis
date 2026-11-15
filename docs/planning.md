@@ -1,7 +1,8 @@
 # Dice Majlis — Progress Tracker
 
 Architecture and the reasoning behind each step: [ARCHITECTURE.md](ARCHITECTURE.md)
-(foundation) and [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) (profiles, Majlis rooms, gifts).
+(foundation), [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) (profiles, Majlis rooms, gifts) and
+[ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md) (store, VIP, Royal levels, items).
 Rule: build vertically, keep the app runnable after every step.
 
 ## Phase 1 — Foundation
@@ -29,12 +30,14 @@ Rule: build vertically, keep the app runnable after every step.
 - [ ] **S1** Profile page, Player ID copy/search, languages, privacy; follow, friends, block, report
 - [ ] **S2** Statistics from real online games (bot games excluded)
 - [ ] **S3** Achievements engine + first achievements
-- [ ] **S4** Cosmetics: favourite dice, nameplates, frames (own + equip)
+- [ ] **S4** Item system (catalog, inventory, item ledger, equip) with cosmetics first: favourite dice, nameplates, frames
 
 ## Phase 4 — Economy and gifts
 
 - [ ] **S5** Gift catalog managed in admin
-- [ ] **S6** Wallet + ledger: gold coins and diamonds (earned and granted only, no real money yet)
+- [ ] **S6** Wallet + ledger: gold, diamonds, fragments (earned and granted only, no real money yet)
+- [ ] **S6b** Reward engine: one `grant()` for every reward, claims, server reward-day + daily login reward
+- [ ] **S6c** Entitlement engine: privilege catalog, grants, inheritance, admin overrides
 - [ ] **S7** Send gifts to profiles: atomic, idempotent; gifts shown on profile
 - [ ] **S8** Gift animation engine (5 rarity tiers, combos, fallback)
 
@@ -60,8 +63,37 @@ Rule: build vertically, keep the app runnable after every step.
 
 - [ ] **7** Competitive: ratings, leagues, seasons, leaderboards (fills league fields on profiles)
 - [ ] **8** Tournaments
-- [ ] **9** Monetisation: diamond purchases via App Store / Google Play, VIP, Majlis Pass, spend limits
-- [ ] **10** Voice (WebRTC SFU) and polish: animations, performance, analytics, accessibility, Arabic / Urdu / Punjabi
+
+### Phase 9 — Store and purchases ([ROYAL_VIP_ECONOMY §21](ROYAL_VIP_ECONOMY.md#21-build-order))
+
+- [ ] **M1** Store catalog (admin) + Store screen with real store prices
+- [ ] **M2** Gold and diamond purchases, server-verified (Apple / Google), refunds
+- [ ] **M3** Promotions: first-purchase bonus, limited packages, regions, recharge tickets
+- [ ] **M4** Purchase and transaction history
+
+### Phase 10 — VIP and Royal
+
+- [ ] **M5** Subscription engine + VIP Knight / Baron (tiers are config)
+- [ ] **M6** VIP daily rewards with streaks
+- [ ] **M7** Royal EXP ledger, levels, idempotent level-up
+- [ ] **M8** Royal privileges + Royal Level screen
+- [ ] **M9** Royal Reward Tower
+- [ ] **M10** VIP/Royal in profiles, rooms, chat and social sorting
+
+### Phase 11 — Premium items and extras
+
+- [ ] **M11** Magic cards and props
+- [ ] **M12** Fragment Exchange
+- [ ] **M13** Super Value Surprise (free draws, odds shown)
+- [ ] **M14** Daily Gift Commission
+- [ ] **M15** Visitor history (+ stealth visit)
+- [ ] **M16** Chat privileges: voice messages, stickers, GIFs, styles
+- [ ] **M17** Support tickets with priority
+- [ ] **M18** Economy dashboard and balancing
+
+### Then
+
+- [ ] **12** Voice (WebRTC SFU) and polish: animations, performance, analytics, accessibility, Arabic / Urdu / Punjabi
 
 > Social comes before competitive, following the master prompt's priority:
 > quality → reliability → multiplayer → social → competition → monetisation → scale.

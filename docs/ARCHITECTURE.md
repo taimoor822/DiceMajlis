@@ -3,8 +3,9 @@
 > Status: living document. Last updated 2026-11-15.
 > Covers the 10 foundation items from the master build prompt, adapted to the code
 > that already exists in this repository. Profiles, Majlis rooms and the gift economy
-> are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); the current phase order is in
-> [planning.md](planning.md).
+> are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); store, VIP, Royal levels and
+> premium items in [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md); the current phase order
+> is in [planning.md](planning.md).
 
 **Contents**
 
