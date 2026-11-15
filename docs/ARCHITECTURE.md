@@ -2,7 +2,9 @@
 
 > Status: living document. Last updated 2026-11-15.
 > Covers the 10 foundation items from the master build prompt, adapted to the code
-> that already exists in this repository.
+> that already exists in this repository. Profiles, Majlis rooms and the gift economy
+> are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); the current phase order is in
+> [planning.md](planning.md).
 
 **Contents**
 
@@ -275,6 +277,9 @@ Inside every app:
 ---
 
 ## 5. Database architecture
+
+> Phase numbers in this section predate the social expansion. Social, wallet and gift
+> tables are now specified in [SOCIAL_MAJLIS.md §3](SOCIAL_MAJLIS.md#3-backend-apps-and-tables).
 
 **PostgreSQL is the source of truth. Redis holds only things that can be rebuilt or
 expire.** All primary keys are UUIDs; every table has `created_at`; money-like data is
@@ -584,6 +589,10 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 | 1.8 | **Offline mode** — Dart engine port + shared JSON test vectors; vs AI and pass-and-play | Plays with airplane mode on; Dart tests pass on the same vectors as Python |
 | 1.9 | **Google + Apple sign-in** | Both work on real devices; accounts link to existing guests |
 
-**Phase 2 preview:** `/ws/v1/` single socket with the §7 protocol, Redis game store with
-version-checked writes, action log table, matchmaking queue, reconnection with
-`state_delta`, multiplayer tests (disconnect, duplicate request, latency).
+**Phase 2 preview:** `/ws/v1/` single socket with the §7 protocol, presence service,
+domain-event outbox (needed by the social features), Redis game store with
+version-checked writes, matchmaking queue, reconnection with `state_delta`,
+multiplayer tests (disconnect, duplicate request, latency).
+
+**After Phase 2:** identity, economy and Majlis rooms — see
+[SOCIAL_MAJLIS.md §17](SOCIAL_MAJLIS.md#17-build-order).

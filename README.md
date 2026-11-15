@@ -53,6 +53,7 @@ DiceMajlis/
 │   └── dice_majlis_app/         # Flutter app
 ├── docs/
 │   ├── ARCHITECTURE.md          # technical foundation and design decisions
+│   ├── SOCIAL_MAJLIS.md         # profiles, Majlis rooms and gift economy design
 │   └── planning.md              # progress tracker
 └── docker-compose.dev.yml       # Redis + PostgreSQL for local development
 ```
@@ -134,14 +135,15 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Foundation** (now) | ✅ rules engine · ✅ server-run game · ✅ turn timer · dev setup & CI · app restructure · accounts & login · home dashboard · offline mode |
-| 2 — Online multiplayer | Matchmaking, faster real-time protocol, stronger reconnection |
-| 3 — Competitive | Ratings, leagues, seasons, leaderboards |
-| 4 — Social | Majlis chat rooms, friends, private messages |
-| 5 — Economy | Coins, diamonds, rewards, Majlis Pass, cosmetics |
-| 6 — Tournaments | Daily and weekly brackets |
-| 7 — Polish | Animations, performance, Arabic and Urdu, accessibility |
+| **1 — Foundation** (now) | ✅ rules engine · ✅ server-run game · ✅ turn timer · dev setup & CI · app restructure · accounts with Player ID · home dashboard · offline mode |
+| 2 — Real-time v2 | One socket for everything, presence, matchmaking, stronger reconnection |
+| 3 — Identity | Player profiles, statistics, achievements, favourite dice, nameplates, friends |
+| 4 — Economy & gifts | Gold coins and diamonds wallet, gift catalog, sending gifts, gift animations |
+| 5 — Majlis rooms | Persistent social rooms: chat, members, mic seats, music, room gifts |
+| 6 — Room social loop | Moments, contribution and attraction rankings, room levels, room events |
+| 7–10 | Competitive leagues · tournaments · purchases & VIP · voice and polish |
 
+Design for phases 3–6: [docs/SOCIAL_MAJLIS.md](docs/SOCIAL_MAJLIS.md).
 Step-by-step progress: [docs/planning.md](docs/planning.md).
 
 ---
