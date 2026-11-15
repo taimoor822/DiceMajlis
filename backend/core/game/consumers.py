@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from . import services
 from .models import Room, Token
 
 
@@ -29,6 +30,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 'players': game_state['players'],
                 'tokens': game_state['tokens'],
                 'last_dice': game_state['last_dice'],
+                'version': game_state.get('version'),
+                'seconds_left': game_state.get('seconds_left'),
             }))
 
             # If it's currently the bot's turn, ensure the bot resumes playing.
@@ -39,9 +42,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 for p in players
                 if isinstance(p, dict)
             )
-            if is_bot_turn and game_state.get('last_dice') is None:
-                from .views import _schedule_ai_turn
-                _schedule_ai_turn(self.room_code)
+            if is_bot_turn:
+                from .services import schedule_bots
+                schedule_bots(self.room_code)
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -87,8 +90,16 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             payload['tokens'] = event['tokens']
         if 'last_dice' in event:
             payload['last_dice'] = event['last_dice']
+        if 'version' in event:
+            payload['version'] = event['version']
+        if 'seconds_left' in event:
+            payload['seconds_left'] = event['seconds_left']
 
         await self.send(text_data=json.dumps(payload))
+
+    async def game_event(self, event):
+        # Engine events from game.services: forward the payload unchanged.
+        await self.send(text_data=json.dumps(event['payload']))
 
     async def dice_rolled(self, event):
         await self.send(text_data=json.dumps({
@@ -172,9 +183,13 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
         current_turn_player_id = None
         last_dice = None
+        version = None
+        seconds_left = None
         if hasattr(room, 'game'):
             current_turn_player_id = str(room.game.current_turn_id) if room.game.current_turn_id else None
             last_dice = room.game.last_dice
+            version = room.game.version
+            seconds_left = services.seconds_left(room.game.turn_deadline)
 
         return {
             'room_code': room.code,
@@ -183,4 +198,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'last_dice': last_dice,
             'players': players,
             'tokens': tokens,
+            'version': version,
+            'seconds_left': seconds_left,
         }

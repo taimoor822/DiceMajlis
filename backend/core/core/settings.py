@@ -112,6 +112,13 @@ TEMPLATES = [
 ASGI_APPLICATION = 'core.asgi.application'
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "true").lower() in {"1", "true", "yes", "on"}
 
+# Turn timer (game/timers.py). In-process: every ASGI server process sweeps
+# overdue turns every GAME_TIMER_INTERVAL_SECONDS (safe to run in several).
+# In production you can set GAME_TIMER_IN_PROCESS=false and run
+# `python manage.py run_turn_timers` as its own process instead.
+GAME_TIMER_IN_PROCESS = os.getenv("GAME_TIMER_IN_PROCESS", "true").lower() in {"1", "true", "yes", "on"}
+GAME_TIMER_INTERVAL_SECONDS = float(os.getenv("GAME_TIMER_INTERVAL_SECONDS", "1"))
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',

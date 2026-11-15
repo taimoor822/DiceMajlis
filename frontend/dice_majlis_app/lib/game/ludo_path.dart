@@ -1,9 +1,20 @@
 import 'dart:math';
 import 'dart:ui';
 
+/// Board geometry. Must match the server engine (backend/core/ludo_engine/board.py).
+///
+/// A token's position is its *progress* from its own start square:
+///   -1        in base
+///   0..50     shared track (index into [getPath])
+///   51..55    own home column
+///   56        home ([homeProgress]) — drawn on the colour's centre cell
+/// Seat order around the track is red, blue, green, yellow (13 squares apart).
 class LudoPath {
   static const int _gridSize = 15;
   static const int _maxIndex = _gridSize - 1;
+
+  static const int lastTrackProgress = 50;
+  static const int homeProgress = 56;
 
   static const List<Point<int>> redPath = <Point<int>>[
     Point<int>(6, 13),
@@ -56,13 +67,13 @@ class LudoPath {
     Point<int>(8, 12),
     Point<int>(8, 13),
     Point<int>(8, 14),
-    Point<int>(7, 14),
-    Point<int>(6, 14),
-    Point<int>(7, 13),
+    Point<int>(7, 14), // 50: last track square, entrance to the home column
+    Point<int>(7, 13), // 51..55: home column
     Point<int>(7, 12),
     Point<int>(7, 11),
     Point<int>(7, 10),
     Point<int>(7, 9),
+    Point<int>(7, 8), // 56: home
   ];
 
   static final List<Point<int>> bluePath = _rotatePath(1);

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../game/ludo_path.dart';
+import '../../game/turn_clock.dart';
 import '../../services/api_service.dart';
 import '../../services/socket_service.dart';
 import '../../services/session_storage.dart';
@@ -47,6 +48,10 @@ class _PlayerInfo {
   }
 }
 
+/// Server sends progress 0..56 (56 = home). 100 is the pre-engine "home" value.
+bool _isHomePosition(int position) =>
+    position == 100 || position >= LudoPath.homeProgress;
+
 class _TokenInfo {
   final String id;
   final String playerId;
@@ -66,7 +71,8 @@ class _TokenInfo {
       id: id,
       playerId: playerId,
       position: nextPosition,
-      isFinished: isFinished ?? this.isFinished || nextPosition == 100,
+      isFinished:
+          isFinished ?? this.isFinished || _isHomePosition(nextPosition),
     );
   }
 
@@ -76,7 +82,7 @@ class _TokenInfo {
       id: json['id']?.toString() ?? '',
       playerId: json['player_id']?.toString() ?? '',
       position: position,
-      isFinished: json['is_finished'] == true || position == 100,
+      isFinished: json['is_finished'] == true || _isHomePosition(position),
     );
   }
 }
@@ -92,6 +98,13 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
   String? currentTurnPlayerId;
   int? lastDice;
+
+  /// Tokens the server says can move with [lastDice]; null until it tells us.
+  Set<String>? _movableTokenIds;
+
+  /// Display countdown for the current turn (the server owns the real timer).
+  final TurnClock _turnClock = TurnClock();
+  Timer? _turnClockTicker;
 
   bool _isRollingDice = false;
   bool _isAnimatingMove = false;
@@ -210,6 +223,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   void dispose() {
     _socketSubscription?.cancel();
     _reconnectTimer?.cancel();
+    _turnClockTicker?.cancel();
     if (_socketConnected) {
       socket.disconnect();
     }
@@ -224,15 +238,81 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   bool _canMoveToken(_TokenInfo token) {
     final dice = lastDice;
     if (!isMyTurn || dice == null) return false;
-    if (token.isFinished || token.position == 100) return false;
 
-    if (token.position < 0) {
-      return dice == 6;
+    // The server is the authority; use its list as soon as it arrives.
+    final movable = _movableTokenIds;
+    if (movable != null) return movable.contains(token.id);
+
+    // Same rules as the server engine, for the moment before its message lands.
+    if (token.isFinished || _isHomePosition(token.position)) return false;
+    if (token.position < 0) return dice == 6;
+    return token.position + dice <= LudoPath.homeProgress;
+  }
+
+  /// Call inside setState. Reads `seconds_left` / `warning_seconds` from the server.
+  void _startTurnClock(Map<String, dynamic> data) {
+    _turnClock.start(
+      (data['seconds_left'] as num?)?.toInt(),
+      warningSeconds: (data['warning_seconds'] as num?)?.toInt(),
+    );
+    _turnClockTicker?.cancel();
+    if (!_turnClock.isRunning) return;
+    _turnClockTicker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      setState(() {});
+      if (_turnClock.secondsLeft == 0) timer.cancel();
+    });
+  }
+
+  void _stopTurnClock() {
+    _turnClockTicker?.cancel();
+    _turnClockTicker = null;
+    _turnClock.stop();
+  }
+
+  String _playerName(String? id) => _playersById[id]?.name ?? 'A player';
+
+  void _showNotice(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showPlayerTimedOut(Map<String, dynamic> data) {
+    final id = data['player_id']?.toString();
+    final missed = (data['missed_turns'] as num?)?.toInt() ?? 1;
+    final limit = (data['max_missed_turns'] as num?)?.toInt() ?? 0;
+    final left = limit - missed;
+    if (limit > 0 && left <= 0) return; // a "removed" message follows
+    if (id != null && id == myPlayerId) {
+      _showNotice(
+        limit > 0
+            ? 'Time ran out, so we played for you. '
+                  'Miss $left more turn${left == 1 ? '' : 's'} in a row and you leave the game.'
+            : 'Time ran out, so we played for you.',
+      );
+    } else {
+      _showNotice('${_playerName(id)} ran out of time.');
     }
+  }
 
-    final lastIndex = LudoPath.redPath.length - 1;
-    if (token.position >= lastIndex) return false;
-    return token.position + dice <= lastIndex;
+  void _showPlayerRemoved(Map<String, dynamic> data) {
+    final id = data['player_id']?.toString();
+    final idle = data['reason']?.toString() == 'timeout';
+    if (id != null && id == myPlayerId) {
+      _showNotice(
+        idle
+            ? 'You were removed for missing too many turns.'
+            : 'You left the game.',
+      );
+    } else {
+      _showNotice(
+        idle
+            ? '${_playerName(id)} was removed for being idle.'
+            : '${_playerName(id)} left the game.',
+      );
+    }
   }
 
   void _redirectHome() {
@@ -268,6 +348,10 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
         case 'dice_rolled':
           setState(() {
             lastDice = (data['dice'] as num?)?.toInt();
+            final movable = data['movable_token_ids'];
+            _movableTokenIds = movable is List
+                ? movable.map((id) => id.toString()).toSet()
+                : null;
             final rollerId = data['player_id']?.toString();
             if (rollerId != null && rollerId == myPlayerId) {
               _isRollingDice = false;
@@ -283,11 +367,22 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
           setState(() {
             currentTurnPlayerId = data['player_id']?.toString();
             lastDice = null;
+            _movableTokenIds = null;
             _isRollingDice = false;
+            _startTurnClock(data);
           });
           break;
 
+        case 'player_timeout':
+          _showPlayerTimedOut(data);
+          break;
+
+        case 'player_forfeited':
+          _showPlayerRemoved(data);
+          break;
+
         case 'game_finished':
+          setState(_stopTurnClock);
           final winnerId = data['winner_id']?.toString();
           if (winnerId != null) {
             _showWinner(winnerId);
@@ -343,6 +438,8 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
       _flashingTokenIds.clear();
       currentTurnPlayerId = data['current_turn_player_id']?.toString();
       lastDice = (data['last_dice'] as num?)?.toInt();
+      _movableTokenIds = null;
+      _startTurnClock(data);
       _reconnectAttempts = 0;
       _isReconnecting = false;
       _isRollingDice = false;
@@ -426,7 +523,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
     final lastIndex = LudoPath.redPath.length - 1;
 
     int toUi;
-    if (to == 100) {
+    if (_isHomePosition(to)) {
       toUi = lastIndex;
     } else if (to < 0) {
       toUi = -1;
@@ -436,7 +533,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     final startRaw = from ?? startToken.position;
     int startUi;
-    if (startRaw == 100) {
+    if (_isHomePosition(startRaw)) {
       startUi = lastIndex;
     } else if (startRaw < 0) {
       startUi = -1;
@@ -483,12 +580,12 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     if (!mounted || syncVersion != _syncVersion) return;
 
-    if (to == 100) {
+    if (_isHomePosition(to)) {
       setState(() {
         final current = _tokensById[tokenId];
         if (current != null) {
           _tokensById[tokenId] = current.copyWith(
-            position: 100,
+            position: LudoPath.homeProgress,
             isFinished: true,
           );
         }
@@ -520,6 +617,7 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
 
     setState(() {
       lastDice = null;
+      _movableTokenIds = null;
       _isAnimatingMove = false;
     });
   }
@@ -647,7 +745,9 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   }
 
   int _uiIndexForToken(_TokenInfo token, int pathLength) {
-    if (token.isFinished || token.position == 100) return pathLength - 1;
+    if (token.isFinished || _isHomePosition(token.position)) {
+      return pathLength - 1;
+    }
     if (token.position < 0) return -1;
     if (token.position >= pathLength) return pathLength - 1;
     return token.position;
@@ -740,14 +840,21 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
   }
 
   Widget _buildStatusChip() {
-    final text = currentTurnPlayerId == null
+    final turnText = currentTurnPlayerId == null
         ? 'Syncing...'
         : isMyTurn
         ? 'Your Turn'
         : 'Opponent Turn';
+    final secondsLeft = currentTurnPlayerId == null
+        ? null
+        : _turnClock.secondsLeft;
+    final text = secondsLeft == null ? turnText : '$turnText · ${secondsLeft}s';
+    final hurry = isMyTurn && _turnClock.isWarning;
 
     final color = currentTurnPlayerId == null
         ? Colors.white70
+        : hurry
+        ? Colors.orangeAccent
         : isMyTurn
         ? Colors.greenAccent
         : Colors.redAccent;
@@ -769,7 +876,14 @@ class _GameBoardScreenState extends State<GameBoardScreen> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: hurry ? Colors.orangeAccent : null,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
