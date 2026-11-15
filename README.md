@@ -8,9 +8,9 @@ platform.
 
 Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
-> **Status: early development.** Online games work end to end. The UI is
-> functional but not final — the Majlis visual redesign is planned
-> (see [roadmap](#roadmap)).
+> **Status: early development.** Online games work end to end. The app has its
+> Majlis look (dark navy and gold, plus a light theme) on the menus and rooms;
+> the game board is redesigned later (see [roadmap](#roadmap)).
 
 ---
 
@@ -26,7 +26,7 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   miss 3 turns in a row and you're removed, so a game never freezes
 - **Reconnect** — if the connection drops, the app reconnects and gets the full
   game back (on web, even after a page refresh). Reopening a closed phone app
-  comes with accounts in step 1.5
+  comes with accounts in step 1.6
 - **Move log** — every action is saved and any game can be replayed exactly
   (viewable in the Django admin)
 
@@ -34,7 +34,7 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
 | | |
 |---|---|
-| App | Flutter, Dart, Dio, `web_socket_channel` |
+| App | Flutter 3.38+, Riverpod, GoRouter, Freezed, Dio, `web_socket_channel` |
 | Backend | Python, Django 6, Django REST Framework, Django Channels |
 | Game rules | `ludo_engine` — pure Python, no framework, fully tested |
 | Data | SQLite (dev) or PostgreSQL · Redis for real-time messaging |
@@ -66,7 +66,7 @@ DiceMajlis/
 
 ## Run it locally
 
-**You need:** Python 3.12+ and Flutter (Dart 3.10+). Redis and PostgreSQL are
+**You need:** Python 3.12+ and Flutter 3.38+ (Dart 3.10+). Redis and PostgreSQL are
 optional for local development (see the `.env` notes below).
 
 ### 1. Backend
@@ -123,7 +123,8 @@ python manage.py test
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: app start, board geometry, server address, turn countdown
+# Flutter: app start, create/join/waiting-room flow, routes, themes,
+# board geometry, server address, turn countdown
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -149,7 +150,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · app architecture · main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

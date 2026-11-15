@@ -31,7 +31,7 @@ What already works (Feb 2026 code):
 - Server rolls the dice and enforces whose turn it is; one roll per move
 - Bots that play their own turns
 - A refreshed client gets the full game state over the socket
-- Flutter screens: splash, home, create room, join room, waiting room, board, win
+- Flutter screens: splash, home, create room, join room, waiting room, board
 
 Bugs found while reviewing, and where each one is handled:
 
@@ -215,19 +215,50 @@ lib/
         └── presentation/     # pages, widgets, Riverpod controllers
 ```
 
-Moving today's files (no behaviour change, step 1.4):
+### What step 1.4 built ✅
 
-| Today | Moves to |
-|---|---|
-| `app/app.dart`, `app/routes.dart` | `app.dart`, `core/routing/app_router.dart` |
-| `app/theme.dart` (neon green) | `core/theme/` — replaced by Majlis gold/dark tokens |
-| `services/api_service.dart` | `core/network/api_client.dart` + `features/multiplayer/data/` |
-| `services/socket_service.dart` | `core/websocket/socket_client.dart` |
-| `services/session_storage*.dart` | `core/storage/` |
-| `game/ludo_path.dart` | `features/ludo/domain/board_geometry.dart` |
-| `screens/<x>/` | `features/<x>/presentation/` |
-| `widgets/*` | `shared/widgets/` |
-| `providers/*.dart`, `models/player_model.dart`, `models/room_model.dart`, `utils/constants.dart` | Deleted — they are empty (0 bytes) |
+```
+lib/
+├── main.dart                     ProviderScope + runApp
+├── app.dart                      MaterialApp.router: themes, router, translations
+├── core/
+│   ├── config/app_config.dart    server address (--dart-define=API_BASE_URL)
+│   ├── network/api_service.dart  REST calls (Dio)
+│   ├── websocket/                socket_service.dart + socket_providers.dart (swappable in tests)
+│   ├── storage/                  session storage (browser storage on web, memory on phones)
+│   ├── theme/                    majlis_palette (raw colours), majlis_colors (ThemeExtension,
+│   │                             `context.majlis`), app_theme (dark + light), theme_mode_controller
+│   ├── routing/                  app_routes (paths), app_router (GoRouter + roomGuard)
+│   └── l10n/                     app_en.arb → generated/ (flutter gen-l10n)
+├── shared/widgets/               MajlisBackground, MajlisButton, MajlisCard, MajlisWordmark, GlowContainer
+└── features/
+    ├── splash/presentation/
+    ├── home/presentation/
+    ├── multiplayer/
+    │   ├── data/room_repository.dart        typed room API (+ provider)
+    │   ├── domain/room_session.dart         Freezed RoomSession / RoomPlayer
+    │   ├── domain/room_session_controller.dart  current room (Riverpod Notifier)
+    │   └── presentation/                    create, join, waiting room
+    └── ludo/
+        ├── domain/                ludo_path.dart, turn_clock.dart
+        └── presentation/          game_board_screen.dart + widgets/
+```
+
+- **Routes:** `/`, `/home`, `/create-room`, `/join-room`, `/room/:code`, `/game/:code`.
+  `roomGuard` sends room and game links without a matching session to Home
+  (a stale link or a phone that restarted).
+- **State:** Riverpod. Screens get the API through `roomRepositoryProvider` and sockets
+  through `socketServiceFactoryProvider`, so widget tests swap in fakes
+  (`test/helpers/fakes.dart`) and never touch the network.
+- **Generated code is committed** (`*.freezed.dart`, `*.g.dart`, `l10n/generated/`).
+  After changing a Freezed model or `app_en.arb`, run
+  `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`;
+  CI fails if they are out of date.
+- **Not yet moved:** the game board still has its own strings and colours; they move to
+  l10n and theme tokens when the board is reworked (1.9 local play / 1.12). Arabic and
+  Urdu ARB files come with the language settings (Phase 2).
+- Deleted: the old neon theme, `NeonButton`, `LoadingIndicator`, the unused win screen,
+  and the empty `models/`, `providers/`, `utils/` files.
 
 Rules: no colours or user-facing strings inside widgets (theme tokens + l10n only);
 no business logic in widgets; every socket/API payload is a typed Freezed model.
@@ -565,7 +596,7 @@ flutter run                                                   # emulator: 10.0.2
 flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000   # real phone: computer's Wi-Fi IP
 ```
 
-`lib/app/config.dart` derives the WebSocket address (`ws://` / `wss://`) from
+`lib/core/config/app_config.dart` derives the WebSocket address (`ws://` / `wss://`) from
 `API_BASE_URL`; pass `WS_BASE_URL` only if sockets live elsewhere.
 
 ---

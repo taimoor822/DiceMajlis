@@ -1,4 +1,4 @@
-import 'package:dice_majlis_app/game/turn_clock.dart';
+import 'package:dice_majlis_app/features/ludo/domain/turn_clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

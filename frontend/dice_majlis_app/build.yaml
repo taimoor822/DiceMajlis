@@ -1,0 +1,9 @@
+# Code generation (Freezed + json_serializable).
+#   dart run build_runner build --delete-conflicting-outputs
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          field_rename: snake      # server JSON uses snake_case (is_host → isHost)
+          explicit_to_json: true

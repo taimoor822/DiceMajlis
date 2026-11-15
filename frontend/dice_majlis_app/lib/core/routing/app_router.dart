@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/home/presentation/home_screen.dart';
+import '../../features/ludo/presentation/game_board_screen.dart';
+import '../../features/multiplayer/domain/room_session.dart';
+import '../../features/multiplayer/domain/room_session_controller.dart';
+import '../../features/multiplayer/presentation/create_room_screen.dart';
+import '../../features/multiplayer/presentation/join_room_screen.dart';
+import '../../features/multiplayer/presentation/waiting_room_screen.dart';
+import '../../features/splash/presentation/splash_screen.dart';
+import '../l10n/generated/app_localizations.dart';
+import 'app_routes.dart';
+
+/// Room and game pages need a session for that room; without one (e.g. a
+/// stale link or a phone that restarted) the player goes Home instead of
+/// seeing a broken screen. Returns the path to redirect to, or null.
+String? roomGuard(RoomSession? session, Uri location) {
+  final segments = location.pathSegments;
+  if (segments.length < 2) return null;
+  if (segments.first != 'room' && segments.first != 'game') return null;
+  final code = segments[1];
+  if (session == null || session.roomCode != code) return AppRoutes.home;
+  return null;
+}
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  return GoRouter(
+    initialLocation: AppRoutes.splash,
+    redirect: (context, state) =>
+        roomGuard(ref.read(roomSessionProvider), state.uri),
+    routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.createRoom,
+        builder: (context, state) => const CreateRoomScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.joinRoom,
+        builder: (context, state) => const JoinRoomScreen(),
+      ),
+      GoRoute(
+        path: '/room/:code',
+        builder: (context, state) =>
+            WaitingRoomScreen(roomCode: state.pathParameters['code']!),
+      ),
+      GoRoute(
+        path: '/game/:code',
+        builder: (context, state) =>
+            GameBoardScreen(roomCode: state.pathParameters['code']!),
+      ),
+    ],
+    errorBuilder: (context, state) => const _NotFoundScreen(),
+  );
+});
+
+class _NotFoundScreen extends StatelessWidget {
+  const _NotFoundScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.notFoundTitle)),
+      body: Center(
+        child: TextButton(
+          onPressed: () => context.go(AppRoutes.home),
+          child: Text(l10n.notFoundGoHome),
+        ),
+      ),
+    );
+  }
+}

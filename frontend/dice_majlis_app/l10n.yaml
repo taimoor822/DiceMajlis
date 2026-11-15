@@ -1,0 +1,8 @@
+# App text lives in lib/core/l10n/*.arb (English is the template).
+# Flutter generates AppLocalizations on `flutter pub get` / `flutter run`.
+arb-dir: lib/core/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/core/l10n/generated
+nullable-getter: false

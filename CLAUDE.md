@@ -28,7 +28,10 @@ backend/core/              Django project (run manage.py from here)
   core/                    settings (env-driven), asgi.py (starts turn timer), urls
   ludo_engine/             PURE Python rules engine + tests (no Django inside)
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
-frontend/dice_majlis_app/  Flutter app (lib/app/config.dart = server address)
+frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
+                           routing, l10n), lib/shared/widgets, lib/features/<x>/
+                           {data,domain,presentation}; server address in
+                           lib/core/config/app_config.dart
 docs/                      plans and designs
 .github/workflows/ci.yml   CI: backend tests on Postgres + flutter analyze/test
 ```
@@ -83,6 +86,8 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://<computer-wifi-ip>:8000   # real phone
 flutter analyze --no-fatal-infos
 flutter test
+dart run build_runner build --delete-conflicting-outputs   # after editing a Freezed model
+flutter gen-l10n                                            # after editing lib/core/l10n/app_en.arb
 ```
 
 Local config is in `.env` (copy `.env.example`). `CHANNEL_LAYER=memory` runs without
@@ -93,22 +98,29 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - **Line endings:** several Dart files use CRLF or mixed endings. Never run
   `dart format` on whole folders; format only files you created, and edit existing
   files without converting their line endings (keep diffs minimal).
-- Newer Flutter versions rewrite `analysis_options.yaml` and `pubspec.lock` on
-  `pub get`. Revert those unless the change is intended.
-- The ~16 analyzer **infos** are deprecation notices from newer Flutter, not errors.
+- The project (and CI) uses **Flutter 3.38.7**. Newer Flutter versions rewrite
+  `analysis_options.yaml` and `pubspec.lock` on `pub get`, and newer package
+  versions need Flutter 3.47+. Revert those unless the change is intended.
+- The analyzer **infos** on newer Flutter are deprecation notices, not errors.
+- Generated files (`*.freezed.dart`, `*.g.dart`, `lib/core/l10n/generated/`) are
+  committed; CI fails if they're stale. User-facing text goes in `app_en.arb`,
+  colours in `core/theme/` (read with `context.majlis`), never inline in widgets.
+- Widget tests use `test/helpers/fakes.dart` (fake room API + fake sockets via
+  provider overrides); no test touches the network.
 - Backend tests use `GAME_BOTS_INLINE=True` (bots run synchronously) and the in-memory
   channel layer. Script dice by patching `game.services.SecureDice.roll`.
 - Engine token index ↔ DB token: tokens of a player sorted by `str(id)` (the Flutter
   board uses the same order).
 - Games started before the engine (`Game.state` is NULL) return `409 legacy_game`.
-- The app keeps the current game only in memory on phones (web uses browser storage);
-  persistent sessions arrive with accounts (step 1.5).
+- The app keeps the current room (`roomSessionProvider`) only in memory on phones
+  (web uses browser storage); persistent sessions arrive with accounts (step 1.6).
 
 ## Status
 
 See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
-Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3).
-Next: 1.4 Flutter architecture, 1.5 main navigation, 1.6 accounts with Player ID.
+Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
+Flutter architecture + Majlis theme (1.4).
+Next: 1.5 main navigation, 1.6 accounts with Player ID, 1.7 email + profile.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

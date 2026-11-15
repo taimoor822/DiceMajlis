@@ -1,4 +1,4 @@
-import 'package:dice_majlis_app/app/config.dart';
+import 'package:dice_majlis_app/core/config/app_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
