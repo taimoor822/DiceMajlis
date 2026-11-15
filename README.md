@@ -1,5 +1,7 @@
 # 🎲 Dice Majlis
 
+[![CI](https://github.com/taimoor822/DiceMajlis/actions/workflows/ci.yml/badge.svg)](https://github.com/taimoor822/DiceMajlis/actions/workflows/ci.yml)
+
 **Multiplayer Ludo with the feel of a Majlis.** Play with friends or a bot, chat,
 compete and come back every day. Ludo is the game; the social Majlis is the
 platform.
@@ -51,6 +53,8 @@ DiceMajlis/
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app
+├── CLAUDE.md                    # guide for Claude Code sessions (rules, commands, status)
+├── .github/workflows/ci.yml     # tests on every push
 ├── docs/
 │   ├── ARCHITECTURE.md          # technical foundation and design decisions
 │   ├── SOCIAL_MAJLIS.md         # profiles, Majlis rooms and gift economy design
@@ -60,12 +64,8 @@ DiceMajlis/
 
 ## Run it locally
 
-**You need:** Python 3.12+, Flutter (Dart 3.10+), and Redis.
-The easiest way to get Redis is Docker:
-
-```bash
-docker compose -f docker-compose.dev.yml up -d redis
-```
+**You need:** Python 3.12+ and Flutter (Dart 3.10+). Redis and PostgreSQL are
+optional for local development (see the `.env` notes below).
 
 ### 1. Backend
 
@@ -74,29 +74,39 @@ cd backend
 python -m venv venv
 source venv/bin/activate              # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-pip install "uvicorn[standard]"       # WebSocket server (moves into requirements in step 1.3)
-cp ../.env.example ../.env            # defaults use SQLite
+cp ../.env.example ../.env            # SQLite + no Redis needed by default
 
 cd core
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 ```
 
-The turn timer starts automatically inside the server.
+The turn timer starts automatically inside the server. Use `uvicorn` as shown:
+plain `python manage.py runserver` doesn't serve WebSockets.
+
+**`.env` options:** `CHANNEL_LAYER=memory` runs without Redis (one server process
+only); set it to `redis` and run `docker compose -f docker-compose.dev.yml up -d redis`
+for the production-like setup. `DB_ENGINE=postgres` uses the Docker PostgreSQL.
 
 ### 2. App
 
 ```bash
 cd frontend/dice_majlis_app
 flutter pub get
-flutter run
+flutter run                                   # emulator / simulator / web
 ```
 
-The app talks to `10.0.2.2:8000` on the Android emulator and `127.0.0.1:8000`
-on web. **On a real phone**, change those addresses to your computer's Wi-Fi IP
-(for example `192.168.1.20`) in `lib/services/api_service.dart` and
-`lib/services/socket_service.dart`, and add that IP to `DJANGO_ALLOWED_HOSTS`
-in `.env`. (Step 1.3 replaces this with a build setting.)
+Without settings, the app talks to `10.0.2.2:8000` on the Android emulator and
+`127.0.0.1:8000` on web and the iOS simulator.
+
+**On a real phone**, connect the phone and computer to the same Wi-Fi, find the
+computer's IP (for example `192.168.1.20`) and run:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
+```
+
+If `DJANGO_ALLOWED_HOSTS` in `.env` isn't `*`, add that IP to it.
 
 > Updating from an older version? Run `python manage.py migrate` and start a new
 > game — games started before the rules engine can't be continued.
@@ -111,10 +121,12 @@ python manage.py test
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: board geometry and turn countdown
+# Flutter: app start, board geometry, server address, turn countdown
 cd frontend/dice_majlis_app
-flutter test test/ludo_path_test.dart test/turn_clock_test.dart
+flutter test
 ```
+
+Every push runs both suites on GitHub (backend on PostgreSQL) — see the CI badge.
 
 ## Game rules (defaults)
 
@@ -135,7 +147,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Foundation** (now) | ✅ rules engine · ✅ server-run game · ✅ turn timer · dev setup & CI · app restructure · accounts with Player ID · home dashboard · offline mode |
+| **1 — Foundation** (now) | ✅ rules engine · ✅ server-run game · ✅ turn timer · ✅ dev setup & CI · app restructure · accounts with Player ID · home dashboard · offline mode |
 | 2 — Real-time v2 | One socket for everything, presence, matchmaking, stronger reconnection |
 | 3 — Identity | Player profiles, statistics, achievements, favourite dice, nameplates, friends |
 | 4 — Economy & gifts | Gold coins and diamonds wallet, gift catalog, sending gifts, gift animations |

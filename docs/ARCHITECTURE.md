@@ -42,10 +42,10 @@ Bugs found while reviewing, and where each one is handled:
 | Red path includes `(6,14)` then jumps diagonally into the home column | `ludo_path.dart` | Wrong animation at the end of the lap | ✅ 1.1 |
 | No row locking on roll/move | `game/views.py` | Two fast requests can both pass the "already rolled?" check | ✅ 1.1 (row lock + version check) |
 | Two copies of the rules (`game_logic.py` unused, `utils.py` used) | `game/` | Easy to fix one and not the other | ✅ 1.1 (both removed) |
-| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server | 1.3 |
-| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | 1.3 |
+| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server | ✅ 1.3 (`--dart-define=API_BASE_URL`) |
+| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | ✅ 1.3 |
 | Create Room always sends `red`, Join Room always sends `blue` | `create_room_screen.dart`, `join_room_screen.dart` | 3rd/4th players share a colour and a board path | ✅ 1.1 (server reassigns clashing colours to free seats) |
-| `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | 1.3 |
+| `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | ✅ 1.3 |
 
 ---
 
@@ -536,11 +536,10 @@ docker compose -f docker-compose.dev.yml up -d
 cd backend
 python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example ../.env       # SQLite by default. For the Docker Postgres:
-                                 #   set DB_ENGINE=postgres and pip install "psycopg[binary]"
+cp ../.env.example ../.env       # SQLite + in-memory channel layer: no Docker needed
+                                 # (DB_ENGINE=postgres / CHANNEL_LAYER=redis for the Docker services)
 cd core
 python manage.py migrate
-pip install "uvicorn[standard]"                       # WebSocket server; joins requirements in 1.3
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -551,8 +550,8 @@ uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 
 ```bash
 cd backend/core
-python manage.py test ludo_engine                        # engine only (no DB/Redis needed)
-python -m unittest discover -s ludo_engine/tests -t .    # same, without Django
+python manage.py test                                    # everything (CI runs this on PostgreSQL)
+python -m unittest discover -s ludo_engine/tests -t .    # engine only, without Django
 ```
 
 ### Flutter
@@ -560,12 +559,12 @@ python -m unittest discover -s ludo_engine/tests -t .    # same, without Django
 ```bash
 cd frontend/dice_majlis_app
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000   # Android emulator
+flutter run                                                   # emulator: 10.0.2.2 / 127.0.0.1
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000   # real phone: computer's Wi-Fi IP
 ```
 
-On a **real phone**, use your computer's LAN IP (e.g. `http://192.168.1.20:8000`) and add
-it to `DJANGO_ALLOWED_HOSTS`. (The app reads `API_BASE_URL` after step 1.3; today the URL
-is hard-coded in `api_service.dart` and `socket_service.dart`.)
+`lib/app/config.dart` derives the WebSocket address (`ws://` / `wss://`) from
+`API_BASE_URL`; pass `WS_BASE_URL` only if sockets live elsewhere.
 
 ---
 
@@ -581,7 +580,7 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 | 1.0 | ✅ **Engine** — `ludo_engine` + 72 tests | Tests pass under Django and plain unittest |
 | 1.1 | ✅ **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
 | 1.2 | ✅ **Turn timer** — deadline on `Game` (same transaction as state), sweep in the server process or `run_turn_timers`; `turn_changed` carries `seconds_left`; auto-move; 3 misses → forfeit. Flutter countdown in the turn chip + idle messages | An idle player is auto-played, then removed; game never freezes |
-| 1.3 | **Dev & CI foundation** — Daphne + `psycopg` in requirements, settings split (dev/prod), `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`, Docker Compose, GitHub Actions running backend tests + `flutter analyze` | Fresh clone runs with the documented commands; CI green on every push |
+| 1.3 | ✅ **Dev & CI foundation** — uvicorn + `psycopg` in requirements; production guard in settings (refuses dev secret key / `*` hosts / in-memory layer when `DEBUG` is off) instead of a settings split; `CHANNEL_LAYER=memory` for Redis-free development; `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`; GitHub Actions running backend tests on PostgreSQL + `flutter analyze` + `flutter test`; `CLAUDE.md` | Fresh clone runs with the documented commands; CI green on every push |
 | 1.4 | **Flutter foundation refactor** (no behaviour change) — Riverpod, GoRouter, Freezed; move files to `core/` `shared/` `features/`; Majlis theme tokens (Dark + Light); l10n scaffold (en, ar, ur); delete empty files | Same screens and flows, new structure; no hard-coded colours in moved widgets |
 | 1.5 | **Guest accounts + JWT** — `accounts` app, `/api/auth/guest`, `/refresh`, `/me`; Flutter splash restores session; room APIs use the logged-in user | Reinstall-free relaunch keeps the same player; name no longer typed each game |
 | 1.6 | **Email/password + profile** — register, login, reset password, profile edit (name, avatar) | Guest can upgrade to an email account without losing anything |

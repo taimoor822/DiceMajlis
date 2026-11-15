@@ -9,7 +9,7 @@ Rule: build vertically, keep the app runnable after every step.
 - [x] **1.0** Pure-Python Ludo engine (`backend/core/ludo_engine/`) + tests
 - [x] **1.1** Wire the engine into the current game (fixes: humans can't win, wrong-square captures, safe squares, colour clashes) + Flutter board path fix
 - [x] **1.2** Server turn timer, auto-move, 3 misses → forfeit, countdown in the app
-- [ ] **1.3** Dev & CI: Daphne + psycopg, settings split, `--dart-define` URLs, GitHub Actions
+- [x] **1.3** Dev & CI: uvicorn + psycopg, production settings guard, Redis-free dev option, `--dart-define` server address, GitHub Actions (Postgres), `CLAUDE.md`
 - [ ] **1.4** Flutter refactor to `core/ shared/ features/` with Riverpod, GoRouter, Freezed, l10n; Majlis theme tokens (navy, teal, turquoise, emerald, gold, sand + rarity colours)
 - [ ] **1.5** Guest accounts + JWT + splash session restore + **permanent 9-digit Player ID**
 - [ ] **1.6** Email/password, password reset, basic profile (name, avatar, country, spoken languages)

@@ -1,20 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../app/config.dart';
+
 class ApiService {
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: AppConfig.gameApiUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},
     ),
   );
-
-  /// Change this depending on platform
-  static const String _baseUrl = kIsWeb
-      ? 'http://127.0.0.1:8000/api/game/'
-      : 'http://10.0.2.2:8000/api/game/'; // Android emulator
 
   // ================= CREATE ROOM =================
   static Future<Map<String, dynamic>> createRoom({

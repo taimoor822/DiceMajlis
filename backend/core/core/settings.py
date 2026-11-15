@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,16 +49,21 @@ _load_dotenv()
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-1863ux7i3wy3^c$jxtbsrzme4y%04z^bxl9l0%6mulw(i78#4h",
-)
+_INSECURE_DEV_SECRET_KEY = "django-insecure-1863ux7i3wy3^c$jxtbsrzme4y%04z^bxl9l0%6mulw(i78#4h"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", _INSECURE_DEV_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() in {"1", "true", "yes", "on"}
 
 _allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(",") if h.strip()] or ["*"]
+
+# Production guard: with DEBUG off, refuse to start on development defaults.
+if not DEBUG:
+    if SECRET_KEY in {_INSECURE_DEV_SECRET_KEY, "change-me", ""}:
+        raise ImproperlyConfigured("Set DJANGO_SECRET_KEY to a long random value when DJANGO_DEBUG=false.")
+    if "*" in ALLOWED_HOSTS:
+        raise ImproperlyConfigured("Set DJANGO_ALLOWED_HOSTS to your real domain(s) when DJANGO_DEBUG=false.")
 
 
 # Application definition
@@ -119,14 +126,25 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "true").lower() in 
 GAME_TIMER_IN_PROCESS = os.getenv("GAME_TIMER_IN_PROCESS", "true").lower() in {"1", "true", "yes", "on"}
 GAME_TIMER_INTERVAL_SECONDS = float(os.getenv("GAME_TIMER_INTERVAL_SECONDS", "1"))
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", "6379")))],
+# Real-time messaging between server processes.
+#   CHANNEL_LAYER=redis  (default, required in production / with several processes)
+#   CHANNEL_LAYER=memory (local development without Redis; ONE server process only)
+CHANNEL_LAYER = os.getenv("CHANNEL_LAYER", "redis").strip().lower()
+if CHANNEL_LAYER == "memory":
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+elif CHANNEL_LAYER == "redis":
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", "6379")))],
+            },
         },
-    },
-}
+    }
+else:
+    raise ImproperlyConfigured(f"CHANNEL_LAYER must be 'redis' or 'memory', got {CHANNEL_LAYER!r}")
+if CHANNEL_LAYER == "memory" and not DEBUG:
+    raise ImproperlyConfigured("CHANNEL_LAYER=memory is for local development only.")
 
 
 
@@ -150,10 +168,15 @@ if DATABASE_URL:
             }
         }
     elif parsed.scheme == "sqlite":
+        # sqlite:////abs/path.db -> /abs/path.db ; sqlite:///name.db -> name.db (next to manage.py)
+        sqlite_path = parsed.path[1:] if parsed.path.startswith("/") else parsed.path
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
-                "NAME": parsed.path.lstrip("/") or (BASE_DIR / "db.sqlite3"),
+                "NAME": (
+                    sqlite_path if os.path.isabs(sqlite_path)
+                    else BASE_DIR / (sqlite_path or "db.sqlite3")
+                ),
             }
         }
     else:
