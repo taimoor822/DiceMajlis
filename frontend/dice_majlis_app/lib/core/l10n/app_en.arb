@@ -1,0 +1,39 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Dice Majlis",
+  "appTagline": "PLAY · SOCIALISE · COMPETE",
+
+  "homeSubtitle": "Ludo in the Majlis. Play with friends or the Majlis AI.",
+  "homeCreateRoom": "Create room",
+  "homeJoinRoom": "Join room",
+
+  "createRoomTitle": "Create room",
+  "createRoomMaxPlayers": "How many players?",
+  "createRoomHint": "Start alone and the Majlis AI joins you.",
+  "createRoomCreate": "Create",
+  "createRoomFailed": "Couldn't create the room. Check your connection and try again.",
+
+  "joinRoomTitle": "Join room",
+  "joinRoomCodeLabel": "Room code",
+  "joinRoomCodeHint": "e.g. AB12",
+  "joinRoomCodeRequired": "Enter the room code you were given.",
+  "joinRoomJoin": "Join",
+  "joinRoomFailed": "Couldn't join. Check the code and your connection.",
+
+  "waitingRoomTitle": "Waiting room",
+  "waitingRoomCodeLabel": "Room code",
+  "waitingRoomCopy": "Copy room code",
+  "waitingRoomCopied": "Room code copied",
+  "waitingRoomPlayers": "Players",
+  "waitingRoomHost": "Host",
+  "waitingRoomYou": "You",
+  "waitingRoomBot": "AI",
+  "waitingRoomEmptySeat": "Waiting for a player…",
+  "waitingRoomStart": "Start game",
+  "waitingRoomStartFailed": "Couldn't start the game. Try again.",
+  "waitingRoomWaitingForHost": "Waiting for the host to start the game…",
+
+  "notFoundTitle": "Page not found",
+  "notFoundGoHome": "Go home"
+}

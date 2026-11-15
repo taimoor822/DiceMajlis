@@ -5,7 +5,7 @@
 
 import 'dart:math';
 
-import 'package:dice_majlis_app/game/ludo_path.dart';
+import 'package:dice_majlis_app/features/ludo/domain/ludo_path.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _seats = ['red', 'blue', 'green', 'yellow'];

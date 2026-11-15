@@ -2,7 +2,11 @@
 
 > Status: living document. Last updated 2026-11-15.
 > Covers the 10 foundation items from the master build prompt, adapted to the code
-> that already exists in this repository.
+> that already exists in this repository. Profiles, Majlis rooms and the gift economy
+> are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); store, VIP, Royal levels and
+> premium items in [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md); the multi-game platform,
+> competition, events and social feed in [PLATFORM.md](PLATFORM.md); the build order in
+> [planning.md](planning.md).
 
 **Contents**
 
@@ -27,7 +31,7 @@ What already works (Feb 2026 code):
 - Server rolls the dice and enforces whose turn it is; one roll per move
 - Bots that play their own turns
 - A refreshed client gets the full game state over the socket
-- Flutter screens: splash, home, create room, join room, waiting room, board, win
+- Flutter screens: splash, home, create room, join room, waiting room, board
 
 Bugs found while reviewing, and where each one is handled:
 
@@ -40,10 +44,10 @@ Bugs found while reviewing, and where each one is handled:
 | Red path includes `(6,14)` then jumps diagonally into the home column | `ludo_path.dart` | Wrong animation at the end of the lap | ✅ 1.1 |
 | No row locking on roll/move | `game/views.py` | Two fast requests can both pass the "already rolled?" check | ✅ 1.1 (row lock + version check) |
 | Two copies of the rules (`game_logic.py` unused, `utils.py` used) | `game/` | Easy to fix one and not the other | ✅ 1.1 (both removed) |
-| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server | 1.3 |
-| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | 1.3 |
+| API/WS URLs hard-coded to `127.0.0.1` / `10.0.2.2` | `api_service.dart`, `socket_service.dart` | A real phone can't reach the server | ✅ 1.3 (`--dart-define=API_BASE_URL`) |
+| No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | ✅ 1.3 |
 | Create Room always sends `red`, Join Room always sends `blue` | `create_room_screen.dart`, `join_room_screen.dart` | 3rd/4th players share a colour and a board path | ✅ 1.1 (server reassigns clashing colours to free seats) |
-| `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | 1.3 |
+| `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | ✅ 1.3 |
 
 ---
 
@@ -211,19 +215,50 @@ lib/
         └── presentation/     # pages, widgets, Riverpod controllers
 ```
 
-Moving today's files (no behaviour change, step 1.4):
+### What step 1.4 built ✅
 
-| Today | Moves to |
-|---|---|
-| `app/app.dart`, `app/routes.dart` | `app.dart`, `core/routing/app_router.dart` |
-| `app/theme.dart` (neon green) | `core/theme/` — replaced by Majlis gold/dark tokens |
-| `services/api_service.dart` | `core/network/api_client.dart` + `features/multiplayer/data/` |
-| `services/socket_service.dart` | `core/websocket/socket_client.dart` |
-| `services/session_storage*.dart` | `core/storage/` |
-| `game/ludo_path.dart` | `features/ludo/domain/board_geometry.dart` |
-| `screens/<x>/` | `features/<x>/presentation/` |
-| `widgets/*` | `shared/widgets/` |
-| `providers/*.dart`, `models/player_model.dart`, `models/room_model.dart`, `utils/constants.dart` | Deleted — they are empty (0 bytes) |
+```
+lib/
+├── main.dart                     ProviderScope + runApp
+├── app.dart                      MaterialApp.router: themes, router, translations
+├── core/
+│   ├── config/app_config.dart    server address (--dart-define=API_BASE_URL)
+│   ├── network/api_service.dart  REST calls (Dio)
+│   ├── websocket/                socket_service.dart + socket_providers.dart (swappable in tests)
+│   ├── storage/                  session storage (browser storage on web, memory on phones)
+│   ├── theme/                    majlis_palette (raw colours), majlis_colors (ThemeExtension,
+│   │                             `context.majlis`), app_theme (dark + light), theme_mode_controller
+│   ├── routing/                  app_routes (paths), app_router (GoRouter + roomGuard)
+│   └── l10n/                     app_en.arb → generated/ (flutter gen-l10n)
+├── shared/widgets/               MajlisBackground, MajlisButton, MajlisCard, MajlisWordmark, GlowContainer
+└── features/
+    ├── splash/presentation/
+    ├── home/presentation/
+    ├── multiplayer/
+    │   ├── data/room_repository.dart        typed room API (+ provider)
+    │   ├── domain/room_session.dart         Freezed RoomSession / RoomPlayer
+    │   ├── domain/room_session_controller.dart  current room (Riverpod Notifier)
+    │   └── presentation/                    create, join, waiting room
+    └── ludo/
+        ├── domain/                ludo_path.dart, turn_clock.dart
+        └── presentation/          game_board_screen.dart + widgets/
+```
+
+- **Routes:** `/`, `/home`, `/create-room`, `/join-room`, `/room/:code`, `/game/:code`.
+  `roomGuard` sends room and game links without a matching session to Home
+  (a stale link or a phone that restarted).
+- **State:** Riverpod. Screens get the API through `roomRepositoryProvider` and sockets
+  through `socketServiceFactoryProvider`, so widget tests swap in fakes
+  (`test/helpers/fakes.dart`) and never touch the network.
+- **Generated code is committed** (`*.freezed.dart`, `*.g.dart`, `l10n/generated/`).
+  After changing a Freezed model or `app_en.arb`, run
+  `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`;
+  CI fails if they are out of date.
+- **Not yet moved:** the game board still has its own strings and colours; they move to
+  l10n and theme tokens when the board is reworked (1.9 local play / 1.12). Arabic and
+  Urdu ARB files come with the language settings (Phase 2).
+- Deleted: the old neon theme, `NeonButton`, `LoadingIndicator`, the unused win screen,
+  and the empty `models/`, `providers/`, `utils/` files.
 
 Rules: no colours or user-facing strings inside widgets (theme tokens + l10n only);
 no business logic in widgets; every socket/API payload is a typed Freezed model.
@@ -275,6 +310,9 @@ Inside every app:
 ---
 
 ## 5. Database architecture
+
+> Phase numbers in this section predate the social expansion. Social, wallet and gift
+> tables are now specified in [SOCIAL_MAJLIS.md §3](SOCIAL_MAJLIS.md#3-backend-apps-and-tables).
 
 **PostgreSQL is the source of truth. Redis holds only things that can be rebuilt or
 expire.** All primary keys are UUIDs; every table has `created_at`; money-like data is
@@ -531,11 +569,10 @@ docker compose -f docker-compose.dev.yml up -d
 cd backend
 python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example ../.env       # SQLite by default. For the Docker Postgres:
-                                 #   set DB_ENGINE=postgres and pip install "psycopg[binary]"
+cp ../.env.example ../.env       # SQLite + in-memory channel layer: no Docker needed
+                                 # (DB_ENGINE=postgres / CHANNEL_LAYER=redis for the Docker services)
 cd core
 python manage.py migrate
-pip install "uvicorn[standard]"                       # WebSocket server; joins requirements in 1.3
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -546,8 +583,8 @@ uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000
 
 ```bash
 cd backend/core
-python manage.py test ludo_engine                        # engine only (no DB/Redis needed)
-python -m unittest discover -s ludo_engine/tests -t .    # same, without Django
+python manage.py test                                    # everything (CI runs this on PostgreSQL)
+python -m unittest discover -s ludo_engine/tests -t .    # engine only, without Django
 ```
 
 ### Flutter
@@ -555,12 +592,12 @@ python -m unittest discover -s ludo_engine/tests -t .    # same, without Django
 ```bash
 cd frontend/dice_majlis_app
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000   # Android emulator
+flutter run                                                   # emulator: 10.0.2.2 / 127.0.0.1
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000   # real phone: computer's Wi-Fi IP
 ```
 
-On a **real phone**, use your computer's LAN IP (e.g. `http://192.168.1.20:8000`) and add
-it to `DJANGO_ALLOWED_HOSTS`. (The app reads `API_BASE_URL` after step 1.3; today the URL
-is hard-coded in `api_service.dart` and `socket_service.dart`.)
+`lib/core/config/app_config.dart` derives the WebSocket address (`ws://` / `wss://`) from
+`API_BASE_URL`; pass `WS_BASE_URL` only if sockets live elsewhere.
 
 ---
 
@@ -576,14 +613,10 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 | 1.0 | ✅ **Engine** — `ludo_engine` + 72 tests | Tests pass under Django and plain unittest |
 | 1.1 | ✅ **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
 | 1.2 | ✅ **Turn timer** — deadline on `Game` (same transaction as state), sweep in the server process or `run_turn_timers`; `turn_changed` carries `seconds_left`; auto-move; 3 misses → forfeit. Flutter countdown in the turn chip + idle messages | An idle player is auto-played, then removed; game never freezes |
-| 1.3 | **Dev & CI foundation** — Daphne + `psycopg` in requirements, settings split (dev/prod), `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`, Docker Compose, GitHub Actions running backend tests + `flutter analyze` | Fresh clone runs with the documented commands; CI green on every push |
-| 1.4 | **Flutter foundation refactor** (no behaviour change) — Riverpod, GoRouter, Freezed; move files to `core/` `shared/` `features/`; Majlis theme tokens (Dark + Light); l10n scaffold (en, ar, ur); delete empty files | Same screens and flows, new structure; no hard-coded colours in moved widgets |
-| 1.5 | **Guest accounts + JWT** — `accounts` app, `/api/auth/guest`, `/refresh`, `/me`; Flutter splash restores session; room APIs use the logged-in user | Reinstall-free relaunch keeps the same player; name no longer typed each game |
-| 1.6 | **Email/password + profile** — register, login, reset password, profile edit (name, avatar) | Guest can upgrade to an email account without losing anything |
-| 1.7 | **Home dashboard v1** — header (avatar, name, coins/diamonds placeholders marked *coming soon*), mode tiles (2P, 4P, private room, offline), bottom nav | Home is the hub; unbuilt modes are clearly labelled, not fake |
-| 1.8 | **Offline mode** — Dart engine port + shared JSON test vectors; vs AI and pass-and-play | Plays with airplane mode on; Dart tests pass on the same vectors as Python |
-| 1.9 | **Google + Apple sign-in** | Both work on real devices; accounts link to existing guests |
+| 1.3 | ✅ **Dev & CI foundation** — uvicorn + `psycopg` in requirements; production guard in settings (refuses dev secret key / `*` hosts / in-memory layer when `DEBUG` is off) instead of a settings split; `CHANNEL_LAYER=memory` for Redis-free development; `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`; GitHub Actions running backend tests on PostgreSQL + `flutter analyze` + `flutter test`; `CLAUDE.md` | Fresh clone runs with the documented commands; CI green on every push |
+| 1.4 – 1.15 | The rest of Phase 1 follows the **master prompt's** priority list: Flutter architecture, main navigation, accounts + Player ID, profile, currency foundation, local play, game platform layer, WebSocket v1, online multiplayer on v1, private rooms v2, reconnection, Google/Apple sign-in. **Current list: [planning.md](planning.md).** | |
 
-**Phase 2 preview:** `/ws/v1/` single socket with the §7 protocol, Redis game store with
-version-checked writes, action log table, matchmaking queue, reconnection with
-`state_delta`, multiplayer tests (disconnect, duplicate request, latency).
+**After Phase 1:** player system, Ludo variants and team mode, multiplayer at scale,
+social, competition, economy, events, VIP & collections, admin, polish, production,
+new games — order in [planning.md](planning.md), designs in [PLATFORM.md](PLATFORM.md),
+[SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) and [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md).
