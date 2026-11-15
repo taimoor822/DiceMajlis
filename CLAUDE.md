@@ -11,10 +11,11 @@ keep replies short (often read on a phone), and always say how to try the change
 
 | Doc | What it holds |
 |---|---|
-| `docs/planning.md` | **Current step** and progress checklist — start here |
+| `docs/planning.md` | **Master roadmap**: current step, build order, open decisions — start here |
 | `docs/ARCHITECTURE.md` | Stack decisions, system design, engine, WebSocket protocol, auth, dev setup |
-| `docs/SOCIAL_MAJLIS.md` | Design for profiles, Majlis rooms, wallet/ledger, gifts (phases 3–6) |
-| `docs/ROYAL_VIP_ECONOMY.md` | Store/purchases, VIP, Royal levels, items, rewards, entitlements (phases 9–11) |
+| `docs/SOCIAL_MAJLIS.md` | Design for profiles, Majlis rooms, wallet/ledger, gifts (S-steps) |
+| `docs/ROYAL_VIP_ECONOMY.md` | Store/purchases, VIP, Royal levels, items, rewards, entitlements (M-steps) |
+| `docs/PLATFORM.md` | Multi-game platform, variants, rooms, matchmaking, ratings, tournaments, missions, events, collections, shop, feed, chat, notifications, admin |
 | `README.md` | What works today, how to run it |
 
 The owner may send an updated plan. When the plan changes, update `docs/planning.md`
@@ -105,12 +106,13 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 
 ## Status
 
-See `docs/planning.md`. Done: engine (1.0), live game on engine (1.1), turn timer
-(1.2), dev setup + CI (1.3). Next: 1.4 Flutter restructure + Majlis theme, then 1.5
-accounts with permanent Player ID.
+See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
+Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3).
+Next: 1.4 Flutter architecture, 1.5 main navigation, 1.6 accounts with Player ID.
 
-Decided: real money yes (gold, diamonds, VIP via App Store / Google Play).
-Open owner decisions (answer when that phase starts): purchase service vs own
-verification, Super Value Surprise free-only, reward-day reset time, gift cash-out
-(assumed no), voice in v1, minimum age and spending limits, magic cards in ranked
-(assumed never), Punjabi script.
+Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
+registry (PLATFORM §3) — keep game-specific code out of shared systems.
+
+Decided: real money yes (two currencies + VIP via App Store / Google Play).
+Open owner decisions and their defaults: table at the end of `docs/planning.md`.
+Ask when the phase that needs one starts.

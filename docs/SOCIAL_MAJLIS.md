@@ -646,6 +646,10 @@ heavy effects off, and performance always wins over effects.
 
 ## 17. Build order
 
+> **When** each step is built is decided by the master roadmap in
+> [planning.md](planning.md) (S-codes are spread across phases 2, 5, 7 and 10). This
+> section describes each step and its "done when".
+
 The prompt's 20 steps, kept in order where possible and grouped into phases. Two
 changes: **basic moderation moves next to chat** (safety and store rules), and **real
 money comes last**. Every step ships something usable and keeps the app working.

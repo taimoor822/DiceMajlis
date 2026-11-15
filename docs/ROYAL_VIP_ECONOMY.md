@@ -666,6 +666,10 @@ The prompt's final acceptance list is adopted as the **exit checklist** for phas
 
 ## 21. Build order
 
+> **When** each step is built is decided by the master roadmap in
+> [planning.md](planning.md) (M-codes sit in phases 7–10 there; the foundations below
+> are in Phase 1.8 and Phase 2). This section describes each step and its "done when".
+
 ### Foundations move earlier (so nothing is rebuilt later)
 
 | Where | Change |

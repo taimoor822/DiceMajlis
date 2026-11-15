@@ -59,7 +59,8 @@ DiceMajlis/
 │   ├── ARCHITECTURE.md          # technical foundation and design decisions
 │   ├── SOCIAL_MAJLIS.md         # profiles, Majlis rooms and gift economy design
 │   ├── ROYAL_VIP_ECONOMY.md     # store, VIP, Royal levels, items, entitlements design
-│   └── planning.md              # progress tracker
+│   ├── PLATFORM.md              # multi-game platform, competition, events, feed, admin
+│   └── planning.md              # master roadmap (the build order)
 └── docker-compose.dev.yml       # Redis + PostgreSQL for local development
 ```
 
@@ -148,20 +149,20 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Foundation** (now) | ✅ rules engine · ✅ server-run game · ✅ turn timer · ✅ dev setup & CI · app restructure · accounts with Player ID · home dashboard · offline mode |
-| 2 — Real-time v2 | One socket for everything, presence, matchmaking, stronger reconnection |
-| 3 — Identity | Player profiles, statistics, achievements, favourite dice, nameplates, friends |
-| 4 — Economy & gifts | Gold coins and diamonds wallet, gift catalog, sending gifts, gift animations |
-| 5 — Majlis rooms | Persistent social rooms: chat, members, mic seats, music, room gifts |
-| 6 — Room social loop | Moments, contribution and attraction rankings, room levels, room events |
-| 7–8 | Competitive leagues · tournaments |
-| 9 — Store | Gold and diamond packages through App Store / Google Play |
-| 10 — VIP & Royal | VIP Knight / Baron subscriptions, Royal levels and privileges, Reward Tower |
-| 11 — Premium extras | Magic cards, props, fragment exchange, visitor history, chat extras, support |
-| 12 | Voice and polish |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · app architecture · main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
+| 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
+| 4 — Multiplayer at scale | Matchmaking, spectators, load testing |
+| 5 — Social | Friends, chat, feed, notifications, Majlis rooms, communities |
+| 6 — Competition | Ratings, leagues, leaderboards, tournaments |
+| 7 — Economy | Shop, gifts, room gifting, real-money store |
+| 8 — Events | Missions, events, Reward Tower, seasonal content |
+| 9 — VIP & collections | VIP, Royal levels, collections, premium items |
+| 10–12 | Admin dashboard · polish · production |
+| 13 | New games: Domino, Jackaroo |
 
-Designs: phases 3–6 [docs/SOCIAL_MAJLIS.md](docs/SOCIAL_MAJLIS.md) ·
-phases 9–11 [docs/ROYAL_VIP_ECONOMY.md](docs/ROYAL_VIP_ECONOMY.md).
+Designs: [PLATFORM.md](docs/PLATFORM.md) · [SOCIAL_MAJLIS.md](docs/SOCIAL_MAJLIS.md) ·
+[ROYAL_VIP_ECONOMY.md](docs/ROYAL_VIP_ECONOMY.md).
 Step-by-step progress: [docs/planning.md](docs/planning.md).
 
 ---

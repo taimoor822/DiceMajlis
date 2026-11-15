@@ -4,8 +4,9 @@
 > Covers the 10 foundation items from the master build prompt, adapted to the code
 > that already exists in this repository. Profiles, Majlis rooms and the gift economy
 > are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); store, VIP, Royal levels and
-> premium items in [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md); the current phase order
-> is in [planning.md](planning.md).
+> premium items in [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md); the multi-game platform,
+> competition, events and social feed in [PLATFORM.md](PLATFORM.md); the build order in
+> [planning.md](planning.md).
 
 **Contents**
 
@@ -582,17 +583,9 @@ runnable. Progress is tracked in [`planning.md`](planning.md).
 | 1.1 | ✅ **Wire engine into the current game.** `Game` gets `state` (JSON) + `version`; roll/move/bots call the engine; `SecureDice`; row lock on roll/move; events gain `version`. Flutter: fix `LudoPath` (drop `(6,14)`, add a home cell), allow moves up to progress 56, read `square`/`progress` from the server | A human can bring all tokens home and win; captures happen only on the same square; existing screens unchanged |
 | 1.2 | ✅ **Turn timer** — deadline on `Game` (same transaction as state), sweep in the server process or `run_turn_timers`; `turn_changed` carries `seconds_left`; auto-move; 3 misses → forfeit. Flutter countdown in the turn chip + idle messages | An idle player is auto-played, then removed; game never freezes |
 | 1.3 | ✅ **Dev & CI foundation** — uvicorn + `psycopg` in requirements; production guard in settings (refuses dev secret key / `*` hosts / in-memory layer when `DEBUG` is off) instead of a settings split; `CHANNEL_LAYER=memory` for Redis-free development; `API_BASE_URL`/`WS_BASE_URL` via `--dart-define`; GitHub Actions running backend tests on PostgreSQL + `flutter analyze` + `flutter test`; `CLAUDE.md` | Fresh clone runs with the documented commands; CI green on every push |
-| 1.4 | **Flutter foundation refactor** (no behaviour change) — Riverpod, GoRouter, Freezed; move files to `core/` `shared/` `features/`; Majlis theme tokens (Dark + Light); l10n scaffold (en, ar, ur); delete empty files | Same screens and flows, new structure; no hard-coded colours in moved widgets |
-| 1.5 | **Guest accounts + JWT** — `accounts` app, `/api/auth/guest`, `/refresh`, `/me`; Flutter splash restores session; room APIs use the logged-in user | Reinstall-free relaunch keeps the same player; name no longer typed each game |
-| 1.6 | **Email/password + profile** — register, login, reset password, profile edit (name, avatar) | Guest can upgrade to an email account without losing anything |
-| 1.7 | **Home dashboard v1** — header (avatar, name, coins/diamonds placeholders marked *coming soon*), mode tiles (2P, 4P, private room, offline), bottom nav | Home is the hub; unbuilt modes are clearly labelled, not fake |
-| 1.8 | **Offline mode** — Dart engine port + shared JSON test vectors; vs AI and pass-and-play | Plays with airplane mode on; Dart tests pass on the same vectors as Python |
-| 1.9 | **Google + Apple sign-in** | Both work on real devices; accounts link to existing guests |
+| 1.4 – 1.15 | The rest of Phase 1 follows the **master prompt's** priority list: Flutter architecture, main navigation, accounts + Player ID, profile, currency foundation, local play, game platform layer, WebSocket v1, online multiplayer on v1, private rooms v2, reconnection, Google/Apple sign-in. **Current list: [planning.md](planning.md).** | |
 
-**Phase 2 preview:** `/ws/v1/` single socket with the §7 protocol, presence service,
-domain-event outbox (needed by the social features), Redis game store with
-version-checked writes, matchmaking queue, reconnection with `state_delta`,
-multiplayer tests (disconnect, duplicate request, latency).
-
-**After Phase 2:** identity, economy and Majlis rooms — see
-[SOCIAL_MAJLIS.md §17](SOCIAL_MAJLIS.md#17-build-order).
+**After Phase 1:** player system, Ludo variants and team mode, multiplayer at scale,
+social, competition, economy, events, VIP & collections, admin, polish, production,
+new games — order in [planning.md](planning.md), designs in [PLATFORM.md](PLATFORM.md),
+[SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) and [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md).

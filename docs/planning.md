@@ -1,105 +1,151 @@
-# Dice Majlis — Progress Tracker
+# Dice Majlis — Master Roadmap
 
-Architecture and the reasoning behind each step: [ARCHITECTURE.md](ARCHITECTURE.md)
-(foundation), [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) (profiles, Majlis rooms, gifts) and
-[ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md) (store, VIP, Royal levels, items).
-Rule: build vertically, keep the app runnable after every step.
+The single build order for the whole project, following the **master development
+prompt**: a minimum complete playable foundation first, then each system layered on
+top. Rule: build vertically, keep the app runnable after every step.
 
-## Phase 1 — Foundation
+| Design | Covers |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Stack, system, engine, WebSocket protocol, auth, dev setup |
+| [PLATFORM.md](PLATFORM.md) | Multi-game platform, variants, rooms, matchmaking, ratings, tournaments, missions, events, collections, shop, feed, chat, notifications, admin, production |
+| [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md) | Profiles, Majlis rooms, wallet, gifts (steps **S1–S20**) |
+| [ROYAL_VIP_ECONOMY.md](ROYAL_VIP_ECONOMY.md) | Store, VIP, Royal, items, rewards, entitlements (steps **M1–M18**) |
 
-- [x] **1.0** Pure-Python Ludo engine (`backend/core/ludo_engine/`) + tests
-- [x] **1.1** Wire the engine into the current game (fixes: humans can't win, wrong-square captures, safe squares, colour clashes) + Flutter board path fix
-- [x] **1.2** Server turn timer, auto-move, 3 misses → forfeit, countdown in the app
-- [x] **1.3** Dev & CI: uvicorn + psycopg, production settings guard, Redis-free dev option, `--dart-define` server address, GitHub Actions (Postgres), `CLAUDE.md`
-- [ ] **1.4** Flutter refactor to `core/ shared/ features/` with Riverpod, GoRouter, Freezed, l10n; Majlis theme tokens (navy, teal, turquoise, emerald, gold, sand + rarity colours)
-- [ ] **1.5** Guest accounts + JWT + splash session restore + **permanent 9-digit Player ID**
-- [ ] **1.6** Email/password, password reset, basic profile (name, avatar, country, spoken languages)
-- [ ] **1.7** Home dashboard v1
-- [ ] **1.8** Offline mode: Dart engine + shared test vectors, vs AI, pass-and-play
-- [ ] **1.9** Google + Apple sign-in
+S- and M-codes point to the build tables in those docs; this file decides **when**.
 
-## Phase 2 — Real-time and multiplayer v2
+---
 
-- [ ] `/ws/v1/` single socket: first-message auth, envelope, `req_id` idempotency, rate limits
-- [ ] Presence service (online status, used by profiles and rooms)
-- [ ] Domain-event outbox + worker (connects games, gifts, achievements, moments, rankings)
-- [ ] Redis game store, matchmaking, reconnection with `state_delta`
+## Phase 1 — Playable foundation
 
-## Phase 3 — Identity ([SOCIAL_MAJLIS §17](SOCIAL_MAJLIS.md#17-build-order))
+The master prompt's priority list (items 1–15), in build order.
 
-- [ ] **S1** Profile page, Player ID copy/search, languages, privacy; follow, friends, block, report
-- [ ] **S2** Statistics from real online games (bot games excluded)
-- [ ] **S3** Achievements engine + first achievements
-- [ ] **S4** Item system (catalog, inventory, item ledger, equip) with cosmetics first: favourite dice, nameplates, frames
+- [x] **1.0** Ludo rules engine: dice, turns, movement, safe squares, captures, home path, extra turns, sixes rules, win detection (prompt items 6–9)
+- [x] **1.1** Live online game on the engine: backend game model, server dice, action log (items 11, 13 — first version)
+- [x] **1.2** Turn timer, AFK handling, idle players removed
+- [x] **1.3** Dev setup + CI: requirements, production guard, Redis-free dev, server address setting, GitHub Actions, `CLAUDE.md`
+- [ ] **1.4** Flutter architecture: `core/ shared/ features/`, Riverpod, GoRouter (guarded routes), Freezed, design system with the Majlis theme (dark + light), localisation-ready (item 1)
+- [ ] **1.5** Main navigation: Home + **Events · Game Hub · Battle · Chat · Social**; today's room flow lives in Game Hub; unbuilt sections say "coming soon" (item 3)
+- [ ] **1.6** Accounts: guest login + JWT + **permanent 9-digit Player ID** + session restore; rooms use the account (item 2)
+- [ ] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
+- [ ] **1.8** Currency foundation: wallet ledger (two currencies), daily login reward, balances on Home (item 5, **S6**)
+- [ ] **1.9** Local play: Dart engine + shared test vectors; vs AI and pass-and-play (item 10)
+- [ ] **1.10** Game platform layer: `game_type` / `variant` + engine registry on server and app, ready for Domino/Jackaroo (PLATFORM §3)
+- [ ] **1.11** WebSocket foundation v1: one socket, first-message auth, subscriptions (`game/` `room/` `chat/` `user/` `notifications/`), envelope, idempotency, rate limits, presence (item 12)
+- [ ] **1.12** Online multiplayer on v1: game actions over the socket, versioned sync (item 13)
+- [ ] **1.13** Private rooms v2: WAITING → READY → STARTING → PLAYING → FINISHED → CLOSED, ready system, host controls, invites, custom rules, rematch, leave (item 14)
+- [ ] **1.14** Reconnection: seat kept, `player_disconnected` / `player_reconnected`, `state_delta` sync, safe across server restarts (item 15)
+- [ ] **1.15** Google + Apple sign-in
 
-## Phase 4 — Economy and gifts
+## Phase 2 — Player system
 
-- [ ] **S5** Gift catalog managed in admin
-- [ ] **S6** Wallet + ledger: gold, diamonds, fragments (earned and granted only, no real money yet)
-- [ ] **S6b** Reward engine: one `grant()` for every reward, claims, server reward-day + daily login reward
-- [ ] **S6c** Entitlement engine: privilege catalog, grants, inheritance, admin overrides
-- [ ] **S7** Send gifts to profiles: atomic, idempotent; gifts shown on profile
-- [ ] **S8** Gift animation engine (5 rarity tiers, combos, fallback)
+- [ ] XP and account levels from games
+- [ ] Item system + basic customisation: dice skins, board skins, frames; equip (**S4**)
+- [ ] Statistics from real online games, bot games excluded (**S2**)
+- [ ] Progress engine: achievements first (**S3**); missions reuse it in Phase 8
+- [ ] Reward engine: one `grant()`, claims, server reward-day (**S6b**)
+- [ ] Entitlement engine foundation: privilege catalog, grants, overrides (**S6c**)
 
-## Phase 5 — Majlis rooms
+## Phase 3 — Ludo engine complete
 
-- [ ] **S9** Persistent social rooms: create, join, background, room info
-- [ ] **S10** Members with server-side search and roles
-- [ ] **S11** Room chat + moderation basics (filter, report, block, mute, kick, delete)
-- [ ] **S12** Presence and online counts
-- [ ] **S13** Mic slots (no audio yet), room gifting, licensed music
+- [ ] Team mode 2 v 2 (partners opposite, no friendly captures, team victory)
+- [ ] Blocks as a rule option
+- [ ] Variants framework: parameters + board features + modifier hooks + per-player views (PLATFORM §4)
+- [ ] Variants: Quick, Snakes, Lucky, Jungle, Night, Fight (one at a time)
+- [ ] Game history and replay viewer (from the action log)
 
-## Phase 6 — Room social loop
+## Phase 4 — Multiplayer at scale
 
-- [ ] **S14** Moments
-- [ ] **S15** Contribution ranking (24h / 7d)
-- [ ] **S16** Attraction ranking
-- [ ] **S17** Room levels, XP and unlocks
-- [ ] **S18** Room events with prizes
-- [ ] **S19** Full moderation and audit
-- [ ] **S20** Live-ops admin (scheduled gifts, events, banners)
+- [ ] Matchmaking: Quick, Casual, Ranked queue infrastructure, Team/party (PLATFORM §6)
+- [ ] Spectators
+- [ ] Redis live game store with version-checked writes
+- [ ] Multiplayer test suite: simultaneous actions, invalid requests, latency
+- [ ] Load tests: 100 → 1,000 games, 10,000 connections
 
-## Later
+## Phase 5 — Social
 
-- [ ] **7** Competitive: ratings, leagues, seasons, leaderboards (fills league fields on profiles)
-- [ ] **8** Tournaments
+- [ ] Friends, follow, block, mute, report, search, recently played, presence (**S1**)
+- [ ] Chat: private, group, game, team, global — with moderation basics
+- [ ] Social feed: posts, images, reactions, comments, feeds, moderation
+- [ ] Notifications: in-app inbox + push + preferences
+- [ ] Majlis rooms: rooms, members, chat, presence, mic seats without audio (**S9–S13**; gifting comes in Phase 7)
+- [ ] Moments (**S14**)
+- [ ] Communities / groups
 
-### Phase 9 — Store and purchases ([ROYAL_VIP_ECONOMY §21](ROYAL_VIP_ECONOMY.md#21-build-order))
+## Phase 6 — Competition
 
-- [ ] **M1** Store catalog (admin) + Store screen with real store prices
-- [ ] **M2** Gold and diamond purchases, server-verified (Apple / Google), refunds
-- [ ] **M3** Promotions: first-purchase bonus, limited packages, regions, recharge tickets
-- [ ] **M4** Purchase and transaction history
+- [ ] Ratings per game type (OpenSkill recommended) + ranked queue
+- [ ] Leagues and seasons (Bronze → Grand Master, config)
+- [ ] Leaderboards: global, weekly, monthly, friends, season + ranking history
+- [ ] Tournaments: knockout → double elimination → round robin → team → seasonal
 
-### Phase 10 — VIP and Royal
+## Phase 7 — Economy
 
-- [ ] **M5** Subscription engine + VIP Knight / Baron (tiers are config)
-- [ ] **M6** VIP daily rewards with streaks
-- [ ] **M7** Royal EXP ledger, levels, idempotent level-up
-- [ ] **M8** Royal privileges + Royal Level screen
-- [ ] **M9** Royal Reward Tower
-- [ ] **M10** VIP/Royal in profiles, rooms, chat and social sorting
+- [ ] Shop (in-game currency): skins, frames, stickers, themes, bundles, offers, discounts
+- [ ] Gift catalog, sending, gifts on profiles, gift animations (**S5, S7, S8**)
+- [ ] Majlis room gifting + contribution / attraction rankings + room levels + room events (**S13 gifting, S15–S18**)
+- [ ] Real-money store: catalog, verified purchases, promotions, purchase history (**M1–M4**)
+- [ ] Transaction history screens
 
-### Phase 11 — Premium items and extras
+## Phase 8 — Events
 
-- [ ] **M11** Magic cards and props
-- [ ] **M12** Fragment Exchange
-- [ ] **M13** Super Value Surprise (free draws, odds shown)
-- [ ] **M14** Daily Gift Commission
-- [ ] **M15** Visitor history (+ stealth visit)
-- [ ] **M16** Chat privileges: voice messages, stickers, GIFs, styles
-- [ ] **M17** Support tickets with priority
-- [ ] **M18** Economy dashboard and balancing
+- [ ] Missions: daily, weekly, seasonal (progress engine)
+- [ ] Events engine: event currency, event shop, event leaderboard, special modes, countdowns
+- [ ] Reward Tower (one tower system for events and Royal)
+- [ ] Daily Gift Commission (**M14**)
+- [ ] Seasonal content
 
-### Then
+## Phase 9 — VIP and collections
 
-- [ ] **12** Voice (WebRTC SFU) and polish: animations, performance, analytics, accessibility, Arabic / Urdu / Punjabi
+- [ ] VIP subscriptions + daily rewards (**M5–M6**)
+- [ ] Royal EXP, levels, privileges, Royal screen, Royal tower, VIP/Royal integration (**M7–M10**)
+- [ ] Collections: albums, cards, duplicates → fragments, completion rewards, showcase
+- [ ] Cosmetics expansion: vehicles, entry and victory effects, ID styles, pin-on-top, chat effects; limited items; profile customisation
+- [ ] Magic cards and props, fragment exchange, Super Value Surprise (**M11–M13**)
+- [ ] Visitor history, chat privileges, support priority (**M15–M17**)
 
-> Social comes before competitive, following the master prompt's priority:
-> quality → reliability → multiplayer → social → competition → monetisation → scale.
+## Phase 10 — Admin
 
-## Known TODOs in the engine
+- [ ] Web admin dashboard: players, games, economy, events, tournaments, social, content (PLATFORM §14)
+- [ ] Full moderation and audit (**S19**), live-ops tools (**S20**), economy dashboard (**M18**)
+- [ ] Analytics dashboards
 
-- Blocks (two same-colour tokens blocking a square)
-- Team-mode victory
-- House-rule variants ("enter and move")
+## Phase 11 — Polish
+
+- [ ] Animations, sound, haptics, performance
+- [ ] Accessibility, localisation (Arabic, Urdu, Punjabi)
+- [ ] Error handling review, security hardening
+- [ ] Voice in Majlis rooms (WebRTC SFU)
+
+## Phase 12 — Production
+
+- [ ] Docker images, CI/CD deploy (staging → approval → production)
+- [ ] Monitoring, logging, alerts, crash reporting
+- [ ] Backups with tested restores, scaling
+
+## Phase 13 — New games
+
+- [ ] Domino, then Jackaroo, on the platform layer
+
+---
+
+## Open decisions
+
+Answer when the phase that needs them starts.
+
+| Decision | Needed by | Default if unanswered |
+|---|---|---|
+| Currency names: Gold & Diamonds or Coins & Gems | 1.8 | — (ask) |
+| Purchase service vs own store verification | Phase 7 store | Service for subscriptions |
+| Super Value Surprise free-only | Phase 9 | Free-only |
+| Reward-day reset time | Phase 2 reward engine | 00:00 Bahrain time |
+| Rating system | Phase 6 | OpenSkill |
+| Bots in casual matchmaking | Phase 4 | Yes, labelled |
+| Variant names | Phase 3 | Keep prompt names |
+| Gift cash-out | Phase 7 | No |
+| Voice in Majlis rooms v1 | Phase 5 | Seats without audio |
+| Minimum age, spending limits | Phase 7 store | — (ask) |
+| Magic cards in ranked | Phase 9 | Never |
+| Punjabi script | Phase 11 | — (ask) |
+| Web as a target | 1.4 | Secondary (testing), focus Android + iOS |
+
+Decided: real money yes — the two currencies and VIP are sold via App Store / Google Play.
