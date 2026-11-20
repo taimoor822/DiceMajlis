@@ -20,6 +20,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.api_errors import invalid_input_response
+
 from ludo_engine import (
     MAX_PLAYERS,
     MIN_PLAYERS,
@@ -53,10 +55,7 @@ def _error(message, code, http_status):
 
 
 def _invalid(serializer):
-    return Response(
-        {'error': 'Invalid request', 'code': 'invalid_input', 'fields': serializer.errors},
-        status=status.HTTP_400_BAD_REQUEST,
-    )
+    return invalid_input_response(serializer)
 
 
 def _room_not_found():

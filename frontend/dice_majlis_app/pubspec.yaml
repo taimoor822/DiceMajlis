@@ -50,6 +50,7 @@ dependencies:
   # needs build hooks, which build_runner can't compile on Flutter 3.38.
   # Remove this line when the project moves to a newer Flutter.
   path_provider_foundation: ">=2.5.1 <2.6.0"
+  country_picker: ^2.0.28
 
 dev_dependencies:
   flutter_test:

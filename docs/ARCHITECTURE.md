@@ -239,13 +239,16 @@ lib/
 │   ├── routing/                  app_routes (paths), app_router (GoRouter: tab shell + roomGuard)
 │   └── l10n/                     app_en.arb → generated/ (flutter gen-l10n)
 ├── shared/widgets/               MajlisBackground, MajlisButton, MajlisCard, MajlisWordmark, GlowContainer,
-│                                 ComingSoonPage + SoonBadge (honest placeholders)
+│                                 ComingSoonPage + SoonBadge (honest placeholders), PlayerAvatar
 └── features/
-    ├── splash/presentation/
+    ├── splash/presentation/      restores the sign-in, then the room / Home / Welcome
+    ├── auth/presentation/        welcome, email (sign in / create), forgotten password
     ├── navigation/presentation/  main_shell.dart (bottom bar), tab_placeholders.dart
-    ├── home/presentation/        Home lobby (Battle tab): play, profile (soon), shortcuts
+    ├── home/presentation/        Home lobby (Battle tab): play, profile card, shortcuts
+    ├── profile/                  account_repository (profile, save account), profile screen,
+    │                             save-account screen
     ├── hub/presentation/         Game Hub: Classic Ludo rooms + modes coming soon
-    ├── settings/presentation/    theme (saved on the device)
+    ├── settings/presentation/    account (save, sign out), theme (saved on the device)
     ├── multiplayer/
     │   ├── data/room_repository.dart        typed room API (+ provider)
     │   ├── domain/room_session.dart         Freezed RoomSession / RoomPlayer
@@ -259,7 +262,9 @@ lib/
 - **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Events · Game Hub ·
   Battle · Chat · Social**; each tab keeps its own history. Battle, in the centre, is the
   Home lobby where the app opens. `/events`, `/hub` (+ `/hub/create-room`,
-  `/hub/join-room`), `/home` (+ `/home/settings`), `/chat`, `/social`.
+  `/hub/join-room`), `/home` (+ `/home/profile`, `/home/settings`,
+  `/home/settings/save-account`), `/chat`, `/social`. Signed out: `/welcome`,
+  `/welcome/email`, `/welcome/forgot`.
   Rooms and games are full screen above the bar: `/room/:code`, `/game/:code`.
   Back on another tab returns to the lobby; back there leaves the app.
   `roomGuard` sends room and game links without a matching session to Home
@@ -297,11 +302,13 @@ backend/
     │   └── tests/             # 72 tests incl. 300 simulated full games
     ├── game/                  # rooms + REST + WS; services.py = the only code that changes game state
     │                          # (split into rooms/ + gameplay/ later)
-    ├── accounts/              # 1.6 users + Player ID, device sessions, JWT, guest sign-in
-    │                          #     (email 1.7, Google/Apple 1.15, phone later)
+    ├── accounts/              # 1.6 users + Player ID, device sessions, JWT, guest sign-in;
+    │                          #     1.7 email sign-up/in, save guest account, reset code
+    │                          #     (Google/Apple 1.15, phone later)
+    ├── profiles/              # 1.7 display name, built-in avatar, country, languages, XP → level
+    │                          #     (frames and stats summary later)
     │
     │  planned apps (each added in the phase that needs it)
-    ├── profiles/              # P1 display name, avatar, frame, stats summary
     ├── realtime/              # P2 socket envelope, auth, rate limits, idempotency
     ├── gameplay/              # P2 Redis game store, action log, turn-timer worker
     ├── matchmaking/           # P2 queues, rating windows
@@ -343,7 +350,8 @@ append-only.
 |---|---|---|
 | 1 | `accounts_user` | id (UUID), player_id (9 digits, unique), username (unique, case-insensitive), email (unique, nullable), phone (unique, nullable, later), is_guest, is_active, last_login |
 | 1 | `accounts_device_session` | user, device_id, platform, refresh_hash, previous_refresh_hash, rotated_at, refresh_expires_at, last_seen_at, revoked_at, revoked_reason — powers "log out other devices" |
-| 1 | `profiles_profile` | user (1:1), display_name, avatar, country, xp, level |
+| 1 | `profiles_profile` | user (1:1, also the key), display_name, avatar (built-in picture key), country (ISO code or ""), languages (list), xp — the level is worked out from xp, not stored |
+| 1 | `accounts_password_reset_code` | user, code_hash (keyed), created_at, expires_at, attempts, used_at |
 | 1→2 | `gameplay_game` | id, room, mode (2p/4p/team), ranked, status, rules (JSONB), initial_state (JSONB), final_state (JSONB), winner, started_at, ended_at |
 | 2 | `gameplay_game_player` | game, user, seat, place, rating_before/after — unique(game, seat), unique(game, user) |
 | ✅ 1.1 | `game_gameaction` (→ `gameplay_game_action`) | game, version, action (JSONB), created_at — unique(game, version). **The audit log for disputes and replays** |
@@ -577,33 +585,52 @@ working) but runs them on the new engine and adds `version` to events. Phase 2 a
 | Storage | Refresh token in `flutter_secure_storage` (Keychain / Android Keystore). Nothing secret in the app bundle |
 | Refresh | The app refreshes ~30 s before the access token runs out; one shared refresh call for everyone waiting. A Dio interceptor adds the token, and on `401 token_expired` refreshes once and retries; `session_revoked` → signed out. Offline → the request fails, the player stays signed in |
 | Devices | `accounts_device_session` row per device; "log out other devices" revokes their refresh tokens |
-| Password reset | Emailed one-time token (Django's token generator), expires in 1 hour |
+| Password reset | A **6-digit code** emailed to the player and typed into the app (no links to open on a phone). Keyed hash stored, 1 hour, 5 tries, a new code replaces the old one, at most 5 emails per hour per account. Asking never reveals whether an email has an account. A new password signs the account out everywhere |
 | WebSocket | First-message auth with the access token (§7); server re-checks on reconnect |
 | Roles | Django groups: Super Admin, Admin, Moderator, Support, Event Manager. Django admin for staff at first |
-| Protection | Login rate limits per IP (+ account from 1.7; `DJANGO_NUM_PROXIES` behind a proxy), password hashing (Django's Argon2/PBKDF2), TLS everywhere, audit log on admin actions |
+| Protection | Rate limits per IP on sign-up, sign-in, refresh and reset (`DJANGO_NUM_PROXIES` behind a proxy) + per account: 10 wrong passwords in 15 minutes lock that email for 15 minutes. Unknown emails take as long as wrong passwords. Django's password rules (length, common, numbers only, too close to the email) with a code per rule. Password hashing (Django's PBKDF2), TLS everywhere, audit log on admin actions |
+| Email | Development prints emails (reset codes) in the server's terminal. Production: an email provider's SMTP settings in `.env` (`EMAIL_BACKEND`, `EMAIL_HOST`, ...) — provider chosen before launch |
 | Player ID | `User.player_id`: random 9-digit number (100 000 000–999 999 999) from `secrets`, unique, never changes or gets reused; random so it doesn't reveal how many players exist |
 
-### API (built in 1.6)
+### API (built in 1.6–1.7)
 
 | Endpoint | | |
 |---|---|---|
 | `POST /api/auth/guest/` | `{device_id, platform}` | 201 tokens + account. Rate limited per IP (`AUTH_GUEST_SIGNUP_RATE`, default 20/hour) |
+| `POST /api/auth/register/` | `{email, password, device_id, platform}` | 201 tokens + account; 409 `email_taken`; 400 `invalid_input` with `fields.password` = `password_too_short` · `password_too_common` · `password_entirely_numeric` · `password_too_similar` |
+| `POST /api/auth/login/` | `{email, password, device_id, platform}` | 200 tokens + account; 401 `invalid_credentials`; 429 `rate_limited` (+ `retry_after`) |
+| `POST /api/auth/save-account/` | signed-in guest: `{email, password}` | 200 account (same Player ID, `is_guest` false); 409 `email_taken` · `already_saved` |
+| `POST /api/auth/password-reset/` | `{email}` | 200 `{status: "sent"}` whether or not the email has an account |
+| `POST /api/auth/password-reset/confirm/` | `{email, code, new_password}` | 200; 400 `invalid_code` · `code_expired` · `too_many_attempts` |
+| `GET /api/profile/options/` | | `{avatars, languages, max_languages, name_min_length, name_max_length}` |
+| `PATCH /api/me/profile/` | any of `{display_name, avatar, country, languages}` | 200 account; name errors in `fields.display_name`: `name_length` · `name_characters` · `name_not_allowed` |
 | `POST /api/auth/refresh/` | `{refresh}` | 200 new tokens + account; 401 `invalid_refresh` · `refresh_expired` · `session_revoked` |
 | `POST /api/auth/logout/` | signed in | 204; this device signed out |
 | `POST /api/auth/logout-others/` | signed in | `{signed_out: n}` |
-| `GET /api/me/` | signed in | `{player_id, display_name, is_guest, created_at, active_room}` |
+| `GET /api/me/` | signed in | `{player_id, is_guest, email, created_at, display_name, avatar, country, languages, level, xp, level_xp, next_level_xp, active_room}` |
 
 Tokens answer `{access, refresh, token_type: "Bearer", access_expires_in, account}`.
 Bad access tokens get 401 `token_expired`, `invalid_token` or `session_revoked`; no
-token on a protected endpoint gets 401 `not_authenticated`. Until profiles (1.7) the
-display name is `Guest <last 4 digits of the Player ID>`.
+token on a protected endpoint gets 401 `not_authenticated`. Every `invalid_input`
+error lists a stable code per field in `fields` (never English), so the app can say
+what to fix.
+
+**Profiles (1.7):** made with every account (`profiles/signals.py`). Default name
+`Player <last 4 digits of the Player ID>`, a built-in avatar picked from the Player ID.
+Names: 2–20 characters, letters from any script, digits, spaces and `_ - . '`, at least
+one letter, nothing that passes for the team (`admin`, `official`, ...). Avatars are
+built-in pictures (keys in `profiles/choices.py`, art in the app); photo upload needs
+image storage and moderation and comes later. Spoken languages: `en ar ur pa`. Level
+from XP: each level needs 100 XP more than the one before (`profiles/levels.py`);
+earning XP arrives in Phase 2.
 
 ### Splash flow
 
 ```
 1. main(): theme, settings; app opens on the splash screen (logo ≥ 1.2 s)
 2. Read refresh token from secure storage
-3. None → Welcome ("Play as guest"; email / Google / Apple: coming soon)
+3. None → Welcome ("Play as guest", email sign-in/up + forgotten password;
+   Google / Apple: coming soon)
 4. Present → POST /api/auth/refresh → new tokens + account (with active_room)
 5. active_room? → its waiting room, or the board if started. Else → Home
    Refused (invalid / expired / revoked) → clear tokens → Welcome
@@ -612,6 +639,8 @@ display name is `Guest <last 4 digits of the Player ID>`.
 
 The router sends signed-out players to Welcome, never shows Welcome to a signed-in
 player, and keeps everything on the splash screen while the sign-in is checked.
+Signing in any way (splash, email, reset) goes straight back to the account's
+active room.
 
 ## 9. Development environment
 

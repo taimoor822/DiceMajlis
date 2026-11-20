@@ -13,8 +13,43 @@
   "welcomePlayAsGuest": "Play as guest",
   "welcomeGuestHint": "You get a permanent Player ID right away. Your guest account lives on this device; adding email, Google or Apple later will keep it safe.",
   "welcomeEmail": "Sign in with email",
+  "welcomeEmailSubtitle": "Or create an account with your email",
   "welcomeGoogle": "Continue with Google",
   "welcomeApple": "Continue with Apple",
+
+  "emailTitle": "Email",
+  "emailModeSignIn": "Sign in",
+  "emailModeCreate": "Create account",
+  "emailField": "Email",
+  "emailFieldInvalid": "Enter a valid email address.",
+  "passwordField": "Password",
+  "newPasswordField": "New password",
+  "passwordFieldEmpty": "Enter your password.",
+  "passwordShow": "Show password",
+  "passwordHide": "Hide password",
+  "passwordHint": "Use letters and numbers. Avoid common passwords.",
+  "emailSignIn": "Sign in",
+  "emailCreate": "Create account",
+  "emailForgot": "Forgot password?",
+
+  "forgotTitle": "Forgot password",
+  "forgotIntro": "Enter your account's email. We'll send you a 6-digit code.",
+  "forgotSend": "Send code",
+  "forgotCodeSent": "If {email} has an account, a code is on its way. It works for one hour.",
+  "@forgotCodeSent": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "forgotCode": "6-digit code",
+  "forgotCodeInvalid": "Enter the 6 digits from the email.",
+  "forgotChange": "Change password",
+  "forgotResend": "Send a new code",
+
+  "saveAccountTitle": "Save your account",
+  "saveAccountIntro": "Add your email and a password. You keep your Player ID and everything on this account, and you can sign in on any phone.",
+  "saveAccountButton": "Save account",
+  "saveAccountDone": "Account saved. You can now sign in with your email.",
 
   "navEvents": "Events",
   "navGameHub": "Game Hub",
@@ -43,7 +78,55 @@
   "homeCopyPlayerId": "Copy Player ID",
   "homePlayerIdCopied": "Player ID copied",
   "homeGuestTag": "Guest",
-  "homeProfileSoon": "Your name, picture, level and coins arrive in the next updates.",
+  "homeProfileHint": "Tap to edit your profile",
+  "homeLevel": "Level {level}",
+  "@homeLevel": {
+    "placeholders": {
+      "level": {"type": "int"}
+    }
+  },
+
+  "profileTitle": "Profile",
+  "profileName": "Name",
+  "profileNameSave": "Save name",
+  "profileSaved": "Saved",
+  "profileAvatar": "Avatar",
+  "profileAvatarPhotoSoon": "Your own photo is coming soon.",
+  "profileCountry": "Country",
+  "profileCountryNone": "Not shown",
+  "profileCountryChoose": "Choose",
+  "profileCountryHide": "Don't show my country",
+  "profileLanguages": "Languages you speak",
+  "profileLanguagesHint": "Pick up to {count}.",
+  "@profileLanguagesHint": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "profileLevelXp": "{xp} / {next} XP",
+  "@profileLevelXp": {
+    "placeholders": {
+      "xp": {"type": "int"},
+      "next": {"type": "int"}
+    }
+  },
+  "profileXpSoon": "Earning XP from games is coming soon.",
+  "profileOptionsFailed": "Couldn't load the profile choices.",
+
+  "languageEn": "English",
+  "languageAr": "Arabic",
+  "languageUr": "Urdu",
+  "languagePa": "Punjabi",
+
+  "nameLength": "Names are {min} to {max} characters.",
+  "@nameLength": {
+    "placeholders": {
+      "min": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "nameCharacters": "Use letters, numbers, spaces and _ - . ' only, with at least one letter.",
+  "nameNotAllowed": "That name isn't allowed. Please pick another.",
   "homeShortcuts": "More",
   "homeShop": "Shop",
   "homeCollection": "Collection",
@@ -82,6 +165,7 @@
   "settingsThemeHint": "Phone follows your phone's dark mode setting.",
   "settingsAccount": "Account",
   "settingsGuestAccount": "Guest account",
+  "settingsGuestSaveHint": "Save your account so you don't lose it if you change or reset your phone.",
   "settingsSignOut": "Sign out",
   "settingsSignOutTitle": "Sign out?",
   "settingsSignOutGuest": "You're playing as a guest. If you sign out, this account and its Player ID can't be recovered.",
@@ -177,6 +261,16 @@
   "errorAlreadyInGame": "You're still playing another game. Finish or leave it first.",
   "errorSignedOut": "You were signed out. Please sign in again.",
   "errorRateLimited": "Too many tries. Please wait a moment and try again.",
+  "errorInvalidCredentials": "Wrong email or password.",
+  "errorEmailTaken": "That email already has an account. Sign in instead.",
+  "errorAlreadySaved": "This account is already saved.",
+  "errorInvalidCode": "That code isn't right. Check the email and try again.",
+  "errorCodeExpired": "That code has expired. Ask for a new one.",
+  "errorTooManyCodeTries": "Too many wrong codes. Ask for a new one.",
+  "errorPasswordTooShort": "That password is too short.",
+  "errorPasswordTooCommon": "That password is too easy to guess.",
+  "errorPasswordNumeric": "Use letters too, not only numbers.",
+  "errorPasswordSimilar": "That password is too close to your email.",
   "errorNotYourTurn": "It's not your turn.",
   "errorWrongPhase": "You can't do that right now.",
   "errorIllegalMove": "That token can't move with this roll.",

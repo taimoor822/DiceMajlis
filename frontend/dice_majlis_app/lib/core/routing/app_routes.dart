@@ -2,8 +2,10 @@
 abstract final class AppRoutes {
   static const splash = '/';
 
-  /// First visit or signed out: "Play as guest" (more sign-in options later).
+  /// First visit or signed out: "Play as guest" or email.
   static const welcome = '/welcome';
+  static const welcomeEmail = '/welcome/email';
+  static const forgotPassword = '/welcome/forgot';
 
   // Main navigation: five tabs (each keeps its own history). Battle, in the
   // centre, is the Home lobby where the app opens.
@@ -14,6 +16,8 @@ abstract final class AppRoutes {
   static const social = '/social';
 
   static const settings = '/home/settings';
+  static const saveAccount = '/home/settings/save-account';
+  static const profile = '/home/profile';
 
   // Today's room flow lives in Game Hub.
   static const createRoom = '/hub/create-room';

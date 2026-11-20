@@ -33,6 +33,21 @@ void main() {
       );
     });
 
+    test('signed out: the email and forgotten-password screens are open', () {
+      expect(redirect(const SignedOut(), '/welcome/email'), isNull);
+      expect(redirect(const SignedOut(), '/welcome/forgot'), isNull);
+      expect(redirect(const SignedOut(), '/home/profile'), AppRoutes.welcome);
+    });
+
+    test('signing in from Welcome goes back to your room, else Home', () {
+      expect(redirect(signedIn, '/welcome/email'), AppRoutes.home);
+      expect(redirect(signedIn, '/welcome/email', session), '/room/AB12');
+      expect(
+        redirect(signedIn, '/welcome', session.copyWith(isStarted: true)),
+        '/game/AB12',
+      );
+    });
+
     test('signed in: never the welcome screen; rooms need a session', () {
       expect(redirect(signedIn, '/welcome'), AppRoutes.home);
       expect(redirect(signedIn, '/home'), isNull);

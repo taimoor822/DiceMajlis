@@ -86,6 +86,47 @@ class AuthController extends Notifier<AuthState> {
     await _accept(tokens);
   }
 
+  /// Sign in with email + password.
+  Future<void> signInWithEmail(String email, String password) async {
+    final tokens = await _api.login(
+      email: email.trim(),
+      password: password,
+      deviceId: await _store.deviceId(),
+      platform: devicePlatform(),
+    );
+    await _accept(tokens);
+  }
+
+  /// A new account with email + password.
+  Future<void> createAccount(String email, String password) async {
+    final tokens = await _api.register(
+      email: email.trim(),
+      password: password,
+      deviceId: await _store.deviceId(),
+      platform: devicePlatform(),
+    );
+    await _accept(tokens);
+  }
+
+  /// Forgotten password: set the new one with the emailed code, then sign in.
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _api.confirmPasswordReset(
+      email: email.trim(),
+      code: code.trim(),
+      newPassword: newPassword,
+    );
+    await signInWithEmail(email, newPassword);
+  }
+
+  /// The server sent a newer copy of the account (profile edit, saved account).
+  void accountChanged(Account account) {
+    if (state is SignedIn) state = SignedIn(account);
+  }
+
   /// An access token for the next request, refreshed first if it is about to
   /// run out. Null when signed out. Throws [ApiException] when offline.
   Future<String?> accessToken() async {

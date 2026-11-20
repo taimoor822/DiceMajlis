@@ -113,6 +113,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
     colors: [backgroundTop, backgroundBottom],
   );
 
+  /// Background for the built-in avatar picture at [index] (same in both themes).
+  static Color avatarBackground(int index) {
+    const colors = MajlisPalette.avatarBackgrounds;
+    return colors[index.abs() % colors.length];
+  }
+
   /// Board colour for a server seat colour name ('red', 'blue', ...).
   static Color seatColor(String? name) {
     switch ((name ?? '').toLowerCase()) {

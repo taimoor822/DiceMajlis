@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/coming_soon.dart';
 import '../../../shared/widgets/majlis_background.dart';
@@ -11,8 +13,8 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
 
-/// First visit (or after signing out). "Play as guest" works today; email,
-/// Google and Apple sign-in say "coming soon" until their plan steps.
+/// First visit (or after signing out): "Play as guest" or email. Google and
+/// Apple sign-in say "coming soon" until step 1.15.
 ///
 /// Signing in needs no navigation here: the router moves a signed-in player
 /// on to Home.
@@ -54,7 +56,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final theme = Theme.of(context);
     final majlis = context.majlis;
     final later = [
-      (Icons.mail_outline, l10n.welcomeEmail),
       (Icons.account_circle_outlined, l10n.welcomeGoogle),
       (Icons.phone_iphone, l10n.welcomeApple),
     ];
@@ -102,6 +103,18 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Column(
                         children: [
+                          ListTile(
+                            leading: Icon(
+                              Icons.mail_outline,
+                              color: majlis.gold,
+                            ),
+                            title: Text(l10n.welcomeEmail),
+                            subtitle: Text(l10n.welcomeEmailSubtitle),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: _loading
+                                ? null
+                                : () => context.push(AppRoutes.welcomeEmail),
+                          ),
                           for (final (icon, label) in later)
                             ListTile(
                               leading: Icon(icon, color: majlis.textMuted),

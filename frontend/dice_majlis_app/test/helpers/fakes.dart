@@ -10,6 +10,8 @@ import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
+import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
+import 'package:dice_majlis_app/features/profile/domain/profile_options.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -102,8 +104,11 @@ class FakeRoomRepository implements RoomRepository {
 /// The account the fake server signs everyone in as.
 const testAccount = Account(
   playerId: 123456789,
-  displayName: 'Guest 6789',
+  displayName: 'Player 6789',
   isGuest: true,
+  avatar: 'dhow',
+  levelXp: 0,
+  nextLevelXp: 100,
 );
 
 /// Sign-in API without a server. [failWith] makes calls fail with that code
@@ -142,6 +147,53 @@ class FakeAuthApi implements AuthApi {
   }
 
   @override
+  Future<AuthTokens> register({
+    required String email,
+    required String password,
+    required String deviceId,
+    required String platform,
+  }) async {
+    calls.add('register:$email');
+    final tokens = _tokens();
+    account = account.copyWith(email: email, isGuest: false);
+    return AuthTokens(
+      access: tokens.access,
+      refresh: tokens.refresh,
+      accessExpiresIn: tokens.accessExpiresIn,
+      account: account,
+    );
+  }
+
+  @override
+  Future<AuthTokens> login({
+    required String email,
+    required String password,
+    required String deviceId,
+    required String platform,
+  }) async {
+    calls.add('login:$email:$password');
+    return _tokens();
+  }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    calls.add('reset:$email');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    calls.add('confirm:$email:$code:$newPassword');
+    final failure = failWith;
+    if (failure != null) throw ApiException(failure);
+  }
+
+  @override
   Future<AuthTokens> refresh(String refreshToken) async {
     calls.add('refresh:$refreshToken');
     return _tokens();
@@ -152,6 +204,68 @@ class FakeAuthApi implements AuthApi {
 
   @override
   Future<void> signOut(String access) async => calls.add('signOut:$access');
+}
+
+/// Profile and account changes without a server: applies them to the
+/// signed-in account and records them. [failWith] fails every call (an
+/// `ApiException` with that code and [fieldErrors]).
+class FakeAccountRepository implements AccountRepository {
+  FakeAccountRepository({this.account = testAccount});
+
+  Account account;
+  String? failWith;
+  Map<String, List<String>> fieldErrors = const {};
+  final calls = <String>[];
+
+  ProfileOptions options = const ProfileOptions(
+    avatars: ['dice', 'dhow', 'moon'],
+    languages: ['en', 'ar', 'ur', 'pa'],
+    maxLanguages: 2,
+    nameMinLength: 2,
+    nameMaxLength: 20,
+  );
+
+  void _maybeFail() {
+    final code = failWith;
+    if (code != null) throw ApiException(code, fieldErrors: fieldErrors);
+  }
+
+  @override
+  Future<ProfileOptions> profileOptions() async {
+    calls.add('options');
+    return options;
+  }
+
+  @override
+  Future<Account> updateProfile({
+    String? displayName,
+    String? avatar,
+    String? country,
+    List<String>? languages,
+  }) async {
+    calls.add(
+      'update:${[if (displayName != null) 'name=$displayName', if (avatar != null) 'avatar=$avatar', if (country != null) 'country=$country', if (languages != null) 'languages=${languages.join(',')}'].join(' ')}',
+    );
+    _maybeFail();
+    return account = account.copyWith(
+      displayName: displayName?.trim() ?? account.displayName,
+      avatar: avatar ?? account.avatar,
+      country: country == null
+          ? account.country
+          : (country.isEmpty ? null : country),
+      languages: languages ?? account.languages,
+    );
+  }
+
+  @override
+  Future<Account> saveAccount({
+    required String email,
+    required String password,
+  }) async {
+    calls.add('save:$email');
+    _maybeFail();
+    return account = account.copyWith(email: email, isGuest: false);
+  }
 }
 
 /// Token storage in memory. Starts with [refreshToken] (null = signed out).
@@ -212,8 +326,12 @@ List<Override> fakeNetwork({
   required FakeSockets sockets,
   FakeAuthApi? auth,
   MemoryTokenStore? tokens,
+  FakeAccountRepository? accounts,
 }) => [
   roomRepositoryProvider.overrideWithValue(repository),
+  accountRepositoryProvider.overrideWithValue(
+    accounts ?? FakeAccountRepository(),
+  ),
   socketServiceFactoryProvider.overrideWithValue(sockets.create),
   authApiProvider.overrideWithValue(auth ?? FakeAuthApi()),
   tokenStoreProvider.overrideWithValue(
@@ -228,6 +346,7 @@ Widget testApp({
   required FakeSockets sockets,
   FakeAuthApi? auth,
   MemoryTokenStore? tokens,
+  FakeAccountRepository? accounts,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -236,6 +355,7 @@ Widget testApp({
       sockets: sockets,
       auth: auth,
       tokens: tokens,
+      accounts: accounts,
     ),
     ...overrides,
   ],

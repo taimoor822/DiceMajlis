@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/email_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
@@ -13,6 +15,8 @@ import '../../features/multiplayer/presentation/join_room_screen.dart';
 import '../../features/multiplayer/presentation/waiting_room_screen.dart';
 import '../../features/navigation/presentation/main_shell.dart';
 import '../../features/navigation/presentation/tab_placeholders.dart';
+import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/save_account_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../auth/auth_controller.dart';
@@ -23,9 +27,10 @@ import 'app_routes.dart';
 ///
 /// - While the saved sign-in is being checked (or the server can't be
 ///   reached), everything waits on the splash screen.
-/// - Signed out: the welcome screen ("Play as guest").
-/// - Signed in: never the welcome screen again, and rooms need a session for
-///   that room ([roomGuard]). The splash screen moves on by itself.
+/// - Signed out: the welcome screens (guest, email, forgotten password).
+/// - Signed in: never the welcome screens again (straight back to the room the
+///   account is in, if any), and rooms need a session for that room
+///   ([roomGuard]). The splash screen moves on by itself.
 String? appRedirect({
   required AuthState auth,
   required RoomSession? session,
@@ -33,11 +38,16 @@ String? appRedirect({
 }) {
   final path = location.path;
   final atSplash = path == AppRoutes.splash;
-  final atWelcome = path == AppRoutes.welcome;
+  final atWelcome =
+      path == AppRoutes.welcome || path.startsWith('${AppRoutes.welcome}/');
   return switch (auth) {
     AuthLoading() || AuthOffline() => atSplash ? null : AppRoutes.splash,
     SignedOut() => atSplash || atWelcome ? null : AppRoutes.welcome,
-    SignedIn() => atWelcome ? AppRoutes.home : roomGuard(session, location),
+    SignedIn() when atWelcome =>
+      session == null
+          ? AppRoutes.home
+          : AppRoutes.roomOrGame(session.roomCode, started: session.isStarted),
+    SignedIn() => roomGuard(session, location),
   };
 }
 
@@ -65,9 +75,15 @@ StatefulShellBranch _tab(
 );
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Signing in or out sends the player to the right place at once.
+  // Signing in or out sends the player to the right place at once. The room
+  // session is read first so it follows sign-in changes (it listens too)
+  // before the router reacts to them.
+  ref.read(roomSessionProvider);
   final authChanged = ValueNotifier<int>(0);
-  ref.listen(authControllerProvider, (_, _) => authChanged.value++);
+  ref.listen(authControllerProvider, (previous, next) {
+    // Only signing in/out matters here, not a newer copy of the account.
+    if (previous.runtimeType != next.runtimeType) authChanged.value++;
+  });
   ref.onDispose(authChanged.dispose);
 
   return GoRouter(
@@ -86,6 +102,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.welcome,
         builder: (context, state) => const WelcomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'email',
+            builder: (context, state) => const EmailScreen(),
+          ),
+          GoRoute(
+            path: 'forgot',
+            builder: (context, state) => const ForgotPasswordScreen(),
+          ),
+        ],
       ),
       // The five tabs, with the bottom bar. The order here is the order of
       // the bar (MainShell); Battle, in the centre, is the Home lobby.
@@ -107,6 +133,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'settings',
               builder: (context, state) => const SettingsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'save-account',
+                  builder: (context, state) => const SaveAccountScreen(),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'profile',
+              builder: (context, state) => const ProfileScreen(),
             ),
           ]),
           _tab(AppRoutes.chat, const ChatScreen()),

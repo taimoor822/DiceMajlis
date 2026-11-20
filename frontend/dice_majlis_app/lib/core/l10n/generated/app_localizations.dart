@@ -148,6 +148,12 @@ abstract class AppLocalizations {
   /// **'Sign in with email'**
   String get welcomeEmail;
 
+  /// No description provided for @welcomeEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Or create an account with your email'**
+  String get welcomeEmailSubtitle;
+
   /// No description provided for @welcomeGoogle.
   ///
   /// In en, this message translates to:
@@ -159,6 +165,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue with Apple'**
   String get welcomeApple;
+
+  /// No description provided for @emailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailTitle;
+
+  /// No description provided for @emailModeSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get emailModeSignIn;
+
+  /// No description provided for @emailModeCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get emailModeCreate;
+
+  /// No description provided for @emailField.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailField;
+
+  /// No description provided for @emailFieldInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get emailFieldInvalid;
+
+  /// No description provided for @passwordField.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordField;
+
+  /// No description provided for @newPasswordField.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordField;
+
+  /// No description provided for @passwordFieldEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password.'**
+  String get passwordFieldEmpty;
+
+  /// No description provided for @passwordShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get passwordShow;
+
+  /// No description provided for @passwordHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get passwordHide;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters and numbers. Avoid common passwords.'**
+  String get passwordHint;
+
+  /// No description provided for @emailSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get emailSignIn;
+
+  /// No description provided for @emailCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get emailCreate;
+
+  /// No description provided for @emailForgot.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get emailForgot;
+
+  /// No description provided for @forgotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get forgotTitle;
+
+  /// No description provided for @forgotIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your account\'s email. We\'ll send you a 6-digit code.'**
+  String get forgotIntro;
+
+  /// No description provided for @forgotSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get forgotSend;
+
+  /// No description provided for @forgotCodeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If {email} has an account, a code is on its way. It works for one hour.'**
+  String forgotCodeSent(String email);
+
+  /// No description provided for @forgotCode.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code'**
+  String get forgotCode;
+
+  /// No description provided for @forgotCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6 digits from the email.'**
+  String get forgotCodeInvalid;
+
+  /// No description provided for @forgotChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get forgotChange;
+
+  /// No description provided for @forgotResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get forgotResend;
+
+  /// No description provided for @saveAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your account'**
+  String get saveAccountTitle;
+
+  /// No description provided for @saveAccountIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your email and a password. You keep your Player ID and everything on this account, and you can sign in on any phone.'**
+  String get saveAccountIntro;
+
+  /// No description provided for @saveAccountButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save account'**
+  String get saveAccountButton;
+
+  /// No description provided for @saveAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Account saved. You can now sign in with your email.'**
+  String get saveAccountDone;
 
   /// No description provided for @navEvents.
   ///
@@ -250,11 +412,149 @@ abstract class AppLocalizations {
   /// **'Guest'**
   String get homeGuestTag;
 
-  /// No description provided for @homeProfileSoon.
+  /// No description provided for @homeProfileHint.
   ///
   /// In en, this message translates to:
-  /// **'Your name, picture, level and coins arrive in the next updates.'**
-  String get homeProfileSoon;
+  /// **'Tap to edit your profile'**
+  String get homeProfileHint;
+
+  /// No description provided for @homeLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level}'**
+  String homeLevel(int level);
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileName;
+
+  /// No description provided for @profileNameSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save name'**
+  String get profileNameSave;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get profileSaved;
+
+  /// No description provided for @profileAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar'**
+  String get profileAvatar;
+
+  /// No description provided for @profileAvatarPhotoSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own photo is coming soon.'**
+  String get profileAvatarPhotoSoon;
+
+  /// No description provided for @profileCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get profileCountry;
+
+  /// No description provided for @profileCountryNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not shown'**
+  String get profileCountryNone;
+
+  /// No description provided for @profileCountryChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose'**
+  String get profileCountryChoose;
+
+  /// No description provided for @profileCountryHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show my country'**
+  String get profileCountryHide;
+
+  /// No description provided for @profileLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages you speak'**
+  String get profileLanguages;
+
+  /// No description provided for @profileLanguagesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up to {count}.'**
+  String profileLanguagesHint(int count);
+
+  /// No description provided for @profileLevelXp.
+  ///
+  /// In en, this message translates to:
+  /// **'{xp} / {next} XP'**
+  String profileLevelXp(int xp, int next);
+
+  /// No description provided for @profileXpSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Earning XP from games is coming soon.'**
+  String get profileXpSoon;
+
+  /// No description provided for @profileOptionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the profile choices.'**
+  String get profileOptionsFailed;
+
+  /// No description provided for @languageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEn;
+
+  /// No description provided for @languageAr.
+  ///
+  /// In en, this message translates to:
+  /// **'Arabic'**
+  String get languageAr;
+
+  /// No description provided for @languageUr.
+  ///
+  /// In en, this message translates to:
+  /// **'Urdu'**
+  String get languageUr;
+
+  /// No description provided for @languagePa.
+  ///
+  /// In en, this message translates to:
+  /// **'Punjabi'**
+  String get languagePa;
+
+  /// No description provided for @nameLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Names are {min} to {max} characters.'**
+  String nameLength(int min, int max);
+
+  /// No description provided for @nameCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters, numbers, spaces and _ - . \' only, with at least one letter.'**
+  String get nameCharacters;
+
+  /// No description provided for @nameNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'That name isn\'t allowed. Please pick another.'**
+  String get nameNotAllowed;
 
   /// No description provided for @homeShortcuts.
   ///
@@ -465,6 +765,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Guest account'**
   String get settingsGuestAccount;
+
+  /// No description provided for @settingsGuestSaveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your account so you don\'t lose it if you change or reset your phone.'**
+  String get settingsGuestSaveHint;
 
   /// No description provided for @settingsSignOut.
   ///
@@ -825,6 +1131,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Too many tries. Please wait a moment and try again.'**
   String get errorRateLimited;
+
+  /// No description provided for @errorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong email or password.'**
+  String get errorInvalidCredentials;
+
+  /// No description provided for @errorEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That email already has an account. Sign in instead.'**
+  String get errorEmailTaken;
+
+  /// No description provided for @errorAlreadySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is already saved.'**
+  String get errorAlreadySaved;
+
+  /// No description provided for @errorInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That code isn\'t right. Check the email and try again.'**
+  String get errorInvalidCode;
+
+  /// No description provided for @errorCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'That code has expired. Ask for a new one.'**
+  String get errorCodeExpired;
+
+  /// No description provided for @errorTooManyCodeTries.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong codes. Ask for a new one.'**
+  String get errorTooManyCodeTries;
+
+  /// No description provided for @errorPasswordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'That password is too short.'**
+  String get errorPasswordTooShort;
+
+  /// No description provided for @errorPasswordTooCommon.
+  ///
+  /// In en, this message translates to:
+  /// **'That password is too easy to guess.'**
+  String get errorPasswordTooCommon;
+
+  /// No description provided for @errorPasswordNumeric.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters too, not only numbers.'**
+  String get errorPasswordNumeric;
+
+  /// No description provided for @errorPasswordSimilar.
+  ///
+  /// In en, this message translates to:
+  /// **'That password is too close to your email.'**
+  String get errorPasswordSimilar;
 
   /// No description provided for @errorNotYourTurn.
   ///
