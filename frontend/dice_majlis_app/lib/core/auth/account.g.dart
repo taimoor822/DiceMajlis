@@ -10,6 +10,16 @@ _Account _$AccountFromJson(Map<String, dynamic> json) => _Account(
   playerId: (json['player_id'] as num).toInt(),
   displayName: json['display_name'] as String,
   isGuest: json['is_guest'] as bool? ?? false,
+  email: json['email'] as String?,
+  avatar: json['avatar'] as String? ?? '',
+  country: json['country'] as String?,
+  languages:
+      (json['languages'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
+  level: (json['level'] as num?)?.toInt() ?? 1,
+  xp: (json['xp'] as num?)?.toInt() ?? 0,
+  levelXp: (json['level_xp'] as num?)?.toInt() ?? 0,
+  nextLevelXp: (json['next_level_xp'] as num?)?.toInt() ?? 0,
   activeRoom: json['active_room'] == null
       ? null
       : ActiveRoom.fromJson(json['active_room'] as Map<String, dynamic>),
@@ -19,6 +29,14 @@ Map<String, dynamic> _$AccountToJson(_Account instance) => <String, dynamic>{
   'player_id': instance.playerId,
   'display_name': instance.displayName,
   'is_guest': instance.isGuest,
+  'email': instance.email,
+  'avatar': instance.avatar,
+  'country': instance.country,
+  'languages': instance.languages,
+  'level': instance.level,
+  'xp': instance.xp,
+  'level_xp': instance.levelXp,
+  'next_level_xp': instance.nextLevelXp,
   'active_room': instance.activeRoom?.toJson(),
 };
 

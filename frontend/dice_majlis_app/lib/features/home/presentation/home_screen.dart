@@ -13,6 +13,7 @@ import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
+import '../../../shared/widgets/player_avatar.dart';
 
 /// Where the app opens. The profile card shows the signed-in account; wallet
 /// and the shortcuts fill in as their plan steps land (profile 1.7, currency
@@ -116,7 +117,8 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Who you are: your name and permanent Player ID (friends add you with it).
+/// Who you are: avatar, name, level and permanent Player ID (friends add you
+/// with it). Tap to open your profile.
 class _ProfileCard extends ConsumerWidget {
   const _ProfileCard();
 
@@ -136,14 +138,10 @@ class _ProfileCard extends ConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(l10n.homePlayerIdCopied)));
     }
 
-    return MajlisCard(
+    final card = MajlisCard(
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: majlis.glassBorder,
-            child: Icon(Icons.person, color: majlis.gold),
-          ),
+          PlayerAvatar(avatar: account.avatar, radius: 26),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -156,6 +154,12 @@ class _ProfileCard extends ConsumerWidget {
                     Text(
                       account.displayName,
                       style: theme.textTheme.titleMedium,
+                    ),
+                    Text(
+                      l10n.homeLevel(account.level),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: majlis.gold,
+                      ),
                     ),
                     if (account.isGuest)
                       Text(
@@ -176,7 +180,7 @@ class _ProfileCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  l10n.homeProfileSoon,
+                  l10n.homeProfileHint,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: majlis.textMuted,
                   ),
@@ -190,6 +194,14 @@ class _ProfileCard extends ConsumerWidget {
             onPressed: copyPlayerId,
           ),
         ],
+      ),
+    );
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => context.go(AppRoutes.profile),
+        child: card,
       ),
     );
   }

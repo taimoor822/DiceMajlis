@@ -4,14 +4,19 @@ import '../../../core/auth/auth_controller.dart';
 import 'room_session.dart';
 
 /// Holds the current [RoomSession] in memory. After a restart (or a web
-/// refresh) the server says which room the account is in, and the splash
-/// screen puts it back here.
+/// refresh), and whenever the player signs in, the server says which room the
+/// account is in and it is put back here.
 class RoomSessionController extends Notifier<RoomSession?> {
   @override
   RoomSession? build() {
-    // Signing out leaves the room screens behind.
-    ref.listen(authControllerProvider, (_, next) {
+    ref.listen(authControllerProvider, (previous, next) {
+      // Signing out leaves the room screens behind.
       if (next is SignedOut) state = null;
+      // Signing in (any way) goes back to the room the account is in.
+      if (next is SignedIn && previous is! SignedIn) {
+        final room = next.account.activeRoom;
+        if (room != null) state = RoomSession.fromActiveRoom(room);
+      }
     });
     return null;
   }

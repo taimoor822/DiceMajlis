@@ -16,7 +16,12 @@ T _$identity<T>(T value) => value;
 mixin _$Account {
 
 /// Permanent public 9-digit Player ID. Never changes.
- int get playerId; String get displayName; bool get isGuest;/// The room this account is in right now (to go straight back to it).
+ int get playerId; String get displayName;/// True until the player saves the account with email + password.
+ bool get isGuest; String? get email;/// Key of a built-in avatar picture (see `PlayerAvatar`).
+ String get avatar;/// ISO country code, or null when the player doesn't show one.
+ String? get country;/// Spoken-language codes the player shows (`en`, `ar`, ...).
+ List<String> get languages; int get level; int get xp;/// XP where this level starts and where the next one starts.
+ int get levelXp; int get nextLevelXp;/// The room this account is in right now (to go straight back to it).
  ActiveRoom? get activeRoom;
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
@@ -30,16 +35,16 @@ $AccountCopyWith<Account> get copyWith => _$AccountCopyWithImpl<Account>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other.languages, languages)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,activeRoom);
+int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(languages),level,xp,levelXp,nextLevelXp,activeRoom);
 
 @override
 String toString() {
-  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, activeRoom: $activeRoom)';
+  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom)';
 }
 
 
@@ -50,7 +55,7 @@ abstract mixin class $AccountCopyWith<$Res>  {
   factory $AccountCopyWith(Account value, $Res Function(Account) _then) = _$AccountCopyWithImpl;
 @useResult
 $Res call({
- int playerId, String displayName, bool isGuest, ActiveRoom? activeRoom
+ int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom
 });
 
 
@@ -67,12 +72,20 @@ class _$AccountCopyWithImpl<$Res>
 
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? activeRoom = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,}) {
   return _then(_self.copyWith(
 playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,isGuest: null == isGuest ? _self.isGuest : isGuest // ignore: cast_nullable_to_non_nullable
-as bool,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
+as bool,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,avatar: null == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
+as String,country: freezed == country ? _self.country : country // ignore: cast_nullable_to_non_nullable
+as String?,languages: null == languages ? _self.languages : languages // ignore: cast_nullable_to_non_nullable
+as List<String>,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as int,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
+as int,levelXp: null == levelXp ? _self.levelXp : levelXp // ignore: cast_nullable_to_non_nullable
+as int,nextLevelXp: null == nextLevelXp ? _self.nextLevelXp : nextLevelXp // ignore: cast_nullable_to_non_nullable
+as int,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
 as ActiveRoom?,
   ));
 }
@@ -170,10 +183,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  ActiveRoom? activeRoom)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Account() when $default != null:
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
   return orElse();
 
 }
@@ -191,10 +204,10 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom)
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  ActiveRoom? activeRoom)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)  $default,) {final _that = this;
 switch (_that) {
 case _Account():
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +224,10 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom)
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int playerId,  String displayName,  bool isGuest,  ActiveRoom? activeRoom)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)?  $default,) {final _that = this;
 switch (_that) {
 case _Account() when $default != null:
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
   return null;
 
 }
@@ -225,14 +238,34 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.activeRoom)
 /// @nodoc
 @JsonSerializable()
 
-class _Account implements Account {
-  const _Account({required this.playerId, required this.displayName, this.isGuest = false, this.activeRoom});
+class _Account extends Account {
+  const _Account({required this.playerId, required this.displayName, this.isGuest = false, this.email, this.avatar = '', this.country, final  List<String> languages = const <String>[], this.level = 1, this.xp = 0, this.levelXp = 0, this.nextLevelXp = 0, this.activeRoom}): _languages = languages,super._();
   factory _Account.fromJson(Map<String, dynamic> json) => _$AccountFromJson(json);
 
 /// Permanent public 9-digit Player ID. Never changes.
 @override final  int playerId;
 @override final  String displayName;
+/// True until the player saves the account with email + password.
 @override@JsonKey() final  bool isGuest;
+@override final  String? email;
+/// Key of a built-in avatar picture (see `PlayerAvatar`).
+@override@JsonKey() final  String avatar;
+/// ISO country code, or null when the player doesn't show one.
+@override final  String? country;
+/// Spoken-language codes the player shows (`en`, `ar`, ...).
+ final  List<String> _languages;
+/// Spoken-language codes the player shows (`en`, `ar`, ...).
+@override@JsonKey() List<String> get languages {
+  if (_languages is EqualUnmodifiableListView) return _languages;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_languages);
+}
+
+@override@JsonKey() final  int level;
+@override@JsonKey() final  int xp;
+/// XP where this level starts and where the next one starts.
+@override@JsonKey() final  int levelXp;
+@override@JsonKey() final  int nextLevelXp;
 /// The room this account is in right now (to go straight back to it).
 @override final  ActiveRoom? activeRoom;
 
@@ -249,16 +282,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other._languages, _languages)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,activeRoom);
+int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(_languages),level,xp,levelXp,nextLevelXp,activeRoom);
 
 @override
 String toString() {
-  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, activeRoom: $activeRoom)';
+  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom)';
 }
 
 
@@ -269,7 +302,7 @@ abstract mixin class _$AccountCopyWith<$Res> implements $AccountCopyWith<$Res> {
   factory _$AccountCopyWith(_Account value, $Res Function(_Account) _then) = __$AccountCopyWithImpl;
 @override @useResult
 $Res call({
- int playerId, String displayName, bool isGuest, ActiveRoom? activeRoom
+ int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom
 });
 
 
@@ -286,12 +319,20 @@ class __$AccountCopyWithImpl<$Res>
 
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? activeRoom = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,}) {
   return _then(_Account(
 playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,isGuest: null == isGuest ? _self.isGuest : isGuest // ignore: cast_nullable_to_non_nullable
-as bool,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
+as bool,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,avatar: null == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
+as String,country: freezed == country ? _self.country : country // ignore: cast_nullable_to_non_nullable
+as String?,languages: null == languages ? _self._languages : languages // ignore: cast_nullable_to_non_nullable
+as List<String>,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as int,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
+as int,levelXp: null == levelXp ? _self.levelXp : levelXp // ignore: cast_nullable_to_non_nullable
+as int,nextLevelXp: null == nextLevelXp ? _self.nextLevelXp : nextLevelXp // ignore: cast_nullable_to_non_nullable
+as int,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
 as ActiveRoom?,
   ));
 }

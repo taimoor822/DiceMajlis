@@ -26,7 +26,7 @@ The master prompt's priority list (items 1–15), in build order.
 - [x] **1.4** Flutter architecture: `core/ shared/ features/`, Riverpod, GoRouter (guarded routes), Freezed, design system with the Majlis theme (dark + light), localisation-ready (item 1)
 - [x] **1.5** Main navigation: **Events · Game Hub · Battle · Chat · Social**, Battle (centre) = the Home lobby; today's room flow lives in Game Hub; unbuilt sections say "coming soon" (item 3)
 - [x] **1.6** Accounts: guest login + JWT + **permanent 9-digit Player ID** + session restore; rooms use the account (item 2)
-- [ ] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
+- [x] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
 - [ ] **1.8** Currency foundation: wallet ledger (two currencies), daily login reward, balances on Home (item 5, **S6**)
 - [ ] **1.9** Local play: Dart engine + shared test vectors; vs AI and pass-and-play (item 10)
 - [ ] **1.10** Game platform layer: `game_type` / `variant` + engine registry on server and app, ready for Domino/Jackaroo (PLATFORM §3)
@@ -147,5 +147,7 @@ Answer when the phase that needs them starts.
 | Magic cards in ranked | Phase 9 | Never |
 | Punjabi script | Phase 11 | — (ask) |
 | Web as a target | 1.4 | Secondary (testing), focus Android + iOS |
+| Email provider for password codes (SMTP) | Before launch (Phase 12) | — (ask); development prints emails in the server terminal |
+| Profile photos: image storage service + moderation | When photo avatars are built | Built-in avatars only until then |
 
 Decided: real money yes — the two currencies and VIP are sold via App Store / Google Play.

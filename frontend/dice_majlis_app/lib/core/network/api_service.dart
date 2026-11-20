@@ -92,6 +92,23 @@ class ApiService {
   /// Before the start: frees your seat. During a game: you forfeit.
   Future<Map<String, dynamic>> leaveRoom({required String roomCode}) =>
       _send('POST', 'game/leave-room/', {'code': roomCode});
+
+  /// What a profile may hold (avatars, languages, name length).
+  Future<Map<String, dynamic>> profileOptions() =>
+      _send('GET', 'profile/options/');
+
+  /// Changes your own profile; returns your account.
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> changes) =>
+      _send('PATCH', 'me/profile/', changes);
+
+  /// A guest adds email + password; returns the account (same Player ID).
+  Future<Map<String, dynamic>> saveAccount({
+    required String email,
+    required String password,
+  }) => _send('POST', 'auth/save-account/', {
+    'email': email,
+    'password': password,
+  });
 }
 
 final apiServiceProvider = Provider<ApiService>(

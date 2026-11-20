@@ -48,7 +48,7 @@ void main() {
       expect((result as SignedIn).account.playerId, 123456789);
       expect(api.calls, ['refresh:saved']);
       expect(store.refreshToken, 'refresh-1');
-      expect(container.read(accountProvider)?.displayName, 'Guest 6789');
+      expect(container.read(accountProvider)?.displayName, 'Player 6789');
     });
 
     test('a sign-in the server ended is forgotten', () async {
@@ -82,6 +82,64 @@ void main() {
     expect(state(), isA<SignedIn>());
     expect(api.calls, ['guest:test-device-0001']);
     expect(store.refreshToken, 'refresh-1');
+  });
+
+  group('email', () {
+    test('sign in with email', () async {
+      start();
+      await auth().restore();
+      await auth().signInWithEmail(' sara@example.com ', 'pw-123456');
+      expect(state(), isA<SignedIn>());
+      expect(api.calls, ['login:sara@example.com:pw-123456']);
+      expect(store.refreshToken, 'refresh-1');
+    });
+
+    test('wrong password: still signed out, the error is passed on', () async {
+      start();
+      await auth().restore();
+      api.failWith = 'invalid_credentials';
+      await expectLater(
+        auth().signInWithEmail('sara@example.com', 'nope'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.code,
+            'code',
+            'invalid_credentials',
+          ),
+        ),
+      );
+      expect(state(), isA<SignedOut>());
+    });
+
+    test('create an account', () async {
+      start();
+      await auth().restore();
+      await auth().createAccount('new@example.com', 'pw-123456');
+      final account = (state() as SignedIn).account;
+      expect((account.email, account.isGuest), ('new@example.com', false));
+    });
+
+    test('reset password: new password, then signed in with it', () async {
+      start();
+      await auth().restore();
+      await auth().resetPassword(
+        email: 'sara@example.com',
+        code: ' 123456 ',
+        newPassword: 'new-pw-2027',
+      );
+      expect(api.calls, [
+        'confirm:sara@example.com:123456:new-pw-2027',
+        'login:sara@example.com:new-pw-2027',
+      ]);
+      expect(state(), isA<SignedIn>());
+    });
+
+    test('a newer account copy replaces the signed-in one', () async {
+      start(savedRefresh: 'saved');
+      await auth().restore();
+      auth().accountChanged(testAccount.copyWith(displayName: 'Sara'));
+      expect(container.read(accountProvider)?.displayName, 'Sara');
+    });
   });
 
   group('access token', () {
@@ -159,6 +217,14 @@ void main() {
       'player_id': 123456789,
       'display_name': 'Guest 6789',
       'is_guest': true,
+      'email': null,
+      'avatar': 'dhow',
+      'country': 'BH',
+      'languages': ['ar', 'en'],
+      'level': 2,
+      'xp': 150,
+      'level_xp': 100,
+      'next_level_xp': 300,
       'created_at': '2026-11-20T10:00:00Z',
       'active_room': {
         'code': 'AB12',
@@ -169,6 +235,10 @@ void main() {
       },
     });
     expect(account.isGuest, isTrue);
+    expect((account.avatar, account.country), ('dhow', 'BH'));
+    expect(account.languages, ['ar', 'en']);
+    expect((account.level, account.xp), (2, 150));
+    expect(account.levelProgress, 0.25);
     expect(account.activeRoom?.code, 'AB12');
     expect(account.activeRoom?.seatId, 'seat-1');
     expect(account.activeRoom?.started, isTrue);

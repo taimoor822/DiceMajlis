@@ -8,19 +8,23 @@ platform.
 
 Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
-> **Status: early development.** Online games work end to end, with guest
-> accounts and a permanent Player ID. The app has its Majlis look (dark navy and
-> gold, plus a light theme) and its main navigation; profiles and coins come next
-> (see [roadmap](#roadmap)).
+> **Status: early development.** Online games work end to end, with accounts
+> (guest or email), a permanent Player ID and a basic profile. The app has its
+> Majlis look (dark navy and gold, plus a light theme) and its main navigation;
+> coins come next (see [roadmap](#roadmap)).
 
 ---
 
 ## What works today
 
-- **Play as guest** — one tap gives you an account with a permanent 9-digit
-  **Player ID** (shown on Home, with a copy button). The app stays signed in
-  (secure phone storage) and you can sign out in Settings. Email, Google and Apple
-  sign-in say "coming soon"
+- **Accounts** — one tap to play as a guest, or sign up with email and password.
+  Every account gets a permanent 9-digit **Player ID**. A guest can **save the
+  account** with an email later and keep everything. **Forgot password?** sends a
+  6-digit code by email. The app stays signed in (secure phone storage); sign out in
+  Settings. Google and Apple sign-in say "coming soon"
+- **Profile** — your name, avatar (16 built-in pictures), country, the languages you
+  speak, and your level with an XP bar. Home shows your avatar, name, level and Player
+  ID. Earning XP from games comes in Phase 2
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
 - **Play against a bot** — start alone and "Majlis AI" joins opposite you
 - **Server-controlled game** — the server rolls the dice and checks every move,
@@ -64,7 +68,8 @@ DiceMajlis/
 │   └── core/                    # Django project (manage.py lives here)
 │       ├── core/                # settings, ASGI, URLs
 │       ├── ludo_engine/         # the Ludo rules engine + tests
-│       ├── accounts/            # guest sign-in, tokens, Player ID, devices
+│       ├── accounts/            # sign-in (guest, email), tokens, Player ID, devices, password reset
+│       ├── profiles/            # name, avatar, country, languages, XP/level
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app
@@ -125,26 +130,29 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
 
 If `DJANGO_ALLOWED_HOSTS` in `.env` isn't `*`, add that IP to it.
 
-> **Updating from an older version?** Step 1.6 added accounts, so the old local
-> database can't be upgraded. Stop the server, delete `backend/core/db.sqlite3`
-> (only test rooms are lost), then run `python manage.py migrate` again. The first
-> time the app opens, press **Play as guest**.
+> **Updating from an older version?** Run `pip install -r requirements.txt` and
+> `python manage.py migrate`. If your database is from before step 1.6 (accounts),
+> it can't be upgraded: stop the server, delete `backend/core/db.sqlite3` (only test
+> rooms are lost) and run `migrate` again.
+
+**Forgot password while developing:** there's no email service yet, so the 6-digit
+code is printed in the terminal where the server runs (look for "Your code is").
 
 ## Tests
 
 ```bash
-# Backend: rules engine, accounts and tokens, API, input checks, seats, leaving,
-# sockets, turn timer (156 tests)
+# Backend: rules engine, accounts (guest, email, tokens, reset), profiles, API,
+# input checks, seats, leaving, sockets, turn timer (190 tests)
 cd backend/core
 python manage.py test
 
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: sign-in (guest, staying signed in, offline retry, sign out, token
-# refresh), going back to your room, navigation, create/join/waiting-room/leave
-# flow, error messages, routes, themes, board (only server-listed tokens move,
-# leave game), server address, countdown
+# Flutter: sign-in (guest, email, forgotten password, save account, staying signed
+# in, offline retry, sign out, token refresh), profile editing, going back to your
+# room, navigation, create/join/waiting-room/leave flow, error messages, routes,
+# themes, board (only server-listed tokens move, leave game), server address, countdown
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -170,7 +178,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

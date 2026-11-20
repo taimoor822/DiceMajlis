@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/account.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/theme/theme_mode_controller.dart';
 import '../../../shared/widgets/majlis_background.dart';
+import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 
-/// Your account (sign out) and device settings: the theme (saved on this
-/// device).
-// TODO(Phase 2): language, sound, notifications; 1.7: email and password.
+/// Your account (save it, sign out) and device settings: the theme (saved on
+/// this device).
+// TODO(Phase 2): language, sound, notifications; change password.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -133,13 +136,29 @@ class _AccountCard extends ConsumerWidget {
             l10n.homePlayerId(formatPlayerId(account.playerId)),
             style: theme.textTheme.bodyMedium?.copyWith(color: majlis.gold),
           ),
-          if (account.isGuest)
+          if (account.email case final email?)
+            Text(
+              email,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: majlis.textMuted,
+              ),
+            ),
+          if (account.isGuest) ...[
             Text(
               l10n.settingsGuestAccount,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: majlis.textMuted,
               ),
             ),
+            const SizedBox(height: 12),
+            Text(l10n.settingsGuestSaveHint, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 12),
+            MajlisButton(
+              label: l10n.saveAccountTitle,
+              icon: Icons.verified_user_outlined,
+              onPressed: () => context.push(AppRoutes.saveAccount),
+            ),
+          ],
           const SizedBox(height: 12),
           Align(
             alignment: AlignmentDirectional.centerStart,

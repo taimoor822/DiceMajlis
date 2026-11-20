@@ -43,6 +43,18 @@ abstract final class MajlisPalette {
   static const seatGreen = Color(0xFF2E9E5B);
   static const seatYellow = Color(0xFFE6B422);
 
+  // Backgrounds of the built-in avatar pictures (white icon on top).
+  static const avatarBackgrounds = [
+    Color(0xFF0E4D57),
+    Color(0xFF1F8A64),
+    Color(0xFF2F7FD1),
+    Color(0xFF7B4FC9),
+    Color(0xFFA67C2E),
+    Color(0xFFC2453C),
+    Color(0xFF1B6670),
+    Color(0xFF3B6FA8),
+  ];
+
   // Item rarity (used by gifts, cosmetics, collections later).
   static const rarityCommon = Color(0xFF9AA5B1);
   static const rarityRare = Color(0xFF3BA7E0);

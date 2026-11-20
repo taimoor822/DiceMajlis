@@ -49,7 +49,7 @@ void main() {
     expect(auth.calls, ['guest:test-device-0001']);
     expect(tokens.refreshToken, 'refresh-1');
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Guest 6789'), findsOneWidget);
+    expect(find.text('Player 6789'), findsOneWidget);
     expect(find.text('Player ID 123 456 789'), findsOneWidget);
   });
 
@@ -71,9 +71,10 @@ void main() {
 
   testWidgets('other sign-in options say coming soon', (tester) async {
     await launch(tester, tokens: MemoryTokenStore());
-    await tester.tap(find.text('Sign in with email'));
+    await tester.ensureVisible(find.text('Continue with Google'));
+    await tester.tap(find.text('Continue with Google'));
     await tester.pump();
-    expect(find.text('Sign in with email is coming soon.'), findsOneWidget);
+    expect(find.text('Continue with Google is coming soon.'), findsOneWidget);
   });
 
   testWidgets('a saved sign-in opens Home directly', (tester) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/l10n/country_names.dart';
 import 'core/l10n/generated/app_localizations.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -18,7 +19,10 @@ class DiceMajlisApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        ...AppLocalizations.localizationsDelegates,
+        CountryNamesDelegate(), // country names in the app's language
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(appRouterProvider),
     );

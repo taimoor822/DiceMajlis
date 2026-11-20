@@ -86,6 +86,59 @@ class AuthApi {
     ),
   );
 
+  /// A new account with email + password.
+  Future<AuthTokens> register({
+    required String email,
+    required String password,
+    required String deviceId,
+    required String platform,
+  }) async => AuthTokens.fromJson(
+    await _send(
+      'POST',
+      'auth/register/',
+      data: {
+        'email': email,
+        'password': password,
+        'device_id': deviceId,
+        'platform': platform,
+      },
+    ),
+  );
+
+  /// Sign in with email + password on this device.
+  Future<AuthTokens> login({
+    required String email,
+    required String password,
+    required String deviceId,
+    required String platform,
+  }) async => AuthTokens.fromJson(
+    await _send(
+      'POST',
+      'auth/login/',
+      data: {
+        'email': email,
+        'password': password,
+        'device_id': deviceId,
+        'platform': platform,
+      },
+    ),
+  );
+
+  /// Emails a 6-digit code if the address has an account (same answer if not).
+  Future<void> requestPasswordReset(String email) =>
+      _send('POST', 'auth/password-reset/', data: {'email': email});
+
+  /// Sets a new password with the emailed code. Signs out everywhere.
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) => _send(
+    'POST',
+    'auth/password-reset/confirm/',
+    data: {'email': email, 'code': code, 'new_password': newPassword},
+  );
+
   /// Swaps the refresh token for new tokens (the old one stops working).
   Future<AuthTokens> refresh(String refreshToken) async => AuthTokens.fromJson(
     await _send('POST', 'auth/refresh/', data: {'refresh': refreshToken}),

@@ -39,10 +39,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeEmail => 'Sign in with email';
 
   @override
+  String get welcomeEmailSubtitle => 'Or create an account with your email';
+
+  @override
   String get welcomeGoogle => 'Continue with Google';
 
   @override
   String get welcomeApple => 'Continue with Apple';
+
+  @override
+  String get emailTitle => 'Email';
+
+  @override
+  String get emailModeSignIn => 'Sign in';
+
+  @override
+  String get emailModeCreate => 'Create account';
+
+  @override
+  String get emailField => 'Email';
+
+  @override
+  String get emailFieldInvalid => 'Enter a valid email address.';
+
+  @override
+  String get passwordField => 'Password';
+
+  @override
+  String get newPasswordField => 'New password';
+
+  @override
+  String get passwordFieldEmpty => 'Enter your password.';
+
+  @override
+  String get passwordShow => 'Show password';
+
+  @override
+  String get passwordHide => 'Hide password';
+
+  @override
+  String get passwordHint => 'Use letters and numbers. Avoid common passwords.';
+
+  @override
+  String get emailSignIn => 'Sign in';
+
+  @override
+  String get emailCreate => 'Create account';
+
+  @override
+  String get emailForgot => 'Forgot password?';
+
+  @override
+  String get forgotTitle => 'Forgot password';
+
+  @override
+  String get forgotIntro =>
+      'Enter your account\'s email. We\'ll send you a 6-digit code.';
+
+  @override
+  String get forgotSend => 'Send code';
+
+  @override
+  String forgotCodeSent(String email) {
+    return 'If $email has an account, a code is on its way. It works for one hour.';
+  }
+
+  @override
+  String get forgotCode => '6-digit code';
+
+  @override
+  String get forgotCodeInvalid => 'Enter the 6 digits from the email.';
+
+  @override
+  String get forgotChange => 'Change password';
+
+  @override
+  String get forgotResend => 'Send a new code';
+
+  @override
+  String get saveAccountTitle => 'Save your account';
+
+  @override
+  String get saveAccountIntro =>
+      'Add your email and a password. You keep your Player ID and everything on this account, and you can sign in on any phone.';
+
+  @override
+  String get saveAccountButton => 'Save account';
+
+  @override
+  String get saveAccountDone =>
+      'Account saved. You can now sign in with your email.';
 
   @override
   String get navEvents => 'Events';
@@ -95,8 +181,85 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeGuestTag => 'Guest';
 
   @override
-  String get homeProfileSoon =>
-      'Your name, picture, level and coins arrive in the next updates.';
+  String get homeProfileHint => 'Tap to edit your profile';
+
+  @override
+  String homeLevel(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileName => 'Name';
+
+  @override
+  String get profileNameSave => 'Save name';
+
+  @override
+  String get profileSaved => 'Saved';
+
+  @override
+  String get profileAvatar => 'Avatar';
+
+  @override
+  String get profileAvatarPhotoSoon => 'Your own photo is coming soon.';
+
+  @override
+  String get profileCountry => 'Country';
+
+  @override
+  String get profileCountryNone => 'Not shown';
+
+  @override
+  String get profileCountryChoose => 'Choose';
+
+  @override
+  String get profileCountryHide => 'Don\'t show my country';
+
+  @override
+  String get profileLanguages => 'Languages you speak';
+
+  @override
+  String profileLanguagesHint(int count) {
+    return 'Pick up to $count.';
+  }
+
+  @override
+  String profileLevelXp(int xp, int next) {
+    return '$xp / $next XP';
+  }
+
+  @override
+  String get profileXpSoon => 'Earning XP from games is coming soon.';
+
+  @override
+  String get profileOptionsFailed => 'Couldn\'t load the profile choices.';
+
+  @override
+  String get languageEn => 'English';
+
+  @override
+  String get languageAr => 'Arabic';
+
+  @override
+  String get languageUr => 'Urdu';
+
+  @override
+  String get languagePa => 'Punjabi';
+
+  @override
+  String nameLength(int min, int max) {
+    return 'Names are $min to $max characters.';
+  }
+
+  @override
+  String get nameCharacters =>
+      'Use letters, numbers, spaces and _ - . \' only, with at least one letter.';
+
+  @override
+  String get nameNotAllowed => 'That name isn\'t allowed. Please pick another.';
 
   @override
   String get homeShortcuts => 'More';
@@ -207,6 +370,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGuestAccount => 'Guest account';
+
+  @override
+  String get settingsGuestSaveHint =>
+      'Save your account so you don\'t lose it if you change or reset your phone.';
 
   @override
   String get settingsSignOut => 'Sign out';
@@ -411,6 +578,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorRateLimited =>
       'Too many tries. Please wait a moment and try again.';
+
+  @override
+  String get errorInvalidCredentials => 'Wrong email or password.';
+
+  @override
+  String get errorEmailTaken =>
+      'That email already has an account. Sign in instead.';
+
+  @override
+  String get errorAlreadySaved => 'This account is already saved.';
+
+  @override
+  String get errorInvalidCode =>
+      'That code isn\'t right. Check the email and try again.';
+
+  @override
+  String get errorCodeExpired => 'That code has expired. Ask for a new one.';
+
+  @override
+  String get errorTooManyCodeTries =>
+      'Too many wrong codes. Ask for a new one.';
+
+  @override
+  String get errorPasswordTooShort => 'That password is too short.';
+
+  @override
+  String get errorPasswordTooCommon => 'That password is too easy to guess.';
+
+  @override
+  String get errorPasswordNumeric => 'Use letters too, not only numbers.';
+
+  @override
+  String get errorPasswordSimilar =>
+      'That password is too close to your email.';
 
   @override
   String get errorNotYourTurn => 'It\'s not your turn.';

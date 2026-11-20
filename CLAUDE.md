@@ -28,7 +28,10 @@ backend/core/              Django project (run manage.py from here)
   core/                    settings (env-driven), asgi.py (starts turn timer), urls,
                            api_errors.py (one {"error","code"} shape)
   accounts/                User (UUID + 9-digit Player ID), DeviceSession, JWT +
-                           rotating refresh tokens, guest sign-in, /api/me
+                           rotating refresh tokens, guest + email sign-in, save
+                           guest account, password reset code, /api/me
+  profiles/                Profile (name, avatar key, country, languages, XP),
+                           level curve, PATCH /api/me/profile/
   ludo_engine/             PURE Python rules engine + tests (no Django inside)
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
@@ -80,7 +83,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~155 tests)
+python manage.py test                                  # everything (~190 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
 
@@ -136,14 +139,26 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   the splash screen puts it back from `GET /api/me` → `active_room`.
 - A dev database from before 1.6 can't migrate (new user model): delete
   `backend/core/db.sqlite3` and run `migrate` again.
+- Profiles (1.7): every account gets one (`profiles/signals.py`); read and change it
+  through `profiles/services.py`. The level is computed from XP on the server
+  (`profiles/levels.py`), never in the app. Avatars are keys (`profiles/choices.py`);
+  the app draws them (`shared/widgets/player_avatar.dart`). Validation errors return a
+  code per field (`core/api_errors.py`); the app reads them with
+  `ApiException.fieldError(...)`.
+- Emails (password reset codes) print in the server terminal in development
+  (console backend); tests read `django.core.mail.outbox`.
+- The router only re-runs its redirect when the *kind* of sign-in state changes
+  (signed in / out / loading), not when the account is updated (profile edits).
+- Country names and the picker come from `country_picker`; its names load through
+  `core/l10n/country_names.dart` (synchronous, so the first frame isn't blank).
 
 ## Status
 
 See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
 Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
 Flutter architecture + Majlis theme (1.4), main navigation (1.5), guest accounts with
-Player ID + session restore (1.6).
-Next: 1.7 email + profile, 1.8 currency foundation, 1.9 local play.
+Player ID + session restore (1.6), email sign-in + password reset + basic profile (1.7).
+Next: 1.8 currency foundation, 1.9 local play, 1.10 game platform layer.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.
