@@ -4,7 +4,11 @@ import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const session = RoomSession(roomCode: 'AB12', playerId: 'p1');
+  const session = RoomSession(
+    roomCode: 'AB12',
+    playerId: 'p1',
+    playerToken: 't',
+  );
 
   group('roomGuard', () {
     test('open pages never redirect', () {

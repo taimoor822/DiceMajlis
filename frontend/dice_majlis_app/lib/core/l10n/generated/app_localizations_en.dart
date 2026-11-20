@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTagline => 'PLAY · SOCIALISE · COMPETE';
 
   @override
+  String get commonRetry => 'Try again';
+
+  @override
   String get homeSubtitle =>
       'Ludo in the Majlis. Play with friends or the Majlis AI.';
 
@@ -37,8 +40,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createRoomCreate => 'Create';
 
   @override
-  String get createRoomFailed =>
-      'Couldn\'t create the room. Check your connection and try again.';
+  String get createRoomOptionsFailed => 'Couldn\'t load the room options.';
 
   @override
   String get joinRoomTitle => 'Join room';
@@ -47,17 +49,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinRoomCodeLabel => 'Room code';
 
   @override
-  String get joinRoomCodeHint => 'e.g. AB12';
+  String get joinRoomCodeHint => 'The code your friend shared';
 
   @override
   String get joinRoomCodeRequired => 'Enter the room code you were given.';
 
   @override
   String get joinRoomJoin => 'Join';
-
-  @override
-  String get joinRoomFailed =>
-      'Couldn\'t join. Check the code and your connection.';
 
   @override
   String get waitingRoomTitle => 'Waiting room';
@@ -75,26 +73,147 @@ class AppLocalizationsEn extends AppLocalizations {
   String get waitingRoomPlayers => 'Players';
 
   @override
-  String get waitingRoomHost => 'Host';
-
-  @override
-  String get waitingRoomYou => 'You';
-
-  @override
-  String get waitingRoomBot => 'AI';
-
-  @override
   String get waitingRoomEmptySeat => 'Waiting for a player…';
 
   @override
   String get waitingRoomStart => 'Start game';
 
   @override
-  String get waitingRoomStartFailed => 'Couldn\'t start the game. Try again.';
-
-  @override
   String get waitingRoomWaitingForHost =>
       'Waiting for the host to start the game…';
+
+  @override
+  String get playerTagHost => 'Host';
+
+  @override
+  String get playerTagYou => 'You';
+
+  @override
+  String get playerTagBot => 'AI';
+
+  @override
+  String get gameStatusSyncing => 'Syncing…';
+
+  @override
+  String get gameStatusYourTurn => 'Your turn';
+
+  @override
+  String get gameStatusOpponentTurn => 'Opponent\'s turn';
+
+  @override
+  String gameStatusWithSeconds(String status, int seconds) {
+    return '$status · ${seconds}s';
+  }
+
+  @override
+  String get gameReconnecting => 'Reconnecting…';
+
+  @override
+  String get gameMoving => 'Moving…';
+
+  @override
+  String get gameRollDice => 'Roll the dice';
+
+  @override
+  String get gameUnknownPlayer => 'A player';
+
+  @override
+  String get gameOverTitle => 'Game over';
+
+  @override
+  String get gameOverWon => 'You win!';
+
+  @override
+  String get gameOverLost => 'You lost';
+
+  @override
+  String get gameOverHome => 'Back to home';
+
+  @override
+  String get gameTimeoutSelf => 'Time ran out, so we played for you.';
+
+  @override
+  String gameTimeoutSelfWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more turns',
+      one: '1 more turn',
+    );
+    return 'Time ran out, so we played for you. Miss $_temp0 in a row and you leave the game.';
+  }
+
+  @override
+  String gameTimeoutOther(String name) {
+    return '$name ran out of time.';
+  }
+
+  @override
+  String get gameRemovedSelfIdle =>
+      'You were removed for missing too many turns.';
+
+  @override
+  String get gameLeftSelf => 'You left the game.';
+
+  @override
+  String gameRemovedOtherIdle(String name) {
+    return '$name was removed for being idle.';
+  }
+
+  @override
+  String gameLeftOther(String name) {
+    return '$name left the game.';
+  }
+
+  @override
+  String get errorNetwork =>
+      'Can\'t reach the server. Check your connection and try again.';
+
+  @override
+  String get errorRoomNotFound =>
+      'No room with that code. Check the code and try again.';
+
+  @override
+  String get errorRoomFull => 'That room is full.';
+
+  @override
+  String get errorGameAlreadyStarted => 'That game has already started.';
+
+  @override
+  String get errorGameNotStarted => 'The game hasn\'t started yet.';
+
+  @override
+  String get errorNotHost => 'Only the host can start the game.';
+
+  @override
+  String get errorNotYourSeat =>
+      'This device isn\'t in that seat any more. Join the room again.';
+
+  @override
+  String get errorNotYourTurn => 'It\'s not your turn.';
+
+  @override
+  String get errorWrongPhase => 'You can\'t do that right now.';
+
+  @override
+  String get errorIllegalMove => 'That token can\'t move with this roll.';
+
+  @override
+  String get errorGameFinished => 'This game is over.';
+
+  @override
+  String get errorTryAgain => 'The game just changed. Please try again.';
+
+  @override
+  String get errorLegacyGame =>
+      'This game was started before an update. Please start a new one.';
+
+  @override
+  String get errorInvalidInput =>
+      'The server didn\'t accept that. Please check and try again.';
+
+  @override
+  String get errorGeneric => 'Something went wrong. Please try again.';
 
   @override
   String get notFoundTitle => 'Page not found';

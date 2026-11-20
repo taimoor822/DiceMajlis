@@ -1,8 +1,9 @@
-import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config/app_config.dart';
 
+/// Listens to a room's updates. Read-only: players act through the REST API,
+/// which checks their seat secret.
 class SocketService {
   late WebSocketChannel channel;
 
@@ -15,10 +16,6 @@ class SocketService {
   }
 
   Stream<dynamic> get stream => channel.stream;
-
-  void startGame() {
-    channel.sink.add(jsonEncode({'type': 'start_game'}));
-  }
 
   void disconnect() {
     channel.sink.close();

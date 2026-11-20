@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/api_error_text.dart';
+import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/routing/app_routes.dart';
+import '../../../core/theme/majlis_colors.dart';
 import '../../../core/websocket/socket_providers.dart';
 import '../../../core/websocket/socket_service.dart';
 import '../../multiplayer/domain/room_session_controller.dart';
@@ -100,6 +103,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
   String? roomCode;
   String? myPlayerId;
+  String? _playerToken;
+  bool _winnerShown = false;
 
   String? currentTurnPlayerId;
   int? lastDice;
@@ -147,6 +152,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
     roomCode = session.roomCode;
     myPlayerId = session.playerId;
+    _playerToken = session.playerToken;
 
     _connectSocket();
   }
@@ -232,15 +238,13 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     final dice = lastDice;
     if (!isMyTurn || dice == null) return false;
 
-    // The server is the authority; use its list as soon as it arrives.
-    final movable = _movableTokenIds;
-    if (movable != null) return movable.contains(token.id);
-
-    // Same rules as the server engine, for the moment before its message lands.
-    if (token.isFinished || _isHomePosition(token.position)) return false;
-    if (token.position < 0) return dice == 6;
-    return token.position + dice <= LudoPath.homeProgress;
+    // Only the server knows the rules: it lists the tokens that may move
+    // (in the roll response and the dice_rolled message). Until then, none.
+    return _movableTokenIds?.contains(token.id) ?? false;
   }
+
+  static Set<String>? _parseTokenIds(Object? ids) =>
+      ids is List ? ids.map((id) => id.toString()).toSet() : null;
 
   /// Call inside setState. Reads `seconds_left` / `warning_seconds` from the server.
   void _startTurnClock(Map<String, dynamic> data) {
@@ -263,7 +267,10 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     _turnClock.stop();
   }
 
-  String _playerName(String? id) => _playersById[id]?.name ?? 'A player';
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  String _playerName(String? id) =>
+      _playersById[id]?.name ?? _l10n.gameUnknownPlayer;
 
   void _showNotice(String message) {
     if (!mounted) return;
@@ -280,13 +287,10 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     if (limit > 0 && left <= 0) return; // a "removed" message follows
     if (id != null && id == myPlayerId) {
       _showNotice(
-        limit > 0
-            ? 'Time ran out, so we played for you. '
-                  'Miss $left more turn${left == 1 ? '' : 's'} in a row and you leave the game.'
-            : 'Time ran out, so we played for you.',
+        limit > 0 ? _l10n.gameTimeoutSelfWarning(left) : _l10n.gameTimeoutSelf,
       );
     } else {
-      _showNotice('${_playerName(id)} ran out of time.');
+      _showNotice(_l10n.gameTimeoutOther(_playerName(id)));
     }
   }
 
@@ -294,16 +298,11 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     final id = data['player_id']?.toString();
     final idle = data['reason']?.toString() == 'timeout';
     if (id != null && id == myPlayerId) {
-      _showNotice(
-        idle
-            ? 'You were removed for missing too many turns.'
-            : 'You left the game.',
-      );
+      _showNotice(idle ? _l10n.gameRemovedSelfIdle : _l10n.gameLeftSelf);
     } else {
+      final name = _playerName(id);
       _showNotice(
-        idle
-            ? '${_playerName(id)} was removed for being idle.'
-            : '${_playerName(id)} left the game.',
+        idle ? _l10n.gameRemovedOtherIdle(name) : _l10n.gameLeftOther(name),
       );
     }
   }
@@ -341,10 +340,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
         case 'dice_rolled':
           setState(() {
             lastDice = (data['dice'] as num?)?.toInt();
-            final movable = data['movable_token_ids'];
-            _movableTokenIds = movable is List
-                ? movable.map((id) => id.toString()).toSet()
-                : null;
+            _movableTokenIds = _parseTokenIds(data['movable_token_ids']);
             final rollerId = data['player_id']?.toString();
             if (rollerId != null && rollerId == myPlayerId) {
               _isRollingDice = false;
@@ -431,7 +427,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
       _flashingTokenIds.clear();
       currentTurnPlayerId = data['current_turn_player_id']?.toString();
       lastDice = (data['last_dice'] as num?)?.toInt();
-      _movableTokenIds = null;
+      _movableTokenIds = _parseTokenIds(data['movable_token_ids']);
       _startTurnClock(data);
       _reconnectAttempts = 0;
       _isReconnecting = false;
@@ -441,6 +437,13 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     });
 
     _animationQueue = Future.value();
+
+    // Reconnected after the game ended.
+    final winnerId = data['winner_id']?.toString();
+    if (winnerId != null) {
+      setState(_stopTurnClock);
+      _showWinner(winnerId);
+    }
   }
 
   void _applyPlayersUpdated(Map<String, dynamic> data) {
@@ -618,7 +621,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   Future<void> _rollDice() async {
     final room = roomCode;
     final me = myPlayerId;
-    if (room == null || me == null) return;
+    final secret = _playerToken;
+    if (room == null || me == null || secret == null) return;
     if (_isReconnecting || _isAnimatingMove || _isRollingDice) return;
 
     setState(() {
@@ -626,10 +630,16 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     });
 
     try {
-      final rolled = await ApiService.rollDice(roomCode: room, playerId: me);
+      final response = await ApiService.rollDice(
+        roomCode: room,
+        playerId: me,
+        playerToken: secret,
+      );
+      // The dice_rolled message may have arrived first; it says the same.
       if (mounted && lastDice == null) {
         setState(() {
-          lastDice = rolled;
+          lastDice = (response['dice'] as num?)?.toInt();
+          _movableTokenIds = _parseTokenIds(response['movable_token_ids']);
           _isRollingDice = false;
         });
       }
@@ -639,47 +649,26 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
           _isRollingDice = false;
         });
       }
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _showNotice(_l10n.apiErrorText(e));
     }
   }
 
   Future<void> _moveToken(String tokenId) async {
     final room = roomCode;
     final me = myPlayerId;
-    if (room == null || me == null) return;
+    final secret = _playerToken;
+    if (room == null || me == null || secret == null) return;
     if (_isReconnecting || _isAnimatingMove) return;
 
     try {
       await ApiService.moveToken(
         roomCode: room,
         playerId: me,
+        playerToken: secret,
         tokenId: tokenId,
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  Color _playerColor(String color) {
-    switch (color.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.amber;
-      case 'orange':
-        return Colors.orange;
-      default:
-        return Colors.grey;
+      _showNotice(_l10n.apiErrorText(e));
     }
   }
 
@@ -770,22 +759,23 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   Widget _buildPlayerPanel(_PlayerInfo player, int seat) {
     final isTurn = player.id == currentTurnPlayerId;
     final isMe = player.id == myPlayerId;
-    final color = _playerColor(player.color);
+    final color = MajlisColors.seatColor(player.color);
+    final majlis = context.majlis;
 
     final title = [
       player.name,
-      if (player.isBot) 'AI',
-      if (isMe) 'You',
+      if (player.isBot) _l10n.playerTagBot,
+      if (isMe) _l10n.playerTagYou,
     ].join(' • ');
 
     final panel = AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: isTurn ? 0.35 : 0.2),
+        color: majlis.scrim.withValues(alpha: isTurn ? 0.35 : 0.2),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isTurn ? color : Colors.white.withValues(alpha: 0.12),
+          color: isTurn ? color : majlis.glassBorder,
           width: isTurn ? 2 : 1,
         ),
         boxShadow: isTurn
@@ -833,32 +823,35 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   }
 
   Widget _buildStatusChip() {
+    final majlis = context.majlis;
     final turnText = currentTurnPlayerId == null
-        ? 'Syncing...'
+        ? _l10n.gameStatusSyncing
         : isMyTurn
-        ? 'Your Turn'
-        : 'Opponent Turn';
+        ? _l10n.gameStatusYourTurn
+        : _l10n.gameStatusOpponentTurn;
     final secondsLeft = currentTurnPlayerId == null
         ? null
         : _turnClock.secondsLeft;
-    final text = secondsLeft == null ? turnText : '$turnText · ${secondsLeft}s';
+    final text = secondsLeft == null
+        ? turnText
+        : _l10n.gameStatusWithSeconds(turnText, secondsLeft);
     final hurry = isMyTurn && _turnClock.isWarning;
 
     final color = currentTurnPlayerId == null
-        ? Colors.white70
+        ? majlis.textMuted
         : hurry
-        ? Colors.orangeAccent
+        ? majlis.warning
         : isMyTurn
-        ? Colors.greenAccent
-        : Colors.redAccent;
+        ? majlis.success
+        : majlis.danger;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
+        color: majlis.scrim.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: majlis.glassBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -873,7 +866,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
             text,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: hurry ? Colors.orangeAccent : null,
+              color: hurry ? majlis.warning : null,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -883,13 +876,27 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   }
 
   void _showWinner(String winnerId) {
+    if (_winnerShown) return;
+    _winnerShown = true;
     final me = myPlayerId;
     ref.read(roomSessionProvider.notifier).clear();
+    final l10n = _l10n;
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Game Over'),
-        content: Text(me != null && winnerId == me ? 'You Win!' : 'You Lost'),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.gameOverTitle),
+        content: Text(
+          me != null && winnerId == me ? l10n.gameOverWon : l10n.gameOverLost,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              if (mounted) context.go(AppRoutes.home);
+            },
+            child: Text(l10n.gameOverHome),
+          ),
+        ],
       ),
     );
   }
@@ -938,8 +945,9 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
         !_isAnimatingMove &&
         !_isReconnecting;
 
+    final majlis = context.majlis;
     return Scaffold(
-      appBar: AppBar(title: const Text('Dice Majlis'), centerTitle: true),
+      appBar: AppBar(title: Text(_l10n.appTitle), centerTitle: true),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -980,9 +988,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
               for (int i = 0; i < group.length; i++) {
                 final token = group[i];
                 final player = _playersById[token.playerId];
-                final color = player == null
-                    ? Colors.grey
-                    : _playerColor(player.color);
+                final color = MajlisColors.seatColor(player?.color);
 
                 final isMine = token.playerId == me;
                 final canTap =
@@ -1051,15 +1057,15 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
                         child: AbsorbPointer(
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            color: Colors.black.withValues(alpha: 0.18),
+                            color: majlis.scrim.withValues(alpha: 0.18),
                             child: Center(
                               child: Text(
                                 _isReconnecting
-                                    ? 'Reconnecting...'
-                                    : 'Moving...',
-                                style: const TextStyle(
+                                    ? _l10n.gameReconnecting
+                                    : _l10n.gameMoving,
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: majlis.onSeat,
                                 ),
                               ),
                             ),

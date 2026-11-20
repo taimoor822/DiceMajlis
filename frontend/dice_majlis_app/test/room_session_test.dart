@@ -12,9 +12,11 @@ void main() {
         'is_host': true,
         'is_bot': false,
       },
+      'player_token': 'only-this-device',
     });
 
     expect(session.roomCode, 'AB12');
+    expect(session.playerToken, 'only-this-device');
     expect(session.playerId, '7d1c2b54-0000-4000-8000-000000000001');
     expect(session.isHost, isTrue);
     expect(session.maxPlayers, 3);
@@ -26,12 +28,23 @@ void main() {
     final session = RoomSession.fromRoomResponse({
       'room': {'code': 'AB12'},
       'player': {'id': 42, 'name': 'Player', 'color': 'blue'},
+      'player_token': 't',
     });
 
     expect(session.playerId, '42');
     expect(session.isHost, isFalse);
     expect(session.maxPlayers, isNull);
     expect(session.self?.isBot, isFalse);
+  });
+
+  test('a response without the seat secret is rejected', () {
+    expect(
+      () => RoomSession.fromRoomResponse({
+        'room': {'code': 'AB12'},
+        'player': {'id': 'p1', 'name': 'P', 'color': 'red'},
+      }),
+      throwsFormatException,
+    );
   });
 
   test('players from the lobby socket (snake_case keys)', () {

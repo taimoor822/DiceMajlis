@@ -32,6 +32,11 @@ abstract final class MajlisPalette {
   static const danger = Color(0xFFE0475F);
   static const warning = Color(0xFFF2A541);
 
+  // Text and icons on top of strong colours.
+  static const onGold = Color(0xFF1E1606);
+  static const onSeat = Color(0xFFFFFFFF);
+  static const shade = Color(0xFF000000);
+
   // Seat colours on the Ludo board (same in both themes).
   static const seatRed = Color(0xFFD9443B);
   static const seatBlue = Color(0xFF2F7FD1);

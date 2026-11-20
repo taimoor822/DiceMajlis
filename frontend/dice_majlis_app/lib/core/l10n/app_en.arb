@@ -4,6 +4,8 @@
   "appTitle": "Dice Majlis",
   "appTagline": "PLAY · SOCIALISE · COMPETE",
 
+  "commonRetry": "Try again",
+
   "homeSubtitle": "Ludo in the Majlis. Play with friends or the Majlis AI.",
   "homeCreateRoom": "Create room",
   "homeJoinRoom": "Join room",
@@ -12,27 +14,90 @@
   "createRoomMaxPlayers": "How many players?",
   "createRoomHint": "Start alone and the Majlis AI joins you.",
   "createRoomCreate": "Create",
-  "createRoomFailed": "Couldn't create the room. Check your connection and try again.",
+  "createRoomOptionsFailed": "Couldn't load the room options.",
 
   "joinRoomTitle": "Join room",
   "joinRoomCodeLabel": "Room code",
-  "joinRoomCodeHint": "e.g. AB12",
+  "joinRoomCodeHint": "The code your friend shared",
   "joinRoomCodeRequired": "Enter the room code you were given.",
   "joinRoomJoin": "Join",
-  "joinRoomFailed": "Couldn't join. Check the code and your connection.",
 
   "waitingRoomTitle": "Waiting room",
   "waitingRoomCodeLabel": "Room code",
   "waitingRoomCopy": "Copy room code",
   "waitingRoomCopied": "Room code copied",
   "waitingRoomPlayers": "Players",
-  "waitingRoomHost": "Host",
-  "waitingRoomYou": "You",
-  "waitingRoomBot": "AI",
   "waitingRoomEmptySeat": "Waiting for a player…",
   "waitingRoomStart": "Start game",
-  "waitingRoomStartFailed": "Couldn't start the game. Try again.",
   "waitingRoomWaitingForHost": "Waiting for the host to start the game…",
+
+  "playerTagHost": "Host",
+  "playerTagYou": "You",
+  "playerTagBot": "AI",
+
+  "gameStatusSyncing": "Syncing…",
+  "gameStatusYourTurn": "Your turn",
+  "gameStatusOpponentTurn": "Opponent's turn",
+  "gameStatusWithSeconds": "{status} · {seconds}s",
+  "@gameStatusWithSeconds": {
+    "placeholders": {
+      "status": {"type": "String"},
+      "seconds": {"type": "int"}
+    }
+  },
+  "gameReconnecting": "Reconnecting…",
+  "gameMoving": "Moving…",
+  "gameRollDice": "Roll the dice",
+  "gameUnknownPlayer": "A player",
+
+  "gameOverTitle": "Game over",
+  "gameOverWon": "You win!",
+  "gameOverLost": "You lost",
+  "gameOverHome": "Back to home",
+
+  "gameTimeoutSelf": "Time ran out, so we played for you.",
+  "gameTimeoutSelfWarning": "Time ran out, so we played for you. Miss {count, plural, =1{1 more turn} other{{count} more turns}} in a row and you leave the game.",
+  "@gameTimeoutSelfWarning": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "gameTimeoutOther": "{name} ran out of time.",
+  "@gameTimeoutOther": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gameRemovedSelfIdle": "You were removed for missing too many turns.",
+  "gameLeftSelf": "You left the game.",
+  "gameRemovedOtherIdle": "{name} was removed for being idle.",
+  "@gameRemovedOtherIdle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gameLeftOther": "{name} left the game.",
+  "@gameLeftOther": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "errorNetwork": "Can't reach the server. Check your connection and try again.",
+  "errorRoomNotFound": "No room with that code. Check the code and try again.",
+  "errorRoomFull": "That room is full.",
+  "errorGameAlreadyStarted": "That game has already started.",
+  "errorGameNotStarted": "The game hasn't started yet.",
+  "errorNotHost": "Only the host can start the game.",
+  "errorNotYourSeat": "This device isn't in that seat any more. Join the room again.",
+  "errorNotYourTurn": "It's not your turn.",
+  "errorWrongPhase": "You can't do that right now.",
+  "errorIllegalMove": "That token can't move with this roll.",
+  "errorGameFinished": "This game is over.",
+  "errorTryAgain": "The game just changed. Please try again.",
+  "errorLegacyGame": "This game was started before an update. Please start a new one.",
+  "errorInvalidInput": "The server didn't accept that. Please check and try again.",
+  "errorGeneric": "Something went wrong. Please try again.",
 
   "notFoundTitle": "Page not found",
   "notFoundGoHome": "Go home"

@@ -36,8 +36,12 @@ from .models import Game, GameAction, Player, Room, Token
 
 logger = logging.getLogger(__name__)
 
-COLOR_BY_SEAT = ("red", "blue", "green", "yellow")
+COLOR_BY_SEAT = engine.SEAT_COLORS  # ("red", "blue", "green", "yellow")
 SEAT_BY_COLOR = {"red": 0, "blue": 1, "green": 2, "yellow": 3, "orange": 3, "amber": 3}
+
+# Seats handed out as people join: the second player sits opposite the host,
+# like the engine's default two-player game.
+JOIN_SEAT_ORDER = (0, 2, 1, 3)
 
 MAX_BOT_ACTIONS_PER_RUN = 500
 
@@ -66,6 +70,8 @@ class ActionResult:
     events: tuple[engine.Event, ...]
     dice: int | None
     next_is_bot: bool
+    # After a roll: the DB ids of the tokens that may move with it.
+    movable_token_ids: tuple[str, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +105,25 @@ def assign_seats(players: list[Player]) -> dict[str, int]:
     for player, seat in zip(pending, free):
         seats[str(player.id)] = seat
     return seats
+
+
+def color_for_new_player(room: Room, requested: str | None = None) -> str:
+    """
+    Colour (= seat) for someone joining ``room``: the one they asked for if it
+    is free, otherwise the next free seat. Call with the room row locked.
+    """
+    taken = {preferred_seat(c) for c in room.players.values_list("color", flat=True)}
+    seat = preferred_seat(requested or "")
+    if seat is None or seat in taken:
+        seat = next((s for s in JOIN_SEAT_ORDER if s not in taken), None)
+    if seat is None:
+        raise ValueError("no free seat")
+    return COLOR_BY_SEAT[seat]
+
+
+def default_player_name(room: Room) -> str:
+    """Placeholder until profiles (plan step 1.7) give people real names."""
+    return f"Player {room.players.count() + 1}"
 
 
 def bot_seat_for(used_seats: set[int], host_seat: int) -> int:
@@ -233,11 +258,15 @@ def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = No
             and Player.objects.filter(id=current, is_bot=True).exists()
         )
 
+        dice, movable = None, ()
+        for event in transition.events:
+            if event.type is EventType.DICE_RESULT:
+                ids = token_ids.get(event.data["player_id"], [])
+                dice = event.data["value"]
+                movable = tuple(ids[k] for k in event.data["movable_tokens"] if k < len(ids))
+
     broadcast(room_code, messages)
-    dice = next(
-        (e.data["value"] for e in transition.events if e.type is EventType.DICE_RESULT), None
-    )
-    return ActionResult(new_state, transition.events, dice, next_is_bot)
+    return ActionResult(new_state, transition.events, dice, next_is_bot, movable)
 
 
 def _resolve(state: GameState, action: dict[str, Any]) -> dict[str, Any]:
@@ -274,6 +303,73 @@ def _mirror_tokens(old: GameState, new: GameState, token_ids: dict[str, list[str
                 Token.objects.filter(id=ids[index]).update(
                     position=after, is_finished=after == HOME_PROGRESS
                 )
+
+
+# ---------------------------------------------------------------------------
+# Snapshots (read only)
+# ---------------------------------------------------------------------------
+
+
+def players_payload(room: Room) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "color": p.color,
+            "is_host": p.is_host,
+            "is_bot": p.is_bot,
+        }
+        for p in room.players.order_by("joined_at")
+    ]
+
+
+def game_snapshot(room: Room) -> dict[str, Any]:
+    """
+    Everything the app needs to draw a started game from scratch: sent when the
+    game starts and to anyone who (re)connects. Same shape as the
+    ``game_started`` socket message.
+    """
+    snapshot: dict[str, Any] = {
+        "type": "game_started",
+        "room_code": room.code,
+        "players": players_payload(room),
+        "tokens": [
+            {
+                "id": str(t.id),
+                "player_id": str(t.player_id),
+                "position": t.position,
+                "is_finished": t.is_finished,
+            }
+            for t in Token.objects.filter(player__room=room).order_by("created_at")
+        ],
+        "current_turn_player_id": None,
+        "last_dice": None,
+        "movable_token_ids": [],
+        "version": None,
+        "seconds_left": None,
+        "warning_seconds": None,
+        "winner_id": None,
+    }
+    game = Game.objects.filter(room=room).first()
+    if game is None:
+        return snapshot
+    snapshot.update(
+        current_turn_player_id=str(game.current_turn_id) if game.current_turn_id else None,
+        last_dice=game.last_dice,
+        version=game.version,
+        seconds_left=seconds_left(game.turn_deadline),
+    )
+    if game.state is not None:
+        state = GameState.from_dict(game.state)
+        ids = token_ids_by_player(room).get(state.current_player.player_id, [])
+        snapshot.update(
+            movable_token_ids=[
+                ids[m.token_index] for m in engine.legal_moves(state) if m.token_index < len(ids)
+            ],
+            warning_seconds=state.rules.timeout_warning_seconds,
+            winner_id=state.winner_id,
+        )
+    return snapshot
 
 
 # ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
@@ -14,24 +15,22 @@ import '../domain/room_session_controller.dart';
 class CreateRoomScreen extends ConsumerStatefulWidget {
   const CreateRoomScreen({super.key});
 
-  // TODO(1.10 game platform): seat choices come from the game variant.
-  static const seatChoices = [2, 3, 4];
-
   @override
   ConsumerState<CreateRoomScreen> createState() => _CreateRoomScreenState();
 }
 
 class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
-  int _maxPlayers = CreateRoomScreen.seatChoices.last;
+  /// The player's pick; null means "the server's default".
+  int? _picked;
   bool _loading = false;
 
-  Future<void> _create() async {
+  Future<void> _create(int maxPlayers) async {
     final l10n = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       final session = await ref
           .read(roomRepositoryProvider)
-          .createRoom(maxPlayers: _maxPlayers);
+          .createRoom(maxPlayers: maxPlayers);
       if (!mounted) return;
       ref.read(roomSessionProvider.notifier).start(session);
       context.push(AppRoutes.room(session.roomCode));
@@ -39,7 +38,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.createRoomFailed)));
+      ).showSnackBar(SnackBar(content: Text(l10n.apiErrorText(e))));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -48,7 +47,14 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final options = ref.watch(roomOptionsProvider);
+    final ready = options.asData?.value;
+    final selected = ready == null
+        ? null
+        : (_picked != null && ready.playerCounts.contains(_picked)
+              ? _picked!
+              : ready.defaultPlayerCount);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text(l10n.createRoomTitle)),
@@ -60,35 +66,21 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 MajlisCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.createRoomMaxPlayers,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        children: [
-                          for (final count in CreateRoomScreen.seatChoices)
-                            ChoiceChip(
-                              label: Text('$count'),
-                              selected: _maxPlayers == count,
-                              onSelected: _loading
-                                  ? null
-                                  : (_) => setState(() => _maxPlayers = count),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.createRoomHint,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: context.majlis.textMuted,
-                        ),
-                      ),
-                    ],
+                  child: options.when(
+                    data: (data) => _PlayerCountPicker(
+                      counts: data.playerCounts,
+                      selected: selected,
+                      enabled: !_loading,
+                      onSelected: (count) => setState(() => _picked = count),
+                    ),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (error, _) => _OptionsError(
+                      message: l10n.apiErrorText(error),
+                      onRetry: () => ref.invalidate(roomOptionsProvider),
+                    ),
                   ),
                 ),
                 const Spacer(),
@@ -96,13 +88,92 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                   label: l10n.createRoomCreate,
                   icon: Icons.casino_outlined,
                   loading: _loading,
-                  onPressed: _loading ? null : _create,
+                  onPressed: (_loading || selected == null)
+                      ? null
+                      : () => _create(selected),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PlayerCountPicker extends StatelessWidget {
+  const _PlayerCountPicker({
+    required this.counts,
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final List<int> counts;
+  final int? selected;
+  final bool enabled;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.createRoomMaxPlayers, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          children: [
+            for (final count in counts)
+              ChoiceChip(
+                label: Text('$count'),
+                selected: selected == count,
+                onSelected: enabled ? (_) => onSelected(count) : null,
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          l10n.createRoomHint,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: context.majlis.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OptionsError extends StatelessWidget {
+  const _OptionsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.createRoomOptionsFailed, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: context.majlis.textMuted,
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: Text(l10n.commonRetry),
+        ),
+      ],
     );
   }
 }

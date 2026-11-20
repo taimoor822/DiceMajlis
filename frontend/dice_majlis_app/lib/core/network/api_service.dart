@@ -2,7 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/app_config.dart';
+import 'api_exception.dart';
 
+/// Raw calls to the game REST API. Returns the server's JSON; the feature
+/// repositories turn it into typed objects. Every failure is an [ApiException].
+///
+/// The app only asks ("create a room", "roll", "move this token"). Sizes,
+/// dice, positions, names and colours are decided by the server.
 class ApiService {
   static final Dio _dio = Dio(
     BaseOptions(
@@ -13,100 +19,69 @@ class ApiService {
     ),
   );
 
-  // ================= CREATE ROOM =================
-  static Future<Map<String, dynamic>> createRoom({
-    required String name,
-    required String color,
-    int maxPlayers = 4,
-  }) async {
+  static Future<Map<String, dynamic>> _send(
+    String method,
+    String path, [
+    Map<String, dynamic>? data,
+  ]) async {
     try {
-      final response = await _dio.post(
-        'create-room/',
-        data: {'name': name, 'color': color, 'max_players': maxPlayers},
+      final response = await _dio.request<dynamic>(
+        path,
+        data: data,
+        options: Options(method: method),
       );
-
-      return Map<String, dynamic>.from(response.data);
-    } on DioException catch (e) {
-      debugPrint('CREATE ROOM ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to create room');
+      final body = response.data;
+      if (body is Map) return Map<String, dynamic>.from(body);
+      throw ApiException(
+        ApiException.unknownError,
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (error) {
+      final failure = ApiException.fromDio(error);
+      debugPrint('$method $path failed: $failure');
+      throw failure;
     }
   }
 
-  // ================= JOIN ROOM =================
-  static Future<Map<String, dynamic>> joinRoom({
-    required String code,
-    required String name,
-    required String color,
-  }) async {
-    try {
-      final response = await _dio.post(
-        'join-room/',
-        data: {'code': code, 'name': name, 'color': color},
-      );
+  /// What the server allows when creating a room (e.g. the player counts).
+  static Future<Map<String, dynamic>> roomOptions() =>
+      _send('GET', 'room-options/');
 
-      return Map<String, dynamic>.from(response.data);
-    } on DioException catch (e) {
-      debugPrint('JOIN ROOM ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to join room');
-    }
-  }
+  static Future<Map<String, dynamic>> createRoom({required int maxPlayers}) =>
+      _send('POST', 'create-room/', {'max_players': maxPlayers});
 
-  // ================= START GAME =================
-  static Future<void> startGame({
-    required String code,
-    required String playerId,
-  }) async {
-    try {
-      await _dio.post(
-        'start-game/',
-        data: {'code': code, 'player_id': playerId},
-      );
-    } on DioException catch (e) {
-      debugPrint('START GAME ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to start game');
-    }
-  }
+  static Future<Map<String, dynamic>> joinRoom({required String code}) =>
+      _send('POST', 'join-room/', {'code': code});
 
-  // ================= ROLL DICE =================
-  static Future<int> rollDice({
+  static Future<Map<String, dynamic>> startGame({
     required String roomCode,
     required String playerId,
-  }) async {
-    try {
-      final response = await _dio.post(
-        'roll-dice/',
-        data: {'code': roomCode, 'player_id': playerId},
-      );
-      final data = response.data;
-      if (data is Map && data['dice'] != null) {
-        final dice = (data['dice'] as num).toInt();
-        if (dice >= 1 && dice <= 6) return dice;
-      }
-      throw Exception('Invalid dice response');
-    } on DioException catch (e) {
-      debugPrint('ROLL DICE ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to roll dice');
-    }
-  }
+    required String playerToken,
+  }) => _send('POST', 'start-game/', {
+    'code': roomCode,
+    'player_id': playerId,
+    'player_token': playerToken,
+  });
 
-  // ================= MOVE TOKEN =================
+  static Future<Map<String, dynamic>> rollDice({
+    required String roomCode,
+    required String playerId,
+    required String playerToken,
+  }) => _send('POST', 'roll-dice/', {
+    'code': roomCode,
+    'player_id': playerId,
+    'player_token': playerToken,
+  });
 
   static Future<Map<String, dynamic>> moveToken({
     required String roomCode,
     required String playerId,
+    required String playerToken,
     required String tokenId,
-  }) async {
-    try {
-      final response = await _dio.post(
-        'move-token/',
-        data: {'code': roomCode, 'player_id': playerId, 'token_id': tokenId},
-      );
-      final data = response.data;
-      if (data is Map) return Map<String, dynamic>.from(data);
-      return const <String, dynamic>{};
-    } on DioException catch (e) {
-      debugPrint('MOVE TOKEN ERROR: ${e.response?.data}');
-      throw Exception(e.response?.data ?? 'Failed to move token');
-    }
-  }
+  }) => _send('POST', 'move-token/', {
+    'code': roomCode,
+    'player_id': playerId,
+    'player_token': playerToken,
+    'token_id': tokenId,
+  });
 }

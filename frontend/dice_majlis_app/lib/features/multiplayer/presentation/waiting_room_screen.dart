@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
@@ -89,7 +90,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.waitingRoomStartFailed)));
+      ).showSnackBar(SnackBar(content: Text(l10n.apiErrorText(e))));
     } finally {
       if (mounted) setState(() => _starting = false);
     }
@@ -232,16 +233,16 @@ class _PlayerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final tags = [
-      if (isMe) l10n.waitingRoomYou,
-      if (player.isHost) l10n.waitingRoomHost,
-      if (player.isBot) l10n.waitingRoomBot,
+      if (isMe) l10n.playerTagYou,
+      if (player.isHost) l10n.playerTagHost,
+      if (player.isBot) l10n.playerTagBot,
     ];
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: MajlisColors.seatColor(player.color),
         child: Icon(
           player.isBot ? Icons.smart_toy_outlined : Icons.person,
-          color: Colors.white,
+          color: context.majlis.onSeat,
         ),
       ),
       title: Text(player.name),

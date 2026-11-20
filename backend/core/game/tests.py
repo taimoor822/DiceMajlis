@@ -37,6 +37,7 @@ class GameApiTestCase(TestCase):
     def setUp(self):
         self.api = APIClient()
         self.sent = []
+        self.tokens = {}  # player id -> seat secret, as each device would keep it
         if self.capture_broadcasts:
             patcher = mock.patch(
                 "game.services.broadcast",
@@ -48,17 +49,24 @@ class GameApiTestCase(TestCase):
     # ---- helpers ---------------------------------------------------------
 
     def post(self, endpoint, **data):
+        """POST like the app: seat requests carry that player's own secret."""
+        if "player_id" in data and "player_token" not in data:
+            data["player_token"] = self.tokens.get(str(data["player_id"]), "no-secret")
         return self.api.post(f"/api/game/{endpoint}/", data, format="json")
 
     def create_room(self, name="Host", color="red"):
         r = self.post("create-room", name=name, color=color, max_players=4)
         self.assertEqual(r.status_code, 201, r.data)
-        return r.data["room"]["code"], str(r.data["player"]["id"])
+        player_id = str(r.data["player"]["id"])
+        self.tokens[player_id] = r.data["player_token"]
+        return r.data["room"]["code"], player_id
 
     def join(self, code, name, color="blue"):
         r = self.post("join-room", code=code, name=name, color=color)
         self.assertEqual(r.status_code, 200, r.data)
-        return str(r.data["player"]["id"])
+        player_id = str(r.data["player"]["id"])
+        self.tokens[player_id] = r.data["player_token"]
+        return player_id
 
     def start(self, code, host):
         r = self.post("start-game", code=code, player_id=host)
@@ -134,9 +142,9 @@ class StartGameTests(GameApiTestCase):
         code, host = self.create_room()
         guest = self.join(code, "Guest")
         r = self.post("start-game", code=code, player_id=guest)
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_host"))
         r = self.post("start-game", code=code, player_id="not-a-uuid")
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
 
 
 class RollAndMoveTests(GameApiTestCase):
@@ -300,8 +308,8 @@ class SafetyTests(GameApiTestCase):
         self.assertEqual((r.status_code, r.data["code"]), (409, "legacy_game"))
 
     def test_unknown_room(self):
-        r = self.post("roll-dice", code="NOPE", player_id="x")
-        self.assertEqual(r.status_code, 404)
+        r = self.post("roll-dice", code="NOPE", player_id="00000000-0000-4000-8000-000000000000")
+        self.assertEqual((r.status_code, r.data["code"]), (404, "room_not_found"))
 
 
 class SocketDeliveryTests(GameApiTestCase):
@@ -444,8 +452,9 @@ class TurnTimerTests(GameApiTestCase):
         code, _, _ = self.two_humans()
         consumer = LobbyConsumer()
         consumer.room_code = code
-        snapshot = async_to_sync(consumer.get_game_state)()
+        _players, snapshot = async_to_sync(consumer.get_room_info)()
         self.assertTrue(28 <= snapshot["seconds_left"] <= 30)
+        self.assertEqual(snapshot["warning_seconds"], 10)
 
     def test_management_command_runs_one_sweep(self):
         self.two_humans()
@@ -454,3 +463,139 @@ class TurnTimerTests(GameApiTestCase):
         out = StringIO()
         call_command("run_turn_timers", "--once", stdout=out)
         self.assertIn("Handled 1", out.getvalue())
+
+
+class RoomInputTests(GameApiTestCase):
+    """The server checks what the app sends; bad input gets 400, never a crash."""
+
+    def test_room_options_come_from_the_rules(self):
+        r = self.api.get("/api/game/room-options/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, {"player_counts": [2, 3, 4], "default_player_count": 4})
+
+    def test_room_size_must_be_one_the_rules_allow(self):
+        for size in (1, 0, 5, -2, "abc", True, None):
+            r = self.post("create-room", max_players=size)
+            self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"), size)
+            self.assertIn("max_players", r.data["fields"])
+        r = self.post("create-room", max_players="3")
+        self.assertEqual((r.status_code, r.data["room"]["max_players"]), (201, 3))
+
+    def test_names_and_colours_are_checked(self):
+        r = self.post("create-room", name="x" * 31)
+        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
+        r = self.post("create-room", color="purple")
+        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
+
+    def test_server_picks_names_and_free_seats_when_the_app_sends_none(self):
+        r = self.post("create-room", max_players=4)
+        code = r.data["room"]["code"]
+        self.assertEqual((r.data["player"]["name"], r.data["player"]["color"]), ("Player 1", "red"))
+        joined = [self.post("join-room", code=code).data["player"] for _ in range(3)]
+        self.assertEqual(
+            [(p["name"], p["color"]) for p in joined],
+            [("Player 2", "green"), ("Player 3", "blue"), ("Player 4", "yellow")],
+        )
+
+    def test_join_accepts_any_case_and_reports_why_it_failed(self):
+        code, _ = self.create_room()
+        self.assertEqual(self.post("join-room", code=f" {code.lower()} ").status_code, 200)
+        r = self.post("join-room", code="ZZZZ")
+        self.assertEqual((r.status_code, r.data["code"]), (404, "room_not_found"))
+        r = self.post("join-room")
+        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
+
+    def test_a_full_room_turns_people_away(self):
+        r = self.post("create-room", max_players=2)
+        code = r.data["room"]["code"]
+        self.assertEqual(self.post("join-room", code=code).status_code, 200)
+        r = self.post("join-room", code=code)
+        self.assertEqual((r.status_code, r.data["code"]), (400, "room_full"))
+
+    def test_cannot_join_a_started_game(self):
+        code, _, _ = self.two_humans()
+        r = self.post("join-room", code=code)
+        self.assertEqual((r.status_code, r.data["code"]), (400, "game_already_started"))
+
+    def test_room_codes_use_the_secure_random_generator(self):
+        with mock.patch("game.views.secrets.choice", return_value="Q") as choice:
+            r = self.post("create-room")
+        self.assertEqual(r.data["room"]["code"], "QQQQ")
+        self.assertEqual(choice.call_count, 4)
+
+
+class SeatSecretTests(GameApiTestCase):
+    """Knowing someone's player id (the whole room sees it) is not enough to play for them."""
+
+    def test_each_device_gets_its_own_secret_and_only_a_hash_is_stored(self):
+        code, host = self.create_room()
+        guest = self.join(code, "Guest")
+        self.assertNotEqual(self.tokens[host], self.tokens[guest])
+        stored = Player.objects.get(id=host).secret_hash
+        self.assertEqual(len(stored), 64)
+        self.assertNotIn(self.tokens[host], stored)
+
+    def test_you_cannot_roll_or_move_for_someone_else(self):
+        code, host, guest = self.two_humans()
+        # The guest knows the host's id but not the host's secret.
+        r = self.post("roll-dice", code=code, player_id=host, player_token=self.tokens[guest])
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
+        self.dice(6)
+        self.post("roll-dice", code=code, player_id=host)
+        token = self.token_ids(code, host)[0]
+        r = self.post("move-token", code=code, player_id=host, token_id=token, player_token="guess")
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
+        self.assertEqual(Token.objects.get(id=token).position, -1)
+
+    def test_only_the_host_with_their_secret_can_start(self):
+        code, host = self.create_room()
+        self.join(code, "Guest")
+        r = self.post("start-game", code=code, player_id=host, player_token="")
+        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
+        r = self.post("start-game", code=code, player_id=host, player_token="wrong")
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
+        self.assertFalse(self.game_exists(code))
+
+    def test_nobody_can_act_as_the_bot(self):
+        code, host = self.create_room()
+        self.start(code, host)
+        bot = str(Player.objects.get(room__code=code, is_bot=True).id)
+        r = self.post("roll-dice", code=code, player_id=bot, player_token="anything")
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
+
+    def game_exists(self, code):
+        return Game.objects.filter(room__code=code).exists()
+
+
+class MovableTokenTests(GameApiTestCase):
+    """The app never guesses the rules: the server lists the tokens that may move."""
+
+    def test_roll_response_lists_the_movable_tokens(self):
+        code, host, _ = self.two_humans()
+        self.dice(6)
+        r = self.post("roll-dice", code=code, player_id=host)
+        self.assertEqual(sorted(r.data["movable_token_ids"]), sorted(self.token_ids(code, host)))
+
+    def test_roll_response_is_empty_when_nothing_can_move(self):
+        code, host, _ = self.two_humans()
+        self.dice(3)  # every token is still at base
+        r = self.post("roll-dice", code=code, player_id=host)
+        self.assertEqual(r.data["movable_token_ids"], [])
+
+    def test_reconnect_snapshot_lists_the_movable_tokens(self):
+        code, host, _ = self.two_humans()
+        self.dice(6)
+        self.post("roll-dice", code=code, player_id=host)
+        snapshot = services.game_snapshot(self.game(code).room)
+        self.assertEqual(snapshot["type"], "game_started")
+        self.assertEqual(sorted(snapshot["movable_token_ids"]), sorted(self.token_ids(code, host)))
+        self.assertIsNone(snapshot["winner_id"])
+
+    def test_reconnect_snapshot_after_the_game_shows_the_winner(self):
+        code, host, _ = self.two_humans()
+        self.set_positions(code, {host: [55, 56, 56, 56]})
+        self.dice(1)
+        self.post("roll-dice", code=code, player_id=host)
+        self.post("move-token", code=code, player_id=host, token_id=self.token_ids(code, host)[0])
+        snapshot = services.game_snapshot(self.game(code).room)
+        self.assertEqual((snapshot["winner_id"], snapshot["movable_token_ids"]), (host, []))

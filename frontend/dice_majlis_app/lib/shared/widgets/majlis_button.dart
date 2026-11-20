@@ -32,7 +32,7 @@ class MajlisButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final primary = style == MajlisButtonStyle.primary;
     final foreground = primary
-        ? const Color(0xFF1E1606)
+        ? majlis.onGold
         : (Theme.of(context).brightness == Brightness.dark
               ? majlis.goldLight
               : scheme.primary);

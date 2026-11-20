@@ -1,8 +1,9 @@
 from django.urls import path
 
-from .views import create_room, join_room, move_token, roll_dice, start_game
+from .views import create_room, join_room, move_token, roll_dice, room_options, start_game
 
 urlpatterns = [
+    path('room-options/', room_options),
     path('create-room/', create_room),
     path('join-room/', join_room),
     path('start-game/', start_game),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../shared/widgets/majlis_background.dart';
@@ -42,7 +43,7 @@ class _JoinRoomScreenState extends ConsumerState<JoinRoomScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.joinRoomFailed)));
+      ).showSnackBar(SnackBar(content: Text(l10n.apiErrorText(e))));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

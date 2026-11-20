@@ -1,203 +1,78 @@
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+import logging
+
 from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+
 from . import services
-from .models import Room, Token
+from .models import Room
+
+logger = logging.getLogger(__name__)
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
+    """
+    Read-only room channel: the server pushes lobby and game updates here.
+    Players act through the REST API (which checks their seat secret), never
+    through this socket.
+    """
+
     async def connect(self):
-        self.room_code = self.scope['url_route']['kwargs']['code']
-        self.group_name = f'lobby_{self.room_code}'
+        self.room_code = self.scope['url_route']['kwargs']['code'].upper()
+        self.group_name = services.group_name(self.room_code)
 
-        print("🔌 WS CONNECTED:", self.group_name)
-
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
-
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        await self.broadcast_players()
+        logger.debug("socket joined %s", self.group_name)
 
-        # If a client connects after the game started (e.g. refresh), send full state.
-        game_state = await self.get_game_state()
-        if game_state is not None and game_state.get('is_started') is True:
-            await self.send(text_data=json.dumps({
-                'type': 'game_started',
-                'room_code': game_state['room_code'],
-                'current_turn_player_id': game_state['current_turn_player_id'],
-                'players': game_state['players'],
-                'tokens': game_state['tokens'],
-                'last_dice': game_state['last_dice'],
-                'version': game_state.get('version'),
-                'seconds_left': game_state.get('seconds_left'),
-            }))
-
-            # If it's currently the bot's turn, ensure the bot resumes playing.
-            current_turn_id = game_state.get('current_turn_player_id')
-            players = game_state.get('players') or []
-            is_bot_turn = any(
-                p.get('id') == current_turn_id and p.get('is_bot') is True
-                for p in players
-                if isinstance(p, dict)
-            )
-            if is_bot_turn:
-                from .services import schedule_bots
-                schedule_bots(self.room_code)
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
-
-    # ==================================================
-    # 🔄 PLAYERS
-    # ==================================================
-    async def broadcast_players(self):
-        players = await self.get_players()
-        print("📢 BROADCAST PLAYERS:", players)
+        room_info = await self.get_room_info()
+        if room_info is None:
+            return
+        players, snapshot = room_info
 
         await self.channel_layer.group_send(
             self.group_name,
-            {
-                'type': 'players_updated',
-                'players': players,
-            }
+            {'type': 'players_updated', 'players': players},
         )
 
+        # Joining after the game started (refresh / reconnect): send the full state.
+        if snapshot is not None:
+            await self.send(text_data=json.dumps(snapshot))
+            current = snapshot.get('current_turn_player_id')
+            bot_turn = any(p['id'] == current and p['is_bot'] for p in snapshot['players'])
+            if bot_turn and snapshot.get('winner_id') is None:
+                # Make sure the bot resumes playing.
+                await sync_to_async(services.schedule_bots)(self.room_code)
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    # ==================================================
+    # Messages from the server (group_send) -> this client
+    # ==================================================
     async def players_updated(self, event):
         await self.send(text_data=json.dumps({
             'type': 'players_updated',
             'players': event['players'],
         }))
 
-    # ==================================================
-    # 🎮 GAME FLOW EVENTS
-    # ==================================================
     async def game_started(self, event):
-        payload = {'type': 'game_started'}
-
-        # Optional fields (backwards-compatible)
-        if 'room_code' in event:
-            payload['room_code'] = event['room_code']
-        if 'current_turn_player_id' in event:
-            payload['current_turn_player_id'] = event['current_turn_player_id']
-        if 'players' in event:
-            payload['players'] = event['players']
-        if 'tokens' in event:
-            payload['tokens'] = event['tokens']
-        if 'last_dice' in event:
-            payload['last_dice'] = event['last_dice']
-        if 'version' in event:
-            payload['version'] = event['version']
-        if 'seconds_left' in event:
-            payload['seconds_left'] = event['seconds_left']
-
-        await self.send(text_data=json.dumps(payload))
+        # services.game_snapshot(): already in the shape the app expects.
+        await self.send(text_data=json.dumps(event))
 
     async def game_event(self, event):
         # Engine events from game.services: forward the payload unchanged.
         await self.send(text_data=json.dumps(event['payload']))
 
-    async def dice_rolled(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'dice_rolled',
-            'player_id': event['player_id'],
-            'dice': event['dice'],
-        }))
-
-    async def token_moved(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'token_moved',
-            'player_id': event['player_id'],
-            'token_id': event['token_id'],
-            'from': event['from'],
-            'to': event['to'],
-            'dice': event['dice'],
-            'killed': event['killed'],
-        }))
-
-    async def turn_changed(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'turn_changed',
-            'player_id': event['player_id'],
-        }))
-
-    async def game_finished(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'game_finished',
-            'winner_id': event['winner_id'],
-        }))
-
     # ==================================================
-    # 🧠 DB ACCESS
+    # DB access
     # ==================================================
     @sync_to_async
-    def get_players(self):
-        try:
-            room = Room.objects.get(code=self.room_code)
-            return [
-                {
-                    'id': str(p.id),       # UUID safe
-                    'name': p.name,
-                    'color': p.color,
-                    'is_host': p.is_host,
-                    'is_bot': p.is_bot,
-                }
-                for p in room.players.order_by('joined_at')
-            ]
-        except Room.DoesNotExist:
-            return []
-
-    @sync_to_async
-    def get_game_state(self):
-        try:
-            room = Room.objects.get(code=self.room_code)
-        except Room.DoesNotExist:
+    def get_room_info(self):
+        """(players, snapshot) for this room; snapshot is None until the game starts."""
+        room = Room.objects.filter(code=self.room_code).first()
+        if room is None:
             return None
-
-        players = [
-            {
-                'id': str(p.id),
-                'name': p.name,
-                'color': p.color,
-                'is_host': p.is_host,
-                'is_bot': p.is_bot,
-            }
-            for p in room.players.order_by('joined_at')
-        ]
-
-        tokens = [
-            {
-                'id': str(t.id),
-                'player_id': str(t.player_id),
-                'position': t.position,
-                'is_finished': t.is_finished,
-            }
-            for t in Token.objects.filter(player__room=room)
-            .select_related('player')
-            .order_by('created_at')
-        ]
-
-        current_turn_player_id = None
-        last_dice = None
-        version = None
-        seconds_left = None
-        if hasattr(room, 'game'):
-            current_turn_player_id = str(room.game.current_turn_id) if room.game.current_turn_id else None
-            last_dice = room.game.last_dice
-            version = room.game.version
-            seconds_left = services.seconds_left(room.game.turn_deadline)
-
-        return {
-            'room_code': room.code,
-            'is_started': room.is_started,
-            'current_turn_player_id': current_turn_player_id,
-            'last_dice': last_dice,
-            'players': players,
-            'tokens': tokens,
-            'version': version,
-            'seconds_left': seconds_left,
-        }
+        players = services.players_payload(room)
+        snapshot = services.game_snapshot(room) if room.is_started else None
+        return players, snapshot
