@@ -55,6 +55,10 @@ class UserManager(BaseUserManager):
         """A player who pressed "Play as guest": no name, email or password yet."""
         return self._create(is_guest=True)
 
+    def create_email_user(self, email: str, password: str) -> "User":
+        """A player who signed up with email + password."""
+        return self._create(email=email, password=password, is_guest=False)
+
     def create_user(self, username, password=None, **fields) -> "User":
         return self._create(username=username, password=password, **fields)
 
@@ -99,9 +103,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def public_name(self) -> str:
-        """The name other players see."""
-        # TODO(1.7 profile): the player's own display name.
-        return f"Guest {self.player_id % 10000:04d}"
+        """The name other players see (from the profile)."""
+        from profiles.services import profile_of  # profiles depends on accounts
+
+        return profile_of(self).display_name
+
+    @property
+    def has_email_sign_in(self) -> bool:
+        return bool(self.email) and self.has_usable_password()
 
 
 class DeviceSession(models.Model):
@@ -145,3 +154,24 @@ class DeviceSession(models.Model):
             self.revoked_at = now or timezone.now()
             self.revoked_reason = reason
             self.save(update_fields=["revoked_at", "revoked_reason"])
+
+
+class PasswordResetCode(models.Model):
+    """
+    A 6-digit code emailed to reset a forgotten password. Only a keyed hash is
+    stored. Valid for a short time and a few tries; a newer code replaces it.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name="password_reset_codes", on_delete=models.CASCADE)
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"Reset code for {self.user}"

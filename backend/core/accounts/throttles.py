@@ -18,3 +18,15 @@ class GuestSignupThrottle(_IpThrottle):
 
 class RefreshThrottle(_IpThrottle):
     scope = "auth_refresh"
+
+
+class EmailSignupThrottle(_IpThrottle):
+    scope = "email_signup"
+
+
+class LoginThrottle(_IpThrottle):
+    scope = "login"
+
+
+class PasswordResetThrottle(_IpThrottle):
+    scope = "password_reset"

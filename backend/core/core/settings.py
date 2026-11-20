@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'channels',
 
     'accounts',
+    'profiles',
     'game',
 ]
 
@@ -114,7 +115,28 @@ AUTH_REFRESH_REUSE_GRACE = timedelta(minutes=2)
 AUTH_RATE_LIMITS = {
     'guest_signup': os.getenv('AUTH_GUEST_SIGNUP_RATE', '20/hour'),
     'auth_refresh': os.getenv('AUTH_REFRESH_RATE', '240/hour'),
+    'email_signup': os.getenv('AUTH_EMAIL_SIGNUP_RATE', '10/hour'),
+    'login': os.getenv('AUTH_LOGIN_RATE', '60/hour'),
+    'password_reset': os.getenv('AUTH_PASSWORD_RESET_RATE', '20/hour'),
 }
+# Wrong passwords allowed per email before it is locked for the window.
+AUTH_LOGIN_MAX_FAILURES = 10
+AUTH_LOGIN_FAILURE_WINDOW = timedelta(minutes=15)
+# Forgotten password: emailed 6-digit code (accounts/recovery.py).
+AUTH_RESET_CODE_LIFETIME = timedelta(hours=1)
+AUTH_RESET_CODE_ATTEMPTS = 5
+AUTH_RESET_CODES_PER_HOUR = 5
+
+# Email (password reset codes). Development prints emails in the server's terminal.
+# Production: set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and the
+# EMAIL_HOST* values of the email provider.
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() in {'1', 'true', 'yes', 'on'}
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Dice Majlis <no-reply@localhost>')
 
 
 
