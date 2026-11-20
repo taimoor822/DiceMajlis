@@ -77,7 +77,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~110 tests)
+python manage.py test                                  # everything (~120 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
 
@@ -112,6 +112,10 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - Engine token index ↔ DB token: tokens of a player sorted by `str(id)` (the Flutter
   board uses the same order).
 - Games started before the engine (`Game.state` is NULL) return `409 legacy_game`.
+- Until accounts (1.6), seat actions need the device's `player_token` from
+  create/join (`game/player_auth.py`); tests get it via `GameApiTestCase.post`.
+  API errors are `{"error", "code"}`; the app maps `code` to text in
+  `core/l10n/api_error_text.dart` and never shows the server's English.
 - The app keeps the current room (`roomSessionProvider`) only in memory on phones
   (web uses browser storage); persistent sessions arrive with accounts (step 1.6).
 

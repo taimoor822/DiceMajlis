@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dice_majlis_app/app.dart';
+import 'package:dice_majlis_app/core/network/api_exception.dart';
 import 'package:dice_majlis_app/core/storage/session_storage.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
@@ -10,17 +11,31 @@ import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Room API without a server. Records calls; can be told to fail.
+/// Room API without a server. Records calls; [failWith] makes every call fail
+/// with that server error code (e.g. `room_full`, `network_error`).
 class FakeRoomRepository extends RoomRepository {
-  FakeRoomRepository({this.fail = false});
+  FakeRoomRepository({
+    this.failWith,
+    this.options = const RoomOptions(
+      playerCounts: [2, 3, 4],
+      defaultPlayerCount: 4,
+    ),
+  });
 
-  bool fail;
+  String? failWith;
+  RoomOptions options;
   final calls = <String>[];
+
+  void _maybeFail() {
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+  }
 
   RoomSession _session(String code, {required bool host, int? maxPlayers}) =>
       RoomSession(
         roomCode: code,
         playerId: host ? 'p-host' : 'p-guest',
+        playerToken: host ? 'secret-host' : 'secret-guest',
         isHost: host,
         maxPlayers: maxPlayers,
         self: RoomPlayer(
@@ -32,23 +47,30 @@ class FakeRoomRepository extends RoomRepository {
       );
 
   @override
+  Future<RoomOptions> roomOptions() async {
+    calls.add('options');
+    _maybeFail();
+    return options;
+  }
+
+  @override
   Future<RoomSession> createRoom({required int maxPlayers}) async {
     calls.add('create:$maxPlayers');
-    if (fail) throw Exception('offline');
+    _maybeFail();
     return _session('AB12', host: true, maxPlayers: maxPlayers);
   }
 
   @override
   Future<RoomSession> joinRoom(String code) async {
     calls.add('join:$code');
-    if (fail) throw Exception('offline');
+    _maybeFail();
     return _session(code, host: false, maxPlayers: 4);
   }
 
   @override
   Future<void> startGame(RoomSession session) async {
     calls.add('start:${session.roomCode}');
-    if (fail) throw Exception('offline');
+    _maybeFail();
   }
 }
 
@@ -64,9 +86,6 @@ class FakeSocketService extends SocketService {
 
   @override
   Stream<dynamic> get stream => _controller.stream;
-
-  @override
-  void startGame() {}
 
   @override
   void disconnect() => disconnected = true;
@@ -87,6 +106,15 @@ class FakeSockets {
   }
 }
 
+/// Provider overrides that swap the network for fakes.
+List<Override> fakeNetwork({
+  required FakeRoomRepository repository,
+  required FakeSockets sockets,
+}) => [
+  roomRepositoryProvider.overrideWithValue(repository),
+  socketServiceFactoryProvider.overrideWithValue(sockets.create),
+];
+
 /// The whole app with fakes in place of the network.
 Widget testApp({
   required FakeRoomRepository repository,
@@ -94,10 +122,7 @@ Widget testApp({
 }) {
   SessionStorage.clear();
   return ProviderScope(
-    overrides: [
-      roomRepositoryProvider.overrideWithValue(repository),
-      socketServiceFactoryProvider.overrideWithValue(sockets.create),
-    ],
+    overrides: fakeNetwork(repository: repository, sockets: sockets),
     child: const DiceMajlisApp(),
   );
 }

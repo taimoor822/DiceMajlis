@@ -25,6 +25,10 @@ abstract class RoomSession with _$RoomSession {
   const factory RoomSession({
     required String roomCode,
     required String playerId,
+
+    /// Secret only this device holds; proves the seat is ours on start /
+    /// roll / move. Never shown, never shared.
+    required String playerToken,
     @Default(false) bool isHost,
 
     /// Seats in the room, as the server set them. Null when unknown
@@ -37,7 +41,7 @@ abstract class RoomSession with _$RoomSession {
 
   /// From the create-room / join-room API response:
   /// `{"room": {"code": ..., "max_players": ...},
-  ///   "player": {"id": ..., "is_host": ...}}`.
+  ///   "player": {"id": ..., "is_host": ...}, "player_token": ...}`.
   factory RoomSession.fromRoomResponse(Map<String, dynamic> response) {
     final room = Map<String, dynamic>.from(response['room'] as Map);
     final player = Map<String, dynamic>.from(response['player'] as Map);
@@ -46,9 +50,14 @@ abstract class RoomSession with _$RoomSession {
       'id': player['id'].toString(),
     });
     final maxPlayers = room['max_players'];
+    final token = response['player_token'];
+    if (token is! String || token.isEmpty) {
+      throw const FormatException('Room response has no player_token');
+    }
     return RoomSession(
       roomCode: room['code'].toString(),
       playerId: self.id,
+      playerToken: token,
       isHost: self.isHost,
       maxPlayers: maxPlayers is num ? maxPlayers.toInt() : null,
       self: self,

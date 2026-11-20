@@ -1,27 +1,68 @@
-import random
+"""
+Room and game REST API. Every request is checked here before anything changes:
+inputs are validated, and seat actions (start, roll, move) need the player's
+seat secret (see game.player_auth). Game state itself only changes through
+game.services.
+
+Errors always look like ``{"error": "<message>", "code": "<stable_code>"}``;
+the app switches on ``code``.
+"""
+
+import secrets
 import string
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from ludo_engine import EngineError, GameNotActive, NotYourTurn, UnknownPlayer
+from ludo_engine import (
+    MAX_PLAYERS,
+    MIN_PLAYERS,
+    EngineError,
+    GameNotActive,
+    NotYourTurn,
+    UnknownPlayer,
+)
 
-from . import services
-from .models import Game, Player, Room, Token
-from .serializers import PlayerSerializer, RoomSerializer
+from . import player_auth, services
+from .models import Game, Player, Room
+from .serializers import (
+    CreateRoomInput,
+    JoinRoomInput,
+    MoveTokenInput,
+    PlayerSerializer,
+    RoomSerializer,
+    SeatInput,
+)
+
+ROOM_CODE_LENGTH = 4
+ROOM_CODE_ALPHABET = string.ascii_uppercase + string.digits
 
 
 # =========================
-# UTILS
+# HELPERS
 # =========================
 
 def _error(message, code, http_status):
     return Response({'error': message, 'code': code}, status=http_status)
+
+
+def _invalid(serializer):
+    return Response(
+        {'error': 'Invalid request', 'code': 'invalid_input', 'fields': serializer.errors},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+def _room_not_found():
+    return _error('Room not found', 'room_not_found', status.HTTP_404_NOT_FOUND)
+
+
+def _not_your_seat():
+    return _error('This seat belongs to someone else', 'not_your_seat', status.HTTP_403_FORBIDDEN)
 
 
 def _game_error_response(exc):
@@ -45,35 +86,49 @@ def _game_error_response(exc):
     raise exc
 
 
-def _schedule_ai_turn(room_code: str) -> None:
-    """Kept for callers that still import it (e.g. the socket consumer)."""
-    services.schedule_bots(room_code)
+def _seat_owner(room, player_id, secret):
+    """The human player at ``player_id`` in ``room`` if ``secret`` is theirs, else None."""
+    player = Player.objects.filter(id=player_id, room=room, is_bot=False).first()
+    if player is None or not player_auth.owns_seat(player, secret):
+        return None
+    return player
 
 
 def generate_room_code():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return ''.join(secrets.choice(ROOM_CODE_ALPHABET) for _ in range(ROOM_CODE_LENGTH))
 
 
 def broadcast_players(room):
-    channel_layer = get_channel_layer()
-
-    players = []
-    for p in room.players.order_by('joined_at'):
-        players.append({
-            'id': str(p.id),        # ✅ UUID → string
-            'name': p.name,
-            'color': p.color,
-            'is_host': p.is_host,
-            'is_bot': p.is_bot,
-        })
-
-    async_to_sync(channel_layer.group_send)(
-        f'lobby_{room.code}',
-        {
-            'type': 'players_updated',
-            'players': players,
-        }
+    async_to_sync(get_channel_layer().group_send)(
+        services.group_name(room.code),
+        {'type': 'players_updated', 'players': services.players_payload(room)},
     )
+
+
+def _joined_response(room, player, secret, http_status):
+    return Response(
+        {
+            'room': RoomSerializer(room).data,
+            'player': PlayerSerializer(player).data,
+            # Only this device gets it. Send it back with start / roll / move.
+            'player_token': secret,
+        },
+        status=http_status,
+    )
+
+
+# =========================
+# ROOM OPTIONS
+# =========================
+
+@api_view(['GET'])
+def room_options(request):
+    """What the app may offer when creating a room (from the rules, not the app)."""
+    return Response({
+        'player_counts': list(range(MIN_PLAYERS, MAX_PLAYERS + 1)),
+        'default_player_count': MAX_PLAYERS,
+    })
+
 
 # =========================
 # CREATE ROOM
@@ -81,33 +136,25 @@ def broadcast_players(room):
 
 @api_view(['POST'])
 def create_room(request):
-    max_players = request.data.get('max_players', 4)
-    player_name = request.data.get('name', 'Player 1')
-    color = request.data.get('color', 'red')
+    form = CreateRoomInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+    data = form.validated_data
 
-    code = generate_room_code()
-    while Room.objects.filter(code=code).exists():
+    with transaction.atomic():
         code = generate_room_code()
+        while Room.objects.filter(code=code).exists():
+            code = generate_room_code()
+        room = Room.objects.create(code=code, max_players=data['max_players'])
+        player = Player.objects.create(
+            room=room,
+            name=data.get('name') or services.default_player_name(room),
+            color=services.color_for_new_player(room, data.get('color')),
+            is_host=True,
+        )
+        secret = player_auth.issue_secret(player)
 
-    room = Room.objects.create(
-        code=code,
-        max_players=max_players
-    )
-
-    player = Player.objects.create(
-        room=room,
-        name=player_name,
-        color=color,
-        is_host=True
-    )
-
-    return Response(
-        {
-            'room': RoomSerializer(room).data,
-            'player': PlayerSerializer(player).data,
-        },
-        status=status.HTTP_201_CREATED
-    )
+    return _joined_response(room, player, secret, status.HTTP_201_CREATED)
 
 
 # =========================
@@ -116,53 +163,31 @@ def create_room(request):
 
 @api_view(['POST'])
 def join_room(request):
-    code = request.data.get('code')
-    player_name = request.data.get('name', 'Player')
-    color = request.data.get('color', 'blue')
+    form = JoinRoomInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+    data = form.validated_data
 
-    if not code:
-        return Response(
-            {'error': 'Room code is required'},
-            status=status.HTTP_400_BAD_REQUEST
+    with transaction.atomic():
+        # Locked so two people can't take the last seat at the same moment.
+        room = Room.objects.select_for_update().filter(code=data['code']).first()
+        if room is None:
+            return _room_not_found()
+        if room.is_started:
+            return _error('Game already started', 'game_already_started', status.HTTP_400_BAD_REQUEST)
+        if room.players.count() >= room.max_players:
+            return _error('Room is full', 'room_full', status.HTTP_400_BAD_REQUEST)
+
+        player = Player.objects.create(
+            room=room,
+            name=data.get('name') or services.default_player_name(room),
+            color=services.color_for_new_player(room, data.get('color')),
+            is_host=False,
         )
+        secret = player_auth.issue_secret(player)
 
-    try:
-        room = Room.objects.get(code=code)
-    except Room.DoesNotExist:
-        return Response(
-            {'error': 'Room not found'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    if room.is_started:
-        return Response(
-            {'error': 'Game already started'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if room.players.count() >= room.max_players:
-        return Response(
-            {'error': 'Room is full'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    player = Player.objects.create(
-        room=room,
-        name=player_name,
-        color=color,
-        is_host=False
-    )
-
-    # 🔔 WebSocket: update players list
     broadcast_players(room)
-
-    return Response(
-        {
-            'room': RoomSerializer(room).data,
-            'player': PlayerSerializer(player).data,
-        },
-        status=status.HTTP_200_OK
-    )
+    return _joined_response(room, player, secret, status.HTTP_200_OK)
 
 
 # =========================
@@ -171,46 +196,26 @@ def join_room(request):
 
 @api_view(['POST'])
 def start_game(request):
-    code = request.data.get('code')
-    player_id = request.data.get('player_id')
-
-    if not code or not player_id:
-        return Response(
-            {'error': 'code and player_id required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    form = SeatInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+    data = form.validated_data
 
     with transaction.atomic():
-        try:
-            room = Room.objects.select_for_update().get(code=code)
-        except Room.DoesNotExist:
-            return Response(
-                {'error': 'Room not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
+        room = Room.objects.select_for_update().filter(code=data['code']).first()
+        if room is None:
+            return _room_not_found()
+        host = _seat_owner(room, data['player_id'], data['player_token'])
+        if host is None:
+            return _not_your_seat()
+        if not host.is_host:
+            return _error('Only the host can start the game', 'not_host', status.HTTP_403_FORBIDDEN)
         if room.is_started:
-            return Response(
-                {'error': 'Game already started'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return _error('Game already started', 'game_already_started', status.HTTP_400_BAD_REQUEST)
 
-        try:
-            host = Player.objects.get(
-                id=player_id,
-                room=room,
-                is_host=True
-            )
-        except (Player.DoesNotExist, ValidationError, ValueError):
-            return Response(
-                {'error': 'Only host can start the game'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # 🤖 Spawn an AI if the host is alone (v1), sitting opposite the host.
+        # Spawn an AI if the host is alone (v1), sitting opposite the host.
         if (
-            room.max_players >= 2
-            and room.players.filter(is_bot=False).count() == 1
+            room.players.filter(is_bot=False).count() == 1
             and not room.players.filter(is_bot=True).exists()
         ):
             seats = services.assign_seats(list(room.players.order_by('joined_at')))
@@ -224,53 +229,18 @@ def start_game(request):
             )
 
         room.is_started = True
-        room.save()
+        room.save(update_fields=['is_started'])
+        try:
+            services.start_game(room, host)
+        except EngineError as exc:
+            transaction.set_rollback(True)
+            return _game_error_response(exc)
+        snapshot = services.game_snapshot(room)
 
-        game, _state = services.start_game(room, host)
+    # WebSocket: game started (after the transaction committed)
+    async_to_sync(get_channel_layer().group_send)(services.group_name(room.code), snapshot)
 
-        players_payload = [
-            {
-                'id': str(p.id),
-                'name': p.name,
-                'color': p.color,
-                'is_host': p.is_host,
-                'is_bot': p.is_bot,
-            }
-            for p in room.players.order_by('joined_at')
-        ]
-
-        tokens_payload = [
-            {
-                'id': str(t.id),
-                'player_id': str(t.player_id),
-                'position': t.position,
-                'is_finished': t.is_finished,
-            }
-            for t in Token.objects.filter(player__room=room)
-            .select_related('player')
-            .order_by('created_at')
-        ]
-
-    # 🔔 WebSocket: game started (after the transaction committed)
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'lobby_{room.code}',
-        {
-            'type': 'game_started',
-            'room_code': room.code,
-            'current_turn_player_id': str(game.current_turn_id) if game.current_turn_id else None,
-            'players': players_payload,
-            'tokens': tokens_payload,
-            'last_dice': game.last_dice,
-            'version': game.version,
-            'seconds_left': services.seconds_left(game.turn_deadline),
-        }
-    )
-
-    return Response(
-        {'status': 'game_started'},
-        status=status.HTTP_200_OK
-    )
+    return Response({'status': 'game_started'}, status=status.HTTP_200_OK)
 
 
 # =========================
@@ -280,26 +250,32 @@ def start_game(request):
 @api_view(['POST'])
 def roll_dice(request):
     """The server rolls (SecureDice); the client only asks to roll."""
-    room_code = request.data.get('code')
-    player_id = request.data.get('player_id')
+    form = SeatInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+    data = form.validated_data
 
-    if not room_code or not player_id:
-        return Response(
-            {'error': 'code and player_id required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    room = Room.objects.filter(code=data['code']).first()
+    if room is None:
+        return _room_not_found()
+    if _seat_owner(room, data['player_id'], data['player_token']) is None:
+        return _not_your_seat()
 
     try:
-        result = services.perform(room_code, {'type': 'roll', 'player_id': str(player_id)})
-    except (Room.DoesNotExist, Game.DoesNotExist):
-        return Response({'error': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
+        result = services.perform(room.code, {'type': 'roll', 'player_id': str(data['player_id'])})
+    except Game.DoesNotExist:
+        return _error('The game has not started', 'game_not_started', status.HTTP_400_BAD_REQUEST)
     except (EngineError, services.GameConflict, services.LegacyGame) as exc:
         return _game_error_response(exc)
 
     if result.next_is_bot:
-        services.schedule_bots(room_code)
+        services.schedule_bots(room.code)
 
-    return Response({'dice': result.dice, 'version': result.state.version})
+    return Response({
+        'dice': result.dice,
+        'movable_token_ids': list(result.movable_token_ids),
+        'version': result.state.version,
+    })
 
 
 # =========================
@@ -309,39 +285,36 @@ def roll_dice(request):
 @api_view(['POST'])
 def move_token(request):
     """Move one of your tokens by the rolled value. The engine decides if it's legal."""
-    room_code = request.data.get('code')
-    player_id = request.data.get('player_id')
-    token_id = request.data.get('token_id')
+    form = MoveTokenInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+    data = form.validated_data
+    player_id, token_id = str(data['player_id']), str(data['token_id'])
 
-    if not all([room_code, player_id, token_id]):
-        return Response(
-            {'error': 'Missing data'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    room = Room.objects.filter(code=data['code']).first()
+    if room is None:
+        return _room_not_found()
+    if _seat_owner(room, player_id, data['player_token']) is None:
+        return _not_your_seat()
 
-    try:
-        room = Room.objects.get(code=room_code)
-    except Room.DoesNotExist:
-        return Response({'error': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
-
-    my_tokens = services.token_ids_by_player(room).get(str(player_id), [])
-    if str(token_id) not in my_tokens:
-        return Response({'error': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
+    my_tokens = services.token_ids_by_player(room).get(player_id, [])
+    if token_id not in my_tokens:
+        return _error('That token is not yours', 'not_your_token', status.HTTP_404_NOT_FOUND)
 
     try:
-        result = services.perform(room_code, {
+        result = services.perform(room.code, {
             'type': 'move',
-            'player_id': str(player_id),
-            'token_index': my_tokens.index(str(token_id)),
+            'player_id': player_id,
+            'token_index': my_tokens.index(token_id),
         })
     except Game.DoesNotExist:
-        return Response({'error': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
+        return _error('The game has not started', 'game_not_started', status.HTTP_400_BAD_REQUEST)
     except (EngineError, services.GameConflict, services.LegacyGame) as exc:
         return _game_error_response(exc)
 
     if result.next_is_bot:
-        services.schedule_bots(room_code)
+        services.schedule_bots(room.code)
 
-    if result.state.is_finished and result.state.winner_id == str(player_id):
+    if result.state.is_finished and result.state.winner_id == player_id:
         return Response({'winner': True, 'version': result.state.version})
     return Response({'success': True, 'version': result.state.version})

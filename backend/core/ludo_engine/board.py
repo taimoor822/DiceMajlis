@@ -21,6 +21,8 @@ from __future__ import annotations
 
 TRACK_LENGTH = 52
 SEAT_COUNT = 4
+MIN_PLAYERS = 2
+MAX_PLAYERS = SEAT_COUNT
 SEAT_SPACING = TRACK_LENGTH // SEAT_COUNT  # 13
 
 BASE_PROGRESS = -1
@@ -92,4 +94,4 @@ def default_seats_for(player_count: int) -> tuple[int, ...]:
         return (0, 2)
     if player_count in (3, 4):
         return tuple(range(player_count))
-    raise ValueError(f"Ludo needs 2 to {SEAT_COUNT} players, got {player_count}")
+    raise ValueError(f"Ludo needs {MIN_PLAYERS} to {MAX_PLAYERS} players, got {player_count}")

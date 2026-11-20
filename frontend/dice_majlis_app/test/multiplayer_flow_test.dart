@@ -1,7 +1,9 @@
 // Create / join / waiting-room flow with a fake server.
 
 import 'package:dice_majlis_app/features/ludo/presentation/game_board_screen.dart';
+import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
 import 'package:dice_majlis_app/features/multiplayer/presentation/waiting_room_screen.dart';
+import 'package:dice_majlis_app/shared/widgets/majlis_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,7 +30,7 @@ void main() {
     await tester.tap(find.text('CREATE'));
     await tester.pumpAndSettle();
 
-    expect(repo.calls, ['create:2']);
+    expect(repo.calls, ['options', 'create:2']);
     expect(find.byType(WaitingRoomScreen), findsOneWidget);
     expect(find.text('AB12'), findsOneWidget);
     expect(sockets.last.connectedRoom, 'AB12');
@@ -84,19 +86,75 @@ void main() {
     );
   });
 
-  testWidgets('a failed create shows a message and stays put', (tester) async {
-    final repo = FakeRoomRepository(fail: true);
+  testWidgets('a failed create says why and stays put', (tester) async {
+    final repo = FakeRoomRepository();
     final sockets = FakeSockets();
     await openHome(tester, testApp(repository: repo, sockets: sockets));
 
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
+    repo.failWith = 'network_error';
     await tester.tap(find.text('CREATE'));
     await tester.pump();
     await tester.pump();
 
-    expect(find.textContaining("Couldn't create the room"), findsOneWidget);
+    expect(find.textContaining("Can't reach the server"), findsOneWidget);
     expect(find.byType(WaitingRoomScreen), findsNothing);
     expect(sockets.opened, isEmpty);
+  });
+
+  testWidgets('room sizes come from the server', (tester) async {
+    final repo = FakeRoomRepository(
+      options: const RoomOptions(playerCounts: [2, 3], defaultPlayerCount: 3),
+    );
+    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+
+    await tester.tap(find.text('CREATE ROOM'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ChoiceChip, '2'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '3'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '4'), findsNothing);
+    final picked = tester.widget<ChoiceChip>(
+      find.widgetWithText(ChoiceChip, '3'),
+    );
+    expect(picked.selected, isTrue); // the server's default
+
+    await tester.tap(find.text('CREATE'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['options', 'create:3']);
+  });
+
+  testWidgets('if the room sizes fail to load, the player can retry', (
+    tester,
+  ) async {
+    final repo = FakeRoomRepository(failWith: 'network_error');
+    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+
+    await tester.tap(find.text('CREATE ROOM'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load the room options."), findsOneWidget);
+    final createButton = tester.widget<MajlisButton>(find.byType(MajlisButton));
+    expect(createButton.onPressed, isNull);
+
+    repo.failWith = null;
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, '4'), findsOneWidget);
+  });
+
+  testWidgets('joining a full room says so', (tester) async {
+    final repo = FakeRoomRepository(failWith: 'room_full');
+    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+
+    await tester.tap(find.text('JOIN ROOM'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'AB12');
+    await tester.tap(find.text('JOIN'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('That room is full.'), findsOneWidget);
+    expect(find.byType(WaitingRoomScreen), findsNothing);
   });
 }

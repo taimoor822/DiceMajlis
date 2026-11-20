@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/theme/majlis_colors.dart';
+
 class BoardWidget extends StatefulWidget {
   final String assetPath;
 
@@ -51,22 +53,23 @@ class _BoardWidgetState extends State<BoardWidget> {
             );
           }
 
+          final majlis = context.majlis;
           if (snapshot.hasError) {
-            return const ColoredBox(
-              color: Color(0xFF12172A),
+            return ColoredBox(
+              color: majlis.backgroundBottom,
               child: Center(
                 child: Icon(
                   Icons.broken_image_outlined,
                   size: 36,
-                  color: Colors.white70,
+                  color: majlis.textMuted,
                 ),
               ),
             );
           }
 
-          return const ColoredBox(
-            color: Color(0xFF12172A),
-            child: Center(
+          return ColoredBox(
+            color: majlis.backgroundBottom,
+            child: const Center(
               child: SizedBox(
                 width: 26,
                 height: 26,

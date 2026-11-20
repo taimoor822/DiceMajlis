@@ -19,7 +19,10 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
 - **Play against a bot** — start alone and "Majlis AI" joins opposite you
 - **Server-controlled game** — the server rolls the dice and checks every move,
-  so the app can't cheat
+  so the app can't cheat. Each device gets a private seat key, so nobody can
+  roll or move for someone else (signed-in accounts replace it in step 1.6)
+- **Clear messages** — if something fails (room full, wrong code, no
+  connection), the app says why
 - **Full Ludo rules** — enter on a 6, captures, safe squares, extra turns,
   three sixes ends your turn, exact roll to get home
 - **30-second turn timer** — if a player is idle, the server plays for them;
@@ -116,15 +119,15 @@ If `DJANGO_ALLOWED_HOSTS` in `.env` isn't `*`, add that IP to it.
 ## Tests
 
 ```bash
-# Backend: rules engine + API, sockets and turn timer (106 tests)
+# Backend: rules engine + API, input checks, seat keys, sockets, turn timer (122 tests)
 cd backend/core
 python manage.py test
 
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: app start, create/join/waiting-room flow, routes, themes,
-# board geometry, server address, turn countdown
+# Flutter: app start, create/join/waiting-room flow, error messages, routes,
+# themes, board (only server-listed tokens move), server address, countdown
 cd frontend/dice_majlis_app
 flutter test
 ```

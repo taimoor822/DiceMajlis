@@ -48,6 +48,13 @@ Bugs found while reviewing, and where each one is handled:
 | No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | ✅ 1.3 |
 | Create Room always sends `red`, Join Room always sends `blue` | `create_room_screen.dart`, `join_room_screen.dart` | 3rd/4th players share a colour and a board path | ✅ 1.1 (server reassigns clashing colours to free seats) |
 | `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | ✅ 1.3 |
+| Server trusts any `player_id` sent with start/roll/move; the whole room sees everyone's id | `game/views.py` | Anyone calling the API directly can play for another player | ✅ review fixes (seat secret, see below) |
+| `create-room` accepts any `max_players` (0, 1, 5, `"abc"`) | `game/views.py` | Starting such a room crashes with a 500 | ✅ review fixes (validated 2–4, from the engine) |
+| Join checks "room full" without a lock | `game/views.py` | Two people can take the last seat at once | ✅ review fixes (row lock) |
+| Room codes from `random` | `game/views.py` | Predictable codes | ✅ review fixes (`secrets`) |
+| Board guesses "needs a 6" before the server's movable list arrives | `game_board_screen.dart` | Wrong taps if the rule changes | ✅ review fixes (server list in roll response + snapshot) |
+| Dice number drawn in the same navy as the dice | `dice_widget.dart` | The rolled number is invisible | ✅ review fixes |
+| Colours and English text inline in the board widgets | `features/ludo/presentation/` | Breaks dark/light themes and translation | ✅ review fixes (`MajlisColors`, `app_en.arb`) |
 
 ---
 
@@ -511,6 +518,17 @@ socket drops → exponential backoff (1s, 2s, 4s … max 30s, with jitter)
 ```
 
 The client never "fixes" state itself. If anything looks wrong it sends `request_state`.
+
+### Seat secret (until accounts)
+
+There are no accounts yet, so `create-room` and `join-room` give each device a random
+`player_token` (only its SHA-256 is stored). `start-game`, `roll-dice` and `move-token`
+need `code`, `player_id` **and** `player_token`; a wrong one gets `403 not_your_seat`.
+Step 1.6 replaces this with signed-in users. All errors are
+`{"error": "...", "code": "<stable_code>"}`; the app translates the `code`.
+`GET /api/game/room-options/` gives the allowed player counts (from the engine), and
+the roll response and the reconnect snapshot carry `movable_token_ids`, so the app
+never re-implements a rule.
 
 ### Migration from today
 

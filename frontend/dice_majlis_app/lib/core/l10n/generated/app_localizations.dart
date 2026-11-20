@@ -106,6 +106,12 @@ abstract class AppLocalizations {
   /// **'PLAY · SOCIALISE · COMPETE'**
   String get appTagline;
 
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get commonRetry;
+
   /// No description provided for @homeSubtitle.
   ///
   /// In en, this message translates to:
@@ -148,11 +154,11 @@ abstract class AppLocalizations {
   /// **'Create'**
   String get createRoomCreate;
 
-  /// No description provided for @createRoomFailed.
+  /// No description provided for @createRoomOptionsFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t create the room. Check your connection and try again.'**
-  String get createRoomFailed;
+  /// **'Couldn\'t load the room options.'**
+  String get createRoomOptionsFailed;
 
   /// No description provided for @joinRoomTitle.
   ///
@@ -169,7 +175,7 @@ abstract class AppLocalizations {
   /// No description provided for @joinRoomCodeHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. AB12'**
+  /// **'The code your friend shared'**
   String get joinRoomCodeHint;
 
   /// No description provided for @joinRoomCodeRequired.
@@ -183,12 +189,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Join'**
   String get joinRoomJoin;
-
-  /// No description provided for @joinRoomFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t join. Check the code and your connection.'**
-  String get joinRoomFailed;
 
   /// No description provided for @waitingRoomTitle.
   ///
@@ -220,24 +220,6 @@ abstract class AppLocalizations {
   /// **'Players'**
   String get waitingRoomPlayers;
 
-  /// No description provided for @waitingRoomHost.
-  ///
-  /// In en, this message translates to:
-  /// **'Host'**
-  String get waitingRoomHost;
-
-  /// No description provided for @waitingRoomYou.
-  ///
-  /// In en, this message translates to:
-  /// **'You'**
-  String get waitingRoomYou;
-
-  /// No description provided for @waitingRoomBot.
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get waitingRoomBot;
-
   /// No description provided for @waitingRoomEmptySeat.
   ///
   /// In en, this message translates to:
@@ -250,17 +232,233 @@ abstract class AppLocalizations {
   /// **'Start game'**
   String get waitingRoomStart;
 
-  /// No description provided for @waitingRoomStartFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t start the game. Try again.'**
-  String get waitingRoomStartFailed;
-
   /// No description provided for @waitingRoomWaitingForHost.
   ///
   /// In en, this message translates to:
   /// **'Waiting for the host to start the game…'**
   String get waitingRoomWaitingForHost;
+
+  /// No description provided for @playerTagHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Host'**
+  String get playerTagHost;
+
+  /// No description provided for @playerTagYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get playerTagYou;
+
+  /// No description provided for @playerTagBot.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get playerTagBot;
+
+  /// No description provided for @gameStatusSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get gameStatusSyncing;
+
+  /// No description provided for @gameStatusYourTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn'**
+  String get gameStatusYourTurn;
+
+  /// No description provided for @gameStatusOpponentTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Opponent\'s turn'**
+  String get gameStatusOpponentTurn;
+
+  /// No description provided for @gameStatusWithSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{status} · {seconds}s'**
+  String gameStatusWithSeconds(String status, int seconds);
+
+  /// No description provided for @gameReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting…'**
+  String get gameReconnecting;
+
+  /// No description provided for @gameMoving.
+  ///
+  /// In en, this message translates to:
+  /// **'Moving…'**
+  String get gameMoving;
+
+  /// No description provided for @gameRollDice.
+  ///
+  /// In en, this message translates to:
+  /// **'Roll the dice'**
+  String get gameRollDice;
+
+  /// No description provided for @gameUnknownPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'A player'**
+  String get gameUnknownPlayer;
+
+  /// No description provided for @gameOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game over'**
+  String get gameOverTitle;
+
+  /// No description provided for @gameOverWon.
+  ///
+  /// In en, this message translates to:
+  /// **'You win!'**
+  String get gameOverWon;
+
+  /// No description provided for @gameOverLost.
+  ///
+  /// In en, this message translates to:
+  /// **'You lost'**
+  String get gameOverLost;
+
+  /// No description provided for @gameOverHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get gameOverHome;
+
+  /// No description provided for @gameTimeoutSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'Time ran out, so we played for you.'**
+  String get gameTimeoutSelf;
+
+  /// No description provided for @gameTimeoutSelfWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Time ran out, so we played for you. Miss {count, plural, =1{1 more turn} other{{count} more turns}} in a row and you leave the game.'**
+  String gameTimeoutSelfWarning(int count);
+
+  /// No description provided for @gameTimeoutOther.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ran out of time.'**
+  String gameTimeoutOther(String name);
+
+  /// No description provided for @gameRemovedSelfIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'You were removed for missing too many turns.'**
+  String get gameRemovedSelfIdle;
+
+  /// No description provided for @gameLeftSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You left the game.'**
+  String get gameLeftSelf;
+
+  /// No description provided for @gameRemovedOtherIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was removed for being idle.'**
+  String gameRemovedOtherIdle(String name);
+
+  /// No description provided for @gameLeftOther.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} left the game.'**
+  String gameLeftOther(String name);
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server. Check your connection and try again.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorRoomNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No room with that code. Check the code and try again.'**
+  String get errorRoomNotFound;
+
+  /// No description provided for @errorRoomFull.
+  ///
+  /// In en, this message translates to:
+  /// **'That room is full.'**
+  String get errorRoomFull;
+
+  /// No description provided for @errorGameAlreadyStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'That game has already started.'**
+  String get errorGameAlreadyStarted;
+
+  /// No description provided for @errorGameNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'The game hasn\'t started yet.'**
+  String get errorGameNotStarted;
+
+  /// No description provided for @errorNotHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the host can start the game.'**
+  String get errorNotHost;
+
+  /// No description provided for @errorNotYourSeat.
+  ///
+  /// In en, this message translates to:
+  /// **'This device isn\'t in that seat any more. Join the room again.'**
+  String get errorNotYourSeat;
+
+  /// No description provided for @errorNotYourTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s not your turn.'**
+  String get errorNotYourTurn;
+
+  /// No description provided for @errorWrongPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'You can\'t do that right now.'**
+  String get errorWrongPhase;
+
+  /// No description provided for @errorIllegalMove.
+  ///
+  /// In en, this message translates to:
+  /// **'That token can\'t move with this roll.'**
+  String get errorIllegalMove;
+
+  /// No description provided for @errorGameFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'This game is over.'**
+  String get errorGameFinished;
+
+  /// No description provided for @errorTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'The game just changed. Please try again.'**
+  String get errorTryAgain;
+
+  /// No description provided for @errorLegacyGame.
+  ///
+  /// In en, this message translates to:
+  /// **'This game was started before an update. Please start a new one.'**
+  String get errorLegacyGame;
+
+  /// No description provided for @errorInvalidInput.
+  ///
+  /// In en, this message translates to:
+  /// **'The server didn\'t accept that. Please check and try again.'**
+  String get errorInvalidInput;
+
+  /// No description provided for @errorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errorGeneric;
 
   /// No description provided for @notFoundTitle.
   ///

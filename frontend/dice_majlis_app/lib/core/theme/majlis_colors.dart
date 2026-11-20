@@ -21,6 +21,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
     required this.glassFill,
     required this.glassBorder,
     required this.textMuted,
+    required this.warning,
+    required this.onGold,
+    required this.onSeat,
+    required this.scrim,
+    required this.diceFace,
+    required this.diceInk,
   });
 
   final Color gold;
@@ -36,6 +42,22 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
   final Color glassBorder;
   final Color textMuted;
 
+  /// "Hurry up" state, e.g. the last seconds of a turn.
+  final Color warning;
+
+  /// Text and icons on gold surfaces (primary buttons).
+  final Color onGold;
+
+  /// Text, icons and highlights on seat-coloured surfaces (tokens, avatars).
+  final Color onSeat;
+
+  /// Base for dimming overlays and shadows; apply the alpha where it is used.
+  final Color scrim;
+
+  /// The dice: its face and the number on it.
+  final Color diceFace;
+  final Color diceInk;
+
   static const dark = MajlisColors(
     gold: MajlisPalette.gold,
     goldLight: MajlisPalette.goldLight,
@@ -49,6 +71,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
     glassFill: Color(0xCC112B3B),
     glassBorder: Color(0x33D4A84B),
     textMuted: Color(0xFFB4C3C7),
+    warning: MajlisPalette.warning,
+    onGold: MajlisPalette.onGold,
+    onSeat: MajlisPalette.onSeat,
+    scrim: MajlisPalette.shade,
+    diceFace: MajlisPalette.ivory,
+    diceInk: MajlisPalette.ink,
   );
 
   static const light = MajlisColors(
@@ -64,6 +92,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
     glassFill: Color(0xE6FFFBF4),
     glassBorder: Color(0x400E4D57),
     textMuted: MajlisPalette.inkMuted,
+    warning: Color(0xFFC77A12),
+    onGold: MajlisPalette.onGold,
+    onSeat: MajlisPalette.onSeat,
+    scrim: MajlisPalette.shade,
+    diceFace: MajlisPalette.ivory,
+    diceInk: MajlisPalette.ink,
   );
 
   /// Gold gradient for primary buttons, titles and highlights.
@@ -111,6 +145,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
     Color? glassFill,
     Color? glassBorder,
     Color? textMuted,
+    Color? warning,
+    Color? onGold,
+    Color? onSeat,
+    Color? scrim,
+    Color? diceFace,
+    Color? diceInk,
   }) {
     return MajlisColors(
       gold: gold ?? this.gold,
@@ -125,6 +165,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
       glassFill: glassFill ?? this.glassFill,
       glassBorder: glassBorder ?? this.glassBorder,
       textMuted: textMuted ?? this.textMuted,
+      warning: warning ?? this.warning,
+      onGold: onGold ?? this.onGold,
+      onSeat: onSeat ?? this.onSeat,
+      scrim: scrim ?? this.scrim,
+      diceFace: diceFace ?? this.diceFace,
+      diceInk: diceInk ?? this.diceInk,
     );
   }
 
@@ -145,6 +191,12 @@ class MajlisColors extends ThemeExtension<MajlisColors> {
       glassFill: mix(glassFill, other.glassFill),
       glassBorder: mix(glassBorder, other.glassBorder),
       textMuted: mix(textMuted, other.textMuted),
+      warning: mix(warning, other.warning),
+      onGold: mix(onGold, other.onGold),
+      onSeat: mix(onSeat, other.onSeat),
+      scrim: mix(scrim, other.scrim),
+      diceFace: mix(diceFace, other.diceFace),
+      diceInk: mix(diceInk, other.diceInk),
     );
   }
 }

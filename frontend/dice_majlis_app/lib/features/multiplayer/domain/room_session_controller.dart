@@ -13,6 +13,7 @@ class RoomSessionController extends Notifier<RoomSession?> {
     return RoomSession(
       roomCode: saved.roomCode,
       playerId: saved.playerId,
+      playerToken: saved.playerToken,
       isHost: saved.isHost,
     );
   }
@@ -21,6 +22,7 @@ class RoomSessionController extends Notifier<RoomSession?> {
     SessionStorage.save(
       roomCode: session.roomCode,
       playerId: session.playerId,
+      playerToken: session.playerToken,
       isHost: session.isHost,
     );
     state = session;

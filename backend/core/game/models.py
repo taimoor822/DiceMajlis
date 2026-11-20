@@ -22,6 +22,9 @@ class Player(models.Model):
     is_host = models.BooleanField(default=False)
     is_bot = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
+    # SHA-256 of the seat secret only this player's device holds (game.player_auth).
+    # Empty for bots and for players created before secrets existed.
+    secret_hash = models.CharField(max_length=64, blank=True, default='')
 
     def __str__(self):
         return self.name

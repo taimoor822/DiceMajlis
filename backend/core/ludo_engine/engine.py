@@ -23,6 +23,8 @@ from typing import Any, Iterable, Mapping, Sequence
 from .board import (
     BASE_PROGRESS,
     HOME_PROGRESS,
+    MAX_PLAYERS,
+    MIN_PLAYERS,
     SEAT_COUNT,
     START_PROGRESS,
     absolute_square,
@@ -158,8 +160,8 @@ def new_game(
     sit opposite each other (seats 0 and 2) unless ``seats`` says otherwise.
     """
     ids = [str(p) for p in player_ids]
-    if not 2 <= len(ids) <= SEAT_COUNT:
-        raise InvalidSetup(f"Ludo needs 2 to {SEAT_COUNT} players, got {len(ids)}")
+    if not MIN_PLAYERS <= len(ids) <= MAX_PLAYERS:
+        raise InvalidSetup(f"Ludo needs {MIN_PLAYERS} to {MAX_PLAYERS} players, got {len(ids)}")
     if len(set(ids)) != len(ids):
         raise InvalidSetup("player ids must be unique")
 

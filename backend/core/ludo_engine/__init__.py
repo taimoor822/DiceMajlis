@@ -12,6 +12,8 @@ team mode victory, configurable "enter and move" variants.
 from .board import (
     BASE_PROGRESS,
     HOME_PROGRESS,
+    MAX_PLAYERS,
+    MIN_PLAYERS,
     SEAT_COLORS,
     TRACK_LENGTH,
     absolute_square,
@@ -53,6 +55,8 @@ from .state import GameState, GameStatus, PlayerState, PlayerStatus, TurnPhase
 __all__ = [
     "BASE_PROGRESS",
     "HOME_PROGRESS",
+    "MAX_PLAYERS",
+    "MIN_PLAYERS",
     "SEAT_COLORS",
     "TRACK_LENGTH",
     "absolute_square",

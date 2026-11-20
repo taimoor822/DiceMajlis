@@ -9,7 +9,7 @@ abstract final class AppTheme {
     colors: const ColorScheme(
       brightness: Brightness.dark,
       primary: MajlisPalette.gold,
-      onPrimary: Color(0xFF1E1606),
+      onPrimary: MajlisPalette.onGold,
       primaryContainer: MajlisPalette.goldDeep,
       onPrimaryContainer: MajlisPalette.ivory,
       secondary: MajlisPalette.turquoise,

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/majlis_colors.dart';
+
 class PlayerToken extends StatelessWidget {
   final Color color;
   final String label;
@@ -25,6 +27,7 @@ class PlayerToken extends StatelessWidget {
         final borderWidth = (side * 0.08).clamp(1.0, 2.5);
         final fontSize = (side * 0.42).clamp(10.0, 18.0);
         final glow = (side * 0.3).clamp(6.0, 14.0);
+        final highlight = context.majlis.onSeat;
 
         return GestureDetector(
           onTap: enabled ? onTap : null,
@@ -37,13 +40,13 @@ class PlayerToken extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: flashing ? Colors.white : Colors.transparent,
+                  color: flashing ? highlight : Colors.transparent,
                   width: borderWidth,
                 ),
                 boxShadow: flashing
                     ? [
                         BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: highlight.withValues(alpha: 0.7),
                           blurRadius: glow,
                           spreadRadius: 1,
                         ),
@@ -59,7 +62,7 @@ class PlayerToken extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: highlight,
                       fontWeight: FontWeight.w800,
                       fontSize: fontSize,
                     ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/majlis_colors.dart';
 import '../../../../shared/widgets/glow_container.dart';
 
 class DiceWidget extends StatefulWidget {
@@ -55,6 +57,7 @@ class _DiceWidgetState extends State<DiceWidget>
   Widget build(BuildContext context) {
     final displayValue = widget.value?.toString() ?? '?';
     final isInteractive = widget.enabled && !widget.rolling;
+    final majlis = context.majlis;
 
     return GestureDetector(
       onTap: isInteractive ? _handleTap : null,
@@ -63,24 +66,28 @@ class _DiceWidgetState extends State<DiceWidget>
         child: Opacity(
           opacity: isInteractive ? 1 : 0.4,
           child: GlowContainer(
-            glowColor: const Color(0xFF00FF9C),
+            glowColor: majlis.accent,
+            color: majlis.diceFace,
             padding: const EdgeInsets.all(16),
             child: SizedBox(
               width: 70,
               height: 70,
               child: Center(
                 child: widget.rolling && widget.value == null
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 26,
                         height: 26,
-                        child: CircularProgressIndicator(strokeWidth: 3),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: majlis.diceInk,
+                        ),
                       )
                     : Text(
                         displayValue,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF12172A),
+                          color: majlis.diceInk,
                         ),
                       ),
               ),
