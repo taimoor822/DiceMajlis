@@ -19,6 +19,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/save_account_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/wallet/presentation/wallet_screen.dart';
 import '../auth/auth_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'app_routes.dart';
@@ -143,6 +144,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'profile',
               builder: (context, state) => const ProfileScreen(),
+            ),
+            GoRoute(
+              path: 'wallet',
+              builder: (context, state) => const WalletScreen(),
             ),
           ]),
           _tab(AppRoutes.chat, const ChatScreen()),

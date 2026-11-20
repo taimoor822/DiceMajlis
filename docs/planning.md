@@ -27,7 +27,7 @@ The master prompt's priority list (items 1–15), in build order.
 - [x] **1.5** Main navigation: **Events · Game Hub · Battle · Chat · Social**, Battle (centre) = the Home lobby; today's room flow lives in Game Hub; unbuilt sections say "coming soon" (item 3)
 - [x] **1.6** Accounts: guest login + JWT + **permanent 9-digit Player ID** + session restore; rooms use the account (item 2)
 - [x] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
-- [ ] **1.8** Currency foundation: wallet ledger (two currencies), daily login reward, balances on Home (item 5, **S6**)
+- [x] **1.8** Currency foundation: wallet ledger (**Gold** and **Diamonds**), daily login reward, balances on Home (item 5, **S6**). The daily reward needs the reward engine's core now (one `grant()`, claims, reward-day boundary); Phase 2 adds admin-made bundles, items and streak options to it
 - [ ] **1.9** Local play: Dart engine + shared test vectors; vs AI and pass-and-play (item 10)
 - [ ] **1.10** Game platform layer: `game_type` / `variant` + engine registry on server and app, ready for Domino/Jackaroo (PLATFORM §3)
 - [ ] **1.11** WebSocket foundation v1: one socket, first-message auth, subscriptions (`game/` `room/` `chat/` `user/` `notifications/`), envelope, idempotency, rate limits, presence (item 12)
@@ -42,7 +42,7 @@ The master prompt's priority list (items 1–15), in build order.
 - [ ] Item system + basic customisation: dice skins, board skins, frames; equip (**S4**)
 - [ ] Statistics from real online games, bot games excluded (**S2**)
 - [ ] Progress engine: achievements first (**S3**); missions reuse it in Phase 8
-- [ ] Reward engine: one `grant()`, claims, server reward-day (**S6b**)
+- [ ] Reward engine: admin-made bundles, items and EXP in `grant()`, streak options, reward history (**S6b**; its core — `grant()`, claims, reward-day — arrived in 1.8)
 - [ ] Entitlement engine foundation: privilege catalog, grants, overrides (**S6c**)
 
 ## Phase 3 — Ludo engine complete
@@ -134,10 +134,9 @@ Answer when the phase that needs them starts.
 
 | Decision | Needed by | Default if unanswered |
 |---|---|---|
-| Currency names: Gold & Diamonds or Coins & Gems | 1.8 | — (ask) |
 | Purchase service vs own store verification | Phase 7 store | Service for subscriptions |
 | Super Value Surprise free-only | Phase 9 | Free-only |
-| Reward-day reset time | Phase 2 reward engine | 00:00 Bahrain time |
+| Reward-day reset time | 1.8 daily reward | 00:00 Bahrain time |
 | Rating system | Phase 6 | OpenSkill |
 | Bots in casual matchmaking | Phase 4 | Yes, labelled |
 | Variant names | Phase 3 | Keep prompt names |
@@ -151,3 +150,4 @@ Answer when the phase that needs them starts.
 | Profile photos: image storage service + moderation | When photo avatars are built | Built-in avatars only until then |
 
 Decided: real money yes — the two currencies and VIP are sold via App Store / Google Play.
+Decided: the currencies are **Gold** (everyday) and **Diamonds** (premium).

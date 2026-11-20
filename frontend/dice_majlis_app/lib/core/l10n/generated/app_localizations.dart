@@ -562,6 +562,138 @@ abstract class AppLocalizations {
   /// **'More'**
   String get homeShortcuts;
 
+  /// No description provided for @homeWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get homeWallet;
+
+  /// No description provided for @currencyGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get currencyGold;
+
+  /// No description provided for @currencyDiamond.
+  ///
+  /// In en, this message translates to:
+  /// **'Diamonds'**
+  String get currencyDiamond;
+
+  /// No description provided for @dailyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward'**
+  String get dailyTitle;
+
+  /// No description provided for @dailyDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day}'**
+  String dailyDay(int day);
+
+  /// No description provided for @dailyClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim'**
+  String get dailyClaim;
+
+  /// No description provided for @dailyClaimed.
+  ///
+  /// In en, this message translates to:
+  /// **'Claimed! Come back tomorrow for day {day}.'**
+  String dailyClaimed(int day);
+
+  /// No description provided for @dailyNextIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Next reward in {hours, plural, =0{less than an hour} =1{1 hour} other{{hours} hours}}'**
+  String dailyNextIn(int hours);
+
+  /// No description provided for @dailyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.'**
+  String get dailyHint;
+
+  /// No description provided for @dailyGot.
+  ///
+  /// In en, this message translates to:
+  /// **'You got {amount}'**
+  String dailyGot(String amount);
+
+  /// No description provided for @dailyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the daily reward.'**
+  String get dailyFailed;
+
+  /// No description provided for @walletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get walletTitle;
+
+  /// No description provided for @walletHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get walletHistory;
+
+  /// No description provided for @walletEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet. Claim your daily reward to get started.'**
+  String get walletEmpty;
+
+  /// No description provided for @walletLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get walletLoadMore;
+
+  /// No description provided for @walletFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your wallet.'**
+  String get walletFailed;
+
+  /// No description provided for @walletEarnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Earn gold every day. Buying gold and diamonds comes later.'**
+  String get walletEarnHint;
+
+  /// No description provided for @walletTypeDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward'**
+  String get walletTypeDaily;
+
+  /// No description provided for @walletTypeAdminGrant.
+  ///
+  /// In en, this message translates to:
+  /// **'From the Dice Majlis team'**
+  String get walletTypeAdminGrant;
+
+  /// No description provided for @walletTypeAdminRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken back by the team'**
+  String get walletTypeAdminRevoke;
+
+  /// No description provided for @walletTypeReversal.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction'**
+  String get walletTypeReversal;
+
+  /// No description provided for @walletTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get walletTypeOther;
+
   /// No description provided for @homeShop.
   ///
   /// In en, this message translates to:
@@ -1191,6 +1323,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That password is too close to your email.'**
   String get errorPasswordSimilar;
+
+  /// No description provided for @errorAlreadyClaimed.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s reward is already claimed.'**
+  String get errorAlreadyClaimed;
+
+  /// No description provided for @errorInsufficientFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have enough for that.'**
+  String get errorInsufficientFunds;
 
   /// No description provided for @errorNotYourTurn.
   ///

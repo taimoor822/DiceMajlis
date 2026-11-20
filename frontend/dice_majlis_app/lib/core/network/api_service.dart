@@ -101,6 +101,24 @@ class ApiService {
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> changes) =>
       _send('PATCH', 'me/profile/', changes);
 
+  /// Your balances: `{"balances": {"gold": n, "diamond": n}}`.
+  Future<Map<String, dynamic>> wallet() => _send('GET', 'wallet/');
+
+  /// Your ledger, newest first; [before] is the last id of the previous page.
+  Future<Map<String, dynamic>> walletTransactions({String? before}) => _send(
+    'GET',
+    before == null
+        ? 'wallet/transactions/'
+        : 'wallet/transactions/?before=$before',
+  );
+
+  /// Today's daily reward: day in the cycle, claimed or not, the 7 days.
+  Future<Map<String, dynamic>> dailyReward() => _send('GET', 'rewards/daily/');
+
+  /// Claims today's reward. The server decides what it is.
+  Future<Map<String, dynamic>> claimDailyReward() =>
+      _send('POST', 'rewards/daily/claim/');
+
   /// A guest adds email + password; returns the account (same Player ID).
   Future<Map<String, dynamic>> saveAccount({
     required String email,

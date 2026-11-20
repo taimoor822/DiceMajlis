@@ -18,7 +18,10 @@ void main() {
       expect(theme.extension<MajlisColors>(), isNotNull);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [accountProvider.overrideWithValue(testAccount)],
+          overrides: [
+            accountProvider.overrideWithValue(testAccount),
+            ...fakeEconomy(),
+          ],
           child: MaterialApp(
             theme: theme,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

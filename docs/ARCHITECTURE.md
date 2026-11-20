@@ -247,6 +247,9 @@ lib/
     ├── home/presentation/        Home lobby (Battle tab): play, profile card, shortcuts
     ├── profile/                  account_repository (profile, save account), profile screen,
     │                             save-account screen
+    ├── wallet/                   wallet_repository + balancesProvider, balance chips (Home),
+    │                             wallet screen (balances + history)
+    ├── rewards/                  rewards_repository + dailyRewardProvider, daily reward card
     ├── hub/presentation/         Game Hub: Classic Ludo rooms + modes coming soon
     ├── settings/presentation/    account (save, sign out), theme (saved on the device)
     ├── multiplayer/
@@ -262,7 +265,7 @@ lib/
 - **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Events · Game Hub ·
   Battle · Chat · Social**; each tab keeps its own history. Battle, in the centre, is the
   Home lobby where the app opens. `/events`, `/hub` (+ `/hub/create-room`,
-  `/hub/join-room`), `/home` (+ `/home/profile`, `/home/settings`,
+  `/hub/join-room`), `/home` (+ `/home/profile`, `/home/wallet`, `/home/settings`,
   `/home/settings/save-account`), `/chat`, `/social`. Signed out: `/welcome`,
   `/welcome/email`, `/welcome/forgot`.
   Rooms and games are full screen above the bar: `/room/:code`, `/game/:code`.
@@ -307,6 +310,10 @@ backend/
     │                          #     (Google/Apple 1.15, phone later)
     ├── profiles/              # 1.7 display name, built-in avatar, country, languages, XP → level
     │                          #     (frames and stats summary later)
+    ├── wallet/                # 1.8 gold + diamonds: accounts, append-only ledger, admin
+    │                          #     adjustments, audit (purchases P9)
+    ├── rewards/               # 1.8 grant() engine, reward-day, daily login reward
+    │                          #     (admin bundles, items, missions, pass later)
     │
     │  planned apps (each added in the phase that needs it)
     ├── realtime/              # P2 socket envelope, auth, rate limits, idempotency
@@ -314,7 +321,7 @@ backend/
     ├── matchmaking/           # P2 queues, rating windows
     ├── ranking/               # P3 ratings, leagues, seasons, leaderboards
     ├── chat/  social/         # P4 rooms, messages, friends, blocks, reports, presence
-    ├── wallet/  rewards/      # P5 ledger, purchases, missions, achievements, pass
+    ├── missions/  achievements/  pass/   # later: progress engine on top of rewards/
     ├── tournaments/           # P6 brackets, registration, payouts
     ├── notifications/         # push (FCM), in-app inbox
     └── moderation/            # reports, mutes, bans, audit log
@@ -361,16 +368,29 @@ append-only.
 | 4 | `chat_room`, `chat_message` | message: room, sender, type (text/emoji/system), body, created_at — index(room, created_at) |
 | 4 | `chat_conversation`, `chat_read_marker` | 1:1 chats, read status |
 | 4 | `social_friendship`, `social_friend_request`, `social_block`, `moderation_report` | unique pairs, both directions checked |
-| 5 | `wallet_account` | user, currency (coins/diamonds), balance (cached), version |
-| 5 | `wallet_transaction` | account, amount (+/−), reason, ref_type/ref_id, **idempotency_key (unique)**, balance_after |
-| 5 | `rewards_*`, `missions_*`, `achievements_*`, `pass_*` | |
+| 1.8 | `wallet_walletaccount` | user, currency (`gold` / `diamond`), balance (cached, `>= 0` check), last_sequence; unique (user, currency) |
+| 1.8 | `wallet_wallettransaction` | account, **sequence** (1, 2, 3 … per account), amount (+/−, never 0), balance_before, balance_after (checks: `after = before + amount`, `after >= 0`), type, source, reference_type/id, **idempotency_key (unique per account)**, metadata, created_at |
+| 1.8 | `wallet_walletadjustment` | admin grant/revoke: user, currency, amount, reason, created_by, the ledger entry it posted |
+| 1.8 | `rewards_rewardclaim` | user, kind (`daily_login` …), reward_day, streak_day, bundle, **idempotency_key (unique)** |
+| 5 | `missions_*`, `achievements_*`, `pass_*` | |
 | 6 | `tournaments_tournament`, `_participant`, `_match` | |
 | all | `audit_log` | actor, action, target, data, ip — admin and sensitive actions |
 
-**Wallet rule:** balances only change through `wallet.services.post_transaction()`,
+**Wallet rule (built in 1.8):** balances only change through `wallet.services.post()`,
 inside a DB transaction with `SELECT … FOR UPDATE` on the account, writing one
-immutable `wallet_transaction` row. The same `idempotency_key` twice = no double credit.
-The client never sends amounts.
+numbered, immutable ledger row (saving or deleting an existing row raises; the admin
+is read only). The same `idempotency_key` twice returns the first entry — no double
+credit. Mistakes are fixed with `wallet.services.reverse()`. `manage.py audit_wallets`
+checks every account (numbering without gaps, each entry starts where the last ended,
+balance = sum); run it nightly once deployed. The client never sends amounts.
+
+**Rewards (built in 1.8):** every reward goes through `rewards.engine.grant(user,
+bundle, kind, idempotency_key)`: the claim and its ledger entries in one transaction,
+once per key. Bundles hold currencies today; items and EXP join in Phase 2. The
+reward-day is decided by the server clock: 00:00 Bahrain time by default
+(`REWARD_DAY_TIMEZONE`, `REWARD_DAY_START_HOUR`). Daily login: once per reward-day, a
+7-day cycle (100 → 400 gold, day 7: 500 gold + 5 diamonds; placeholders until admin
+bundles), missing a day starts again at day 1; key `daily_login:{user}:{day}`.
 
 ### Redis keys
 
@@ -604,6 +624,10 @@ working) but runs them on the new engine and adds `version` to events. Phase 2 a
 | `POST /api/auth/password-reset/confirm/` | `{email, code, new_password}` | 200; 400 `invalid_code` · `code_expired` · `too_many_attempts` |
 | `GET /api/profile/options/` | | `{avatars, languages, max_languages, name_min_length, name_max_length}` |
 | `PATCH /api/me/profile/` | any of `{display_name, avatar, country, languages}` | 200 account; name errors in `fields.display_name`: `name_length` · `name_characters` · `name_not_allowed` |
+| `GET /api/wallet/` | signed in | `{balances: {gold, diamond}}` (read only: no way to change them from the app) |
+| `GET /api/wallet/transactions/?before=<id>` | signed in | `{transactions: [{id, reference, currency, amount, balance_after, type, created_at}], next}`, 30 per page, newest first |
+| `GET /api/rewards/daily/` | signed in | `{reward_day, day, claimed_today, days: [{day, gold, diamond}], seconds_until_reset}` |
+| `POST /api/rewards/daily/claim/` | signed in, no body | `{claimed: {day, gold, diamond}, balances, daily}`; 409 `already_claimed` |
 | `POST /api/auth/refresh/` | `{refresh}` | 200 new tokens + account; 401 `invalid_refresh` · `refresh_expired` · `session_revoked` |
 | `POST /api/auth/logout/` | signed in | 204; this device signed out |
 | `POST /api/auth/logout-others/` | signed in | `{signed_out: n}` |

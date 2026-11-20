@@ -12,6 +12,10 @@ import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
 import 'package:dice_majlis_app/features/profile/domain/profile_options.dart';
+import 'package:dice_majlis_app/features/rewards/data/rewards_repository.dart';
+import 'package:dice_majlis_app/features/rewards/domain/daily_reward.dart';
+import 'package:dice_majlis_app/features/wallet/data/wallet_repository.dart';
+import 'package:dice_majlis_app/features/wallet/domain/wallet_models.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -268,6 +272,102 @@ class FakeAccountRepository implements AccountRepository {
   }
 }
 
+/// The wallet without a server: [balances] and a list of [entries] (newest
+/// first), served [pageSize] at a time.
+class FakeWalletRepository implements WalletRepository {
+  FakeWalletRepository({
+    this.balance = const Balances(gold: 1250, diamond: 5),
+    List<WalletEntry>? entries,
+    this.pageSize = 30,
+  }) : entries = entries ?? [];
+
+  Balances balance;
+  List<WalletEntry> entries;
+  int pageSize;
+  String? failWith;
+  final calls = <String>[];
+
+  @override
+  Future<Balances> balances() async {
+    calls.add('balances');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return balance;
+  }
+
+  @override
+  Future<WalletPage> history({String? before}) async {
+    calls.add('history:${before ?? 'first'}');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    final start = before == null
+        ? 0
+        : entries.indexWhere((e) => e.id == before) + 1;
+    final page = entries.skip(start).take(pageSize).toList();
+    final more = start + page.length < entries.length;
+    return WalletPage(entries: page, next: more ? page.last.id : null);
+  }
+}
+
+/// The 7-day cycle the fake server uses.
+const testDailyDays = [
+  DailyRewardDay(day: 1, gold: 100),
+  DailyRewardDay(day: 2, gold: 150),
+  DailyRewardDay(day: 3, gold: 200),
+  DailyRewardDay(day: 4, gold: 250),
+  DailyRewardDay(day: 5, gold: 300),
+  DailyRewardDay(day: 6, gold: 400),
+  DailyRewardDay(day: 7, gold: 500, diamond: 5),
+];
+
+/// Daily rewards without a server. Claiming adds today's reward to
+/// [wallet]'s balance, like the real server.
+class FakeRewardsRepository implements RewardsRepository {
+  FakeRewardsRepository({
+    this.day = 1,
+    this.claimedToday = false,
+    FakeWalletRepository? wallet,
+  }) : wallet = wallet ?? FakeWalletRepository();
+
+  int day;
+  bool claimedToday;
+  final FakeWalletRepository wallet;
+  String? failWith;
+  final calls = <String>[];
+
+  DailyRewardStatus get _status => DailyRewardStatus(
+    day: day,
+    claimedToday: claimedToday,
+    days: testDailyDays,
+    secondsUntilReset: 5 * 3600 + 120,
+  );
+
+  @override
+  Future<DailyRewardStatus> dailyStatus() async {
+    calls.add('status');
+    return _status;
+  }
+
+  @override
+  Future<DailyClaimResult> claimDaily() async {
+    calls.add('claim');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    if (claimedToday) throw const ApiException('already_claimed');
+    claimedToday = true;
+    final got = testDailyDays[day - 1];
+    wallet.balance = Balances(
+      gold: wallet.balance.gold + got.gold,
+      diamond: wallet.balance.diamond + got.diamond,
+    );
+    return DailyClaimResult(
+      claimed: got,
+      balances: wallet.balance,
+      status: _status,
+    );
+  }
+}
+
 /// Token storage in memory. Starts with [refreshToken] (null = signed out).
 class MemoryTokenStore implements TokenStore {
   MemoryTokenStore({this.refreshToken});
@@ -327,7 +427,10 @@ List<Override> fakeNetwork({
   FakeAuthApi? auth,
   MemoryTokenStore? tokens,
   FakeAccountRepository? accounts,
+  FakeWalletRepository? wallet,
+  FakeRewardsRepository? rewards,
 }) => [
+  ...fakeEconomy(wallet: wallet, rewards: rewards),
   roomRepositoryProvider.overrideWithValue(repository),
   accountRepositoryProvider.overrideWithValue(
     accounts ?? FakeAccountRepository(),
@@ -339,6 +442,20 @@ List<Override> fakeNetwork({
   ),
 ];
 
+/// Wallet and daily reward fakes (Home shows both).
+List<Override> fakeEconomy({
+  FakeWalletRepository? wallet,
+  FakeRewardsRepository? rewards,
+}) {
+  final walletFake = wallet ?? rewards?.wallet ?? FakeWalletRepository();
+  return [
+    walletRepositoryProvider.overrideWithValue(walletFake),
+    rewardsRepositoryProvider.overrideWithValue(
+      rewards ?? FakeRewardsRepository(wallet: walletFake),
+    ),
+  ];
+}
+
 /// The whole app with fakes in place of the network. [overrides] adds more
 /// (e.g. settings storage).
 Widget testApp({
@@ -347,6 +464,8 @@ Widget testApp({
   FakeAuthApi? auth,
   MemoryTokenStore? tokens,
   FakeAccountRepository? accounts,
+  FakeWalletRepository? wallet,
+  FakeRewardsRepository? rewards,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -356,6 +475,8 @@ Widget testApp({
       auth: auth,
       tokens: tokens,
       accounts: accounts,
+      wallet: wallet,
+      rewards: rewards,
     ),
     ...overrides,
   ],

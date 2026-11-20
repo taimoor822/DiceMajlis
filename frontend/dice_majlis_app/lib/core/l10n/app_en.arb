@@ -128,6 +128,51 @@
   "nameCharacters": "Use letters, numbers, spaces and _ - . ' only, with at least one letter.",
   "nameNotAllowed": "That name isn't allowed. Please pick another.",
   "homeShortcuts": "More",
+  "homeWallet": "Wallet",
+
+  "currencyGold": "Gold",
+  "currencyDiamond": "Diamonds",
+
+  "dailyTitle": "Daily reward",
+  "dailyDay": "Day {day}",
+  "@dailyDay": {
+    "placeholders": {
+      "day": {"type": "int"}
+    }
+  },
+  "dailyClaim": "Claim",
+  "dailyClaimed": "Claimed! Come back tomorrow for day {day}.",
+  "@dailyClaimed": {
+    "placeholders": {
+      "day": {"type": "int"}
+    }
+  },
+  "dailyNextIn": "Next reward in {hours, plural, =0{less than an hour} =1{1 hour} other{{hours} hours}}",
+  "@dailyNextIn": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "dailyHint": "Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.",
+  "dailyGot": "You got {amount}",
+  "@dailyGot": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "dailyFailed": "Couldn't load the daily reward.",
+
+  "walletTitle": "Wallet",
+  "walletHistory": "History",
+  "walletEmpty": "Nothing yet. Claim your daily reward to get started.",
+  "walletLoadMore": "Show more",
+  "walletFailed": "Couldn't load your wallet.",
+  "walletEarnHint": "Earn gold every day. Buying gold and diamonds comes later.",
+  "walletTypeDaily": "Daily reward",
+  "walletTypeAdminGrant": "From the Dice Majlis team",
+  "walletTypeAdminRevoke": "Taken back by the team",
+  "walletTypeReversal": "Correction",
+  "walletTypeOther": "Other",
   "homeShop": "Shop",
   "homeCollection": "Collection",
   "homeRankings": "Rankings",
@@ -271,6 +316,8 @@
   "errorPasswordTooCommon": "That password is too easy to guess.",
   "errorPasswordNumeric": "Use letters too, not only numbers.",
   "errorPasswordSimilar": "That password is too close to your email.",
+  "errorAlreadyClaimed": "Today's reward is already claimed.",
+  "errorInsufficientFunds": "You don't have enough for that.",
   "errorNotYourTurn": "It's not your turn.",
   "errorWrongPhase": "You can't do that right now.",
   "errorIllegalMove": "That token can't move with this roll.",
