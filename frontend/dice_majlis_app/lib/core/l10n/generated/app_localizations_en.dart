@@ -25,11 +25,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Can\'t reach the Majlis server. Check your connection and try again.';
 
   @override
+  String get splashPlayOffline => 'Play offline';
+
+  @override
   String get welcomeBody =>
       'Ludo in the Majlis. Play with friends, family or the Majlis AI.';
 
   @override
   String get welcomePlayAsGuest => 'Play as guest';
+
+  @override
+  String get welcomePlayOffline => 'Play offline on this phone';
 
   @override
   String get welcomeGuestHint =>
@@ -386,10 +392,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hubMoreModes => 'More ways to play';
 
   @override
-  String get hubLocalPlay => 'Local play';
+  String get hubLocalPlay => 'Play on this phone';
 
   @override
-  String get hubLocalPlayBody => 'Pass one phone around the table.';
+  String get hubLocalPlayBody =>
+      'Play the Majlis AI or pass one phone around the table. Works offline.';
+
+  @override
+  String get hubLocalPlayStart => 'Play offline';
 
   @override
   String get hubTeamLudo => 'Team Ludo';
@@ -725,6 +735,130 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorInvalidInput =>
       'The server didn\'t accept that. Please check and try again.';
+
+  @override
+  String get localSetupTitle => 'Play on this phone';
+
+  @override
+  String get localSetupBody =>
+      'Play the Majlis AI, or pass one phone around the table. Offline games don\'t earn Gold or Diamonds and don\'t change your rating.';
+
+  @override
+  String get localSetupPlayers => 'Players';
+
+  @override
+  String get localSetupSeats => 'Who plays each colour';
+
+  @override
+  String get localSeatHuman => 'Player';
+
+  @override
+  String get localSeatAi => 'AI';
+
+  @override
+  String get localSetupPlayOn => 'Play on for every place';
+
+  @override
+  String get localSetupPlayOnBody =>
+      'Keep playing after the first player gets home.';
+
+  @override
+  String get localSetupStart => 'Start game';
+
+  @override
+  String get colorRed => 'Red';
+
+  @override
+  String get colorBlue => 'Blue';
+
+  @override
+  String get colorGreen => 'Green';
+
+  @override
+  String get colorYellow => 'Yellow';
+
+  @override
+  String localNamePlayer(int number) {
+    return 'Player $number';
+  }
+
+  @override
+  String get localNameAi => 'Majlis AI';
+
+  @override
+  String localNameAiNumbered(int number) {
+    return 'Majlis AI $number';
+  }
+
+  @override
+  String get localGameTitle => 'Offline game';
+
+  @override
+  String get localStatusYourRoll => 'Your turn: roll the dice';
+
+  @override
+  String localStatusRoll(String name) {
+    return '$name: roll the dice';
+  }
+
+  @override
+  String get localStatusYourMove => 'Pick a token to move';
+
+  @override
+  String localStatusMove(String name) {
+    return '$name: pick a token';
+  }
+
+  @override
+  String localStatusAi(String name) {
+    return '$name is playing…';
+  }
+
+  @override
+  String localNoticeNoMoves(String name) {
+    return '$name can\'t move';
+  }
+
+  @override
+  String localNoticeTooManySixes(String name) {
+    return '$name rolled too many sixes';
+  }
+
+  @override
+  String localNoticeCaptured(String name) {
+    return '$name sent a token back to base!';
+  }
+
+  @override
+  String localNoticeHome(String name, int place) {
+    return '$name got every token home: place $place!';
+  }
+
+  @override
+  String localWinner(String name) {
+    return '$name wins!';
+  }
+
+  @override
+  String get localResultsTitle => 'Game over';
+
+  @override
+  String localPlaceShort(int place) {
+    return '#$place';
+  }
+
+  @override
+  String get localPlayAgain => 'Play again';
+
+  @override
+  String get localDone => 'Done';
+
+  @override
+  String get localLeaveTitle => 'Leave this game?';
+
+  @override
+  String get localLeaveBody =>
+      'Offline games aren\'t saved, so this one will end.';
 
   @override
   String get errorGeneric => 'Something went wrong. Please try again.';

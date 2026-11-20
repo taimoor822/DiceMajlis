@@ -43,7 +43,10 @@ class _DiceWidgetState extends State<DiceWidget>
 
   void _handleTap() async {
     if (!widget.enabled || widget.rolling) return;
-    _controller.forward(from: 0);
+    // A short bounce: grow, then settle back to the normal size.
+    _controller.forward(from: 0).then((_) {
+      if (mounted) _controller.reverse();
+    });
     widget.onTap?.call();
   }
 

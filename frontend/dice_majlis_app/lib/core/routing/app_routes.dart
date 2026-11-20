@@ -24,6 +24,15 @@ abstract final class AppRoutes {
   static const createRoom = '/hub/create-room';
   static const joinRoom = '/hub/join-room';
 
+  /// Offline games on this phone (vs AI, pass-and-play): pick players, then
+  /// play. Full screen, and open whether signed in or not (no server needed).
+  static const localPlay = '/local';
+  static const localGame = '/local/game';
+
+  /// True for the offline-game pages.
+  static bool isLocal(String path) =>
+      path == localPlay || path.startsWith('$localPlay/');
+
   /// Waiting room for a game room: `/room/AB12` (full screen, no tab bar).
   static String room(String code) => '/room/$code';
 

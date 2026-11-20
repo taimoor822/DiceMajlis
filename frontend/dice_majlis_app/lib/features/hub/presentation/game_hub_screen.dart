@@ -10,7 +10,8 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 
 /// Every game and mode. Today: Classic Ludo in a private room (with the
-/// Majlis AI if you're alone). The rest is listed honestly as coming soon.
+/// Majlis AI if you're alone) and offline games on this phone. The rest is
+/// listed honestly as coming soon.
 // TODO(1.10 game platform): modes come from the server's game registry.
 class GameHubScreen extends StatelessWidget {
   const GameHubScreen({super.key});
@@ -69,14 +70,45 @@ class GameHubScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  MajlisCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.phone_android,
+                              color: majlis.gold,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              l10n.hubLocalPlay,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.hubLocalPlayBody,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: majlis.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        MajlisButton(
+                          label: l10n.hubLocalPlayStart,
+                          icon: Icons.play_arrow_rounded,
+                          style: MajlisButtonStyle.secondary,
+                          onPressed: () => context.push(AppRoutes.localPlay),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   Text(l10n.hubMoreModes, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  _SoonMode(
-                    icon: Icons.phone_android,
-                    title: l10n.hubLocalPlay,
-                    body: l10n.hubLocalPlayBody,
-                  ),
                   _SoonMode(
                     icon: Icons.groups_2_outlined,
                     title: l10n.hubTeamLudo,

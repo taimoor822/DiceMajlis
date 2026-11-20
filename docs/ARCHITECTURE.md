@@ -250,7 +250,9 @@ lib/
     ├── wallet/                   wallet_repository + balancesProvider, balance chips (Home),
     │                             wallet screen (balances + history)
     ├── rewards/                  rewards_repository + dailyRewardProvider, daily reward card
-    ├── hub/presentation/         Game Hub: Classic Ludo rooms + modes coming soon
+    ├── hub/presentation/         Game Hub: Classic Ludo rooms, play on this phone, modes coming soon
+    ├── local_play/               offline games (1.9): setup (who plays each colour),
+    │                             LocalGameController (dice, AI turns, token walks), game screen
     ├── settings/presentation/    account (save, sign out), theme (saved on the device)
     ├── multiplayer/
     │   ├── data/room_repository.dart        typed room API (+ provider)
@@ -258,8 +260,10 @@ lib/
     │   ├── domain/room_session_controller.dart  current room (Riverpod Notifier)
     │   └── presentation/                    create, join, waiting room
     └── ludo/
-        ├── domain/                ludo_path.dart, turn_clock.dart
-        └── presentation/          game_board_screen.dart + widgets/
+        ├── domain/                ludo_path.dart, turn_clock.dart,
+        │                          engine/ (the Dart rules engine, 1.9)
+        └── presentation/          game_board_screen.dart (online) + widgets/
+                                   (LudoBoardView: board + tokens, used by offline games)
 ```
 
 - **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Events · Game Hub ·
@@ -491,11 +495,30 @@ exactly.
 
 ### Offline mode (Dart)
 
-Offline play needs the same rules on the phone. Plan (step 1.8): port the engine to
-Dart under `features/ludo/domain/engine/` with the same API, and export the Python
-test cases as JSON "test vectors" (`state + action → expected state + events`) that
-both test suites run. Same vectors passing in both languages = same rules. Offline
-games never touch online coins or rating.
+Offline play needs the same rules on the phone. ✅ Built in step 1.9:
+
+- **Dart engine** — `features/ludo/domain/engine/` is a line-by-line copy of
+  `ludo_engine` (board, rules, state, events, errors, engine, bot, dice) with the same
+  actions (`roll`, `move`, `timeout`, `forfeit`, `applyAction`), the same event names
+  and data, the same error codes and the same bot. Pure Dart: no Flutter, no clock.
+- **Shared test vectors** — `ludo_engine/vectors.py` plays seeded games through the
+  Python engine (whole games and games from random mid-game positions, ten rule
+  variations, refused actions) and writes `shared/ludo/engine_vectors.json`: for every
+  action the events, or the error code, the bot's choice and full state snapshots,
+  plus the board numbers, the default rules, new-game setups and broken snapshots.
+  `ludo_engine/tests/test_vectors.py` fails when the file is out of date and checks it
+  covers every event, turn-end reason and error code; `test/ludo_engine_vectors_test.dart`
+  replays every vector in Dart. Same vectors passing in both languages = same rules.
+- **Changing a rule** — change Python first, run `python -m ludo_engine.vectors` (from
+  `backend/core`), commit the new file; the Flutter tests then show where the Dart
+  copy must change. The Python engine stays the authority: online games never use the
+  Dart one.
+- **Local play** — "Play on this phone" (`/local`, `/local/game`): 2–4 seats, each a
+  person (pass-and-play on one screen) or the Majlis AI (`LudoBot`). The phone rolls
+  with `Random.secure()`. Open signed out and when the server can't be reached
+  (`appRedirect` lets `/local…` through in every state; Welcome and the offline splash
+  have a "Play offline" button). Nothing is sent or saved: offline games never touch
+  Gold, Diamonds, XP or ratings.
 
 ---
 

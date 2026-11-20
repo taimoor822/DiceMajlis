@@ -111,6 +111,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       icon: Icons.refresh,
                       onPressed: _start,
                     ),
+                    const SizedBox(height: 12),
+                    MajlisButton(
+                      label: l10n.splashPlayOffline,
+                      icon: Icons.phone_android,
+                      style: MajlisButtonStyle.secondary,
+                      onPressed: () => context.push(AppRoutes.localPlay),
+                    ),
                   ] else
                     SizedBox(
                       width: 28,

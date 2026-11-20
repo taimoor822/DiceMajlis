@@ -11,7 +11,9 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 > **Status: early development.** Online games work end to end, with accounts
 > (guest or email), a permanent Player ID, a basic profile, and Gold and Diamonds
 > with a daily reward. The app has its Majlis look (dark navy and gold, plus a light
-> theme) and its main navigation; local play comes next (see [roadmap](#roadmap)).
+> theme) and its main navigation, and offline games (vs the AI or pass-and-play) run
+> on the phone with the same rules. The multi-game layer comes next (see
+> [roadmap](#roadmap)).
 
 ---
 
@@ -32,6 +34,11 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   that can't be edited, and the team can grant or take back currency in the admin
   with a reason. Buying gold and diamonds comes later
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
+- **Play on this phone** — offline games from Game Hub: 2–4 players, each colour a
+  person (pass the phone around) or the Majlis AI. Works with no account and no
+  connection (Welcome and the "can't reach the server" screen have a button), and
+  never touches Gold, Diamonds or ratings. It runs the same rules as the server,
+  checked by shared test vectors
 - **Play against a bot** — start alone and "Majlis AI" joins opposite you
 - **Server-controlled game** — the server rolls the dice and checks every move,
   so the app can't cheat. Your seat belongs to your account, so nobody can roll
@@ -73,14 +80,15 @@ DiceMajlis/
 │   ├── requirements.txt
 │   └── core/                    # Django project (manage.py lives here)
 │       ├── core/                # settings, ASGI, URLs
-│       ├── ludo_engine/         # the Ludo rules engine + tests
+│       ├── ludo_engine/         # the Ludo rules engine + tests (+ vectors.py: shared test vectors)
 │       ├── accounts/            # sign-in (guest, email), tokens, Player ID, devices, password reset
 │       ├── profiles/            # name, avatar, country, languages, XP/level
 │       ├── wallet/              # gold + diamonds: ledger, admin adjustments, audit
 │       ├── rewards/             # grant() engine, daily reward
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer
 ├── frontend/
-│   └── dice_majlis_app/         # Flutter app
+│   └── dice_majlis_app/         # Flutter app (with a Dart copy of the engine for offline games)
+├── shared/ludo/engine_vectors.json  # rules written down by the Python engine; both engines must pass it
 ├── CLAUDE.md                    # guide for Claude Code sessions (rules, commands, status)
 ├── .github/workflows/ci.yml     # tests on every push
 ├── docs/
@@ -149,19 +157,25 @@ code is printed in the terminal where the server runs (look for "Your code is").
 ## Tests
 
 ```bash
-# Backend: rules engine, accounts (guest, email, tokens, reset), profiles, wallet
-# ledger, rewards, API, input checks, seats, leaving, sockets, turn timer (224 tests)
+# Backend: rules engine (+ shared vectors up to date), accounts (guest, email, tokens,
+# reset), profiles, wallet ledger, rewards, API, input checks, seats, leaving,
+# sockets, turn timer (227 tests)
 cd backend/core
 python manage.py test
 
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
+# After changing a rule: write the shared test vectors again (then commit them)
+python -m ludo_engine.vectors
+
 # Flutter: sign-in (guest, email, forgotten password, save account, staying signed
 # in, offline retry, sign out, token refresh), profile editing, balances, daily
 # reward, wallet history, going back to your
 # room, navigation, create/join/waiting-room/leave flow, error messages, routes,
-# themes, board (only server-listed tokens move, leave game), server address, countdown
+# themes, board (only server-listed tokens move, leave game), server address, countdown,
+# the Dart engine against every shared vector, offline games (setup, AI turns,
+# pass-and-play, results, playing with no account or no server)
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -181,13 +195,15 @@ Every push runs both suites on GitHub (backend on PostgreSQL) — see the CI bad
 | Turn timer | 30 seconds; after 3 missed turns in a row you're removed |
 | Winner | First player with all four tokens home |
 
-All of these are settings in `backend/core/ludo_engine/rules.py`.
+All of these are settings in `backend/core/ludo_engine/rules.py`. The app's offline
+copy (`lib/features/ludo/domain/engine/`) is checked against it by the shared test
+vectors.
 
 ## Roadmap
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

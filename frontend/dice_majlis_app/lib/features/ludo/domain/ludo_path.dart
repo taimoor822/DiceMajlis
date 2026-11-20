@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'engine/board.dart';
+
 /// Board geometry. Must match the server engine (backend/core/ludo_engine/board.py).
 ///
 /// A token's position is its *progress* from its own start square:
@@ -13,8 +15,8 @@ class LudoPath {
   static const int _gridSize = 15;
   static const int _maxIndex = _gridSize - 1;
 
-  static const int lastTrackProgress = 50;
-  static const int homeProgress = 56;
+  static const int lastTrackProgress = LudoBoard.lastTrackProgress;
+  static const int homeProgress = LudoBoard.homeProgress;
 
   static const List<Point<int>> redPath = <Point<int>>[
     Point<int>(6, 13),
@@ -118,6 +120,48 @@ class LudoPath {
       default:
         throw StateError('Invalid rotation');
     }
+  }
+
+  // Base circles in the board picture, in cells from its top-left corner
+  // (measured from assets/board/majlis_board.svg): each base sits in a 6x6
+  // corner with circles 1.94 and 4.11 cells in from the outer edges.
+  static const double _baseNear = 1.94;
+  static const double _baseFar = 4.11;
+
+  /// Corner of each colour's base: (left?, top?).
+  static const Map<String, (bool, bool)> _baseCorner = {
+    'red': (true, false),
+    'blue': (true, true),
+    'green': (false, true),
+    'yellow': (false, false),
+  };
+
+  /// Where token [tokenIndex] of [color] waits in its base, in cells from the
+  /// board's top-left corner. Tokens 0–3 take the lower-left, lower-right,
+  /// upper-left and upper-right circles.
+  static Offset basePoint(String color, int tokenIndex) {
+    final corner = _baseCorner[color.trim().toLowerCase()];
+    if (corner == null) {
+      throw ArgumentError.value(color, 'color', 'Unsupported color');
+    }
+    final (left, top) = corner;
+    final xs = left
+        ? const [_baseNear, _baseFar]
+        : const [_gridSize - _baseFar, _gridSize - _baseNear];
+    final ys = top
+        ? const [_baseNear, _baseFar]
+        : const [_gridSize - _baseFar, _gridSize - _baseNear];
+    final i = tokenIndex % 4;
+    return Offset(xs[i % 2], ys[i < 2 ? 1 : 0]);
+  }
+
+  /// Centre of a token of [color] at [progress] (-1 base .. 56 home), in
+  /// cells from the board's top-left corner.
+  static Offset pointFor(String color, int progress, int tokenIndex) {
+    if (progress < 0) return basePoint(color, tokenIndex);
+    final path = getPath(color);
+    final cell = path[progress.clamp(0, path.length - 1)];
+    return Offset(cell.x + 0.5, cell.y + 0.5);
   }
 
   static Offset gridToPixel({

@@ -8,9 +8,11 @@
   "commonCancel": "Cancel",
 
   "splashOffline": "Can't reach the Majlis server. Check your connection and try again.",
+  "splashPlayOffline": "Play offline",
 
   "welcomeBody": "Ludo in the Majlis. Play with friends, family or the Majlis AI.",
   "welcomePlayAsGuest": "Play as guest",
+  "welcomePlayOffline": "Play offline on this phone",
   "welcomeGuestHint": "You get a permanent Player ID right away. Your guest account lives on this device; adding email, Google or Apple later will keep it safe.",
   "welcomeEmail": "Sign in with email",
   "welcomeEmailSubtitle": "Or create an account with your email",
@@ -186,8 +188,9 @@
   "hubCreateRoom": "Create room",
   "hubJoinRoom": "Join room",
   "hubMoreModes": "More ways to play",
-  "hubLocalPlay": "Local play",
-  "hubLocalPlayBody": "Pass one phone around the table.",
+  "hubLocalPlay": "Play on this phone",
+  "hubLocalPlayBody": "Play the Majlis AI or pass one phone around the table. Works offline.",
+  "hubLocalPlayStart": "Play offline",
   "hubTeamLudo": "Team Ludo",
   "hubTeamLudoBody": "Two against two, as partners.",
   "hubTournaments": "Tournaments",
@@ -325,6 +328,99 @@
   "errorTryAgain": "The game just changed. Please try again.",
   "errorLegacyGame": "This game was started before an update. Please start a new one.",
   "errorInvalidInput": "The server didn't accept that. Please check and try again.",
+  "localSetupTitle": "Play on this phone",
+  "localSetupBody": "Play the Majlis AI, or pass one phone around the table. Offline games don't earn Gold or Diamonds and don't change your rating.",
+  "localSetupPlayers": "Players",
+  "localSetupSeats": "Who plays each colour",
+  "localSeatHuman": "Player",
+  "localSeatAi": "AI",
+  "localSetupPlayOn": "Play on for every place",
+  "localSetupPlayOnBody": "Keep playing after the first player gets home.",
+  "localSetupStart": "Start game",
+
+  "colorRed": "Red",
+  "colorBlue": "Blue",
+  "colorGreen": "Green",
+  "colorYellow": "Yellow",
+
+  "localNamePlayer": "Player {number}",
+  "@localNamePlayer": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "localNameAi": "Majlis AI",
+  "localNameAiNumbered": "Majlis AI {number}",
+  "@localNameAiNumbered": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+
+  "localGameTitle": "Offline game",
+  "localStatusYourRoll": "Your turn: roll the dice",
+  "localStatusRoll": "{name}: roll the dice",
+  "@localStatusRoll": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localStatusYourMove": "Pick a token to move",
+  "localStatusMove": "{name}: pick a token",
+  "@localStatusMove": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localStatusAi": "{name} is playing…",
+  "@localStatusAi": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localNoticeNoMoves": "{name} can't move",
+  "@localNoticeNoMoves": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localNoticeTooManySixes": "{name} rolled too many sixes",
+  "@localNoticeTooManySixes": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localNoticeCaptured": "{name} sent a token back to base!",
+  "@localNoticeCaptured": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localNoticeHome": "{name} got every token home: place {place}!",
+  "@localNoticeHome": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "place": {"type": "int"}
+    }
+  },
+  "localWinner": "{name} wins!",
+  "@localWinner": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "localResultsTitle": "Game over",
+  "localPlaceShort": "#{place}",
+  "@localPlaceShort": {
+    "placeholders": {
+      "place": {"type": "int"}
+    }
+  },
+  "localPlayAgain": "Play again",
+  "localDone": "Done",
+  "localLeaveTitle": "Leave this game?",
+  "localLeaveBody": "Offline games aren't saved, so this one will end.",
+
   "errorGeneric": "Something went wrong. Please try again.",
 
   "notFoundTitle": "Page not found",

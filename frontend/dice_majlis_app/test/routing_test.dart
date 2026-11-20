@@ -48,6 +48,15 @@ void main() {
       );
     });
 
+    test('offline games on this phone are open in every case', () {
+      for (final auth in const [AuthLoading(), AuthOffline(), SignedOut()]) {
+        expect(redirect(auth, AppRoutes.localPlay), isNull);
+        expect(redirect(auth, AppRoutes.localGame), isNull);
+      }
+      expect(redirect(signedIn, AppRoutes.localGame, session), isNull);
+      expect(redirect(const SignedOut(), '/localx'), AppRoutes.welcome);
+    });
+
     test('signed in: never the welcome screen; rooms need a session', () {
       expect(redirect(signedIn, '/welcome'), AppRoutes.home);
       expect(redirect(signedIn, '/home'), isNull);
