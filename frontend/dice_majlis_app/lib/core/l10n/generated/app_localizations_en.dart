@@ -18,14 +18,164 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Try again';
 
   @override
+  String get navHome => 'Home';
+
+  @override
+  String get navEvents => 'Events';
+
+  @override
+  String get navGameHub => 'Game Hub';
+
+  @override
+  String get navBattle => 'Battle';
+
+  @override
+  String get navChat => 'Chat';
+
+  @override
+  String get navSocial => 'Social';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
+  String get comingSoonBadge => 'Soon';
+
+  @override
+  String comingSoonNamed(String feature) {
+    return '$feature is coming soon.';
+  }
+
+  @override
   String get homeSubtitle =>
       'Ludo in the Majlis. Play with friends or the Majlis AI.';
 
   @override
-  String get homeCreateRoom => 'Create room';
+  String get homePlay => 'Play Ludo';
 
   @override
-  String get homeJoinRoom => 'Join room';
+  String get homeJoinWithCode => 'Join with a code';
+
+  @override
+  String get homeProfileTitle => 'Your profile';
+
+  @override
+  String get homeProfileSoon =>
+      'Your Player ID, level and coins arrive with accounts.';
+
+  @override
+  String get homeShortcuts => 'More';
+
+  @override
+  String get homeShop => 'Shop';
+
+  @override
+  String get homeCollection => 'Collection';
+
+  @override
+  String get homeRankings => 'Rankings';
+
+  @override
+  String get homeVip => 'VIP';
+
+  @override
+  String get homeNotifications => 'Notifications';
+
+  @override
+  String get homeSettings => 'Settings';
+
+  @override
+  String get hubTitle => 'Game Hub';
+
+  @override
+  String get hubClassicTitle => 'Classic Ludo';
+
+  @override
+  String get hubClassicBody =>
+      'Play with friends in a private room, or start alone and the Majlis AI joins you.';
+
+  @override
+  String get hubCreateRoom => 'Create room';
+
+  @override
+  String get hubJoinRoom => 'Join room';
+
+  @override
+  String get hubMoreModes => 'More ways to play';
+
+  @override
+  String get hubLocalPlay => 'Local play';
+
+  @override
+  String get hubLocalPlayBody => 'Pass one phone around the table.';
+
+  @override
+  String get hubTeamLudo => 'Team Ludo';
+
+  @override
+  String get hubTeamLudoBody => 'Two against two, as partners.';
+
+  @override
+  String get hubTournaments => 'Tournaments';
+
+  @override
+  String get hubTournamentsBody => 'Brackets with prizes.';
+
+  @override
+  String get hubMoreGames => 'More games';
+
+  @override
+  String get hubMoreGamesBody => 'Domino and Jackaroo are next.';
+
+  @override
+  String get eventsTitle => 'Events';
+
+  @override
+  String get eventsBody =>
+      'Live events, daily missions and rewards will appear here.';
+
+  @override
+  String get battleTitle => 'Battle';
+
+  @override
+  String get battleBody =>
+      'Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.';
+
+  @override
+  String get battleOpenHub => 'Open Game Hub';
+
+  @override
+  String get chatTitle => 'Chat';
+
+  @override
+  String get chatBody =>
+      'Private and group chats with your friends will live here.';
+
+  @override
+  String get socialTitle => 'Social';
+
+  @override
+  String get socialBody =>
+      'Find players, add friends and see what your Majlis is up to.';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsThemeLight => 'Light';
+
+  @override
+  String get settingsThemeSystem => 'Phone';
+
+  @override
+  String get settingsThemeHint =>
+      'Phone follows your phone\'s dark mode setting.';
 
   @override
   String get createRoomTitle => 'Create room';

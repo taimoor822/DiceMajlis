@@ -116,6 +116,9 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   create/join (`game/player_auth.py`); tests get it via `GameApiTestCase.post`.
   API errors are `{"error", "code"}`; the app maps `code` to text in
   `core/l10n/api_error_text.dart` and never shows the server's English.
+- Navigation: Home + five tabs in a GoRouter `StatefulShellRoute` (`app_router.dart`,
+  `features/navigation/`). Unbuilt sections use `ComingSoonPage` / `SoonBadge`.
+  Device settings use `sharedPreferencesProvider` (null in tests unless overridden).
 - The app keeps the current room (`roomSessionProvider`) only in memory on phones
   (web uses browser storage); persistent sessions arrive with accounts (step 1.6).
 
@@ -123,8 +126,8 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 
 See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
 Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
-Flutter architecture + Majlis theme (1.4).
-Next: 1.5 main navigation, 1.6 accounts with Player ID, 1.7 email + profile.
+Flutter architecture + Majlis theme (1.4), main navigation (1.5).
+Next: 1.6 accounts with Player ID, 1.7 email + profile, 1.8 currency foundation.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

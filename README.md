@@ -9,8 +9,8 @@ platform.
 Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
 > **Status: early development.** Online games work end to end. The app has its
-> Majlis look (dark navy and gold, plus a light theme) on the menus and rooms;
-> the game board is redesigned later (see [roadmap](#roadmap)).
+> Majlis look (dark navy and gold, plus a light theme) and its main navigation;
+> accounts and profiles come next (see [roadmap](#roadmap)).
 
 ---
 
@@ -23,6 +23,9 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   roll or move for someone else (signed-in accounts replace it in step 1.6)
 - **Clear messages** — if something fails (room full, wrong code, no
   connection), the app says why
+- **Main navigation** — bottom bar with Home, Events, Game Hub, Battle, Chat and
+  Social. Rooms live in Game Hub; sections not built yet say "coming soon"
+- **Dark and light themes** — pick one in Settings; the phone remembers it
 - **Full Ludo rules** — enter on a 6, captures, safe squares, extra turns,
   three sixes ends your turn, exact roll to get home
 - **30-second turn timer** — if a player is idle, the server plays for them;
@@ -126,8 +129,9 @@ python manage.py test
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: app start, create/join/waiting-room flow, error messages, routes,
-# themes, board (only server-listed tokens move), server address, countdown
+# Flutter: app start, navigation (tabs, back button), create/join/waiting-room
+# flow, error messages, routes, themes + saved theme, board (only server-listed
+# tokens move), server address, countdown
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -153,7 +157,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

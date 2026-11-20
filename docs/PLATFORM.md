@@ -69,11 +69,14 @@ Where the prompts overlap, they're merged, not duplicated:
 
 **Home** sits above the tabs (the app opens there): avatar, name, level/XP, coins and
 gems, league and rank, featured content, announcements, shortcuts to Shop, Collection,
-Rankings, VIP, Notifications, Settings.
+Rankings, VIP, Notifications, Settings. In the app (step 1.5) Home is the first item
+of the bottom bar, so it is always one tap away: **Home · Events · Game Hub · Battle ·
+Chat · Social**.
 
 ### Routing
 
-- GoRouter with a `StatefulShellRoute` for the five tabs (each tab keeps its own stack).
+- GoRouter with a `StatefulShellRoute` for Home and the five tabs (each keeps its own
+  stack). Built in step 1.5.
 - **Guarded routes:** signed-out users go to login; VIP-only screens check entitlements;
   routes for unfinished features show a clear "coming soon" page, never fake content.
 - Deep links (`dicemajlis://room/ABCD`, `/profile/123456789`, `/tournament/…`) for
