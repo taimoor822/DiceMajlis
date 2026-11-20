@@ -160,4 +160,54 @@ void main() {
     expect(find.text('That room is full.'), findsOneWidget);
     expect(find.byType(WaitingRoomScreen), findsNothing);
   });
+
+  testWidgets('leaving the waiting room gives the seat back', (tester) async {
+    final repo = FakeRoomRepository();
+    final sockets = FakeSockets();
+    await openHub(tester, testApp(repository: repo, sockets: sockets));
+
+    await tester.tap(find.text('CREATE ROOM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CREATE'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaitingRoomScreen), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Leave room'));
+    await tester.pumpAndSettle();
+    expect(repo.calls.last, 'leave:AB12');
+    expect(find.byType(WaitingRoomScreen), findsNothing);
+    expect(find.text('Game Hub'), findsWidgets);
+    expect(sockets.last.disconnected, isTrue);
+  });
+
+  testWidgets('if leaving fails, the player stays in the room', (tester) async {
+    final repo = FakeRoomRepository();
+    await openHub(tester, testApp(repository: repo, sockets: FakeSockets()));
+    await tester.tap(find.text('CREATE ROOM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CREATE'));
+    await tester.pumpAndSettle();
+
+    repo.failWith = 'network_error';
+    await tester.tap(find.byTooltip('Leave room'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining("Can't reach the server"), findsOneWidget);
+    expect(find.byType(WaitingRoomScreen), findsOneWidget);
+  });
+
+  testWidgets('joining a game you are already in opens the board', (
+    tester,
+  ) async {
+    final repo = FakeRoomRepository(joinStarted: true);
+    await openHub(tester, testApp(repository: repo, sockets: FakeSockets()));
+
+    await tester.tap(find.text('JOIN ROOM'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'AB12');
+    await tester.tap(find.text('JOIN'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(GameBoardScreen), findsOneWidget);
+  });
 }

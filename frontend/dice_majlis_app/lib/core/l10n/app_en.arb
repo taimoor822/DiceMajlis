@@ -5,6 +5,16 @@
   "appTagline": "PLAY · SOCIALISE · COMPETE",
 
   "commonRetry": "Try again",
+  "commonCancel": "Cancel",
+
+  "splashOffline": "Can't reach the Majlis server. Check your connection and try again.",
+
+  "welcomeBody": "Ludo in the Majlis. Play with friends, family or the Majlis AI.",
+  "welcomePlayAsGuest": "Play as guest",
+  "welcomeGuestHint": "You get a permanent Player ID right away. Your guest account lives on this device; adding email, Google or Apple later will keep it safe.",
+  "welcomeEmail": "Sign in with email",
+  "welcomeGoogle": "Continue with Google",
+  "welcomeApple": "Continue with Apple",
 
   "navEvents": "Events",
   "navGameHub": "Game Hub",
@@ -24,8 +34,16 @@
   "homeSubtitle": "Ludo in the Majlis. Play with friends or the Majlis AI.",
   "homePlay": "Play Ludo",
   "homeJoinWithCode": "Join with a code",
-  "homeProfileTitle": "Your profile",
-  "homeProfileSoon": "Your Player ID, level and coins arrive with accounts.",
+  "homePlayerId": "Player ID {id}",
+  "@homePlayerId": {
+    "placeholders": {
+      "id": {"type": "String"}
+    }
+  },
+  "homeCopyPlayerId": "Copy Player ID",
+  "homePlayerIdCopied": "Player ID copied",
+  "homeGuestTag": "Guest",
+  "homeProfileSoon": "Your name, picture, level and coins arrive in the next updates.",
   "homeShortcuts": "More",
   "homeShop": "Shop",
   "homeCollection": "Collection",
@@ -62,6 +80,12 @@
   "settingsThemeLight": "Light",
   "settingsThemeSystem": "Phone",
   "settingsThemeHint": "Phone follows your phone's dark mode setting.",
+  "settingsAccount": "Account",
+  "settingsGuestAccount": "Guest account",
+  "settingsSignOut": "Sign out",
+  "settingsSignOutTitle": "Sign out?",
+  "settingsSignOutGuest": "You're playing as a guest. If you sign out, this account and its Player ID can't be recovered.",
+  "settingsSignOutBody": "You can sign in again any time.",
 
   "createRoomTitle": "Create room",
   "createRoomMaxPlayers": "How many players?",
@@ -76,6 +100,7 @@
   "joinRoomJoin": "Join",
 
   "waitingRoomTitle": "Waiting room",
+  "waitingRoomLeave": "Leave room",
   "waitingRoomCodeLabel": "Room code",
   "waitingRoomCopy": "Copy room code",
   "waitingRoomCopied": "Room code copied",
@@ -102,6 +127,11 @@
   "gameMoving": "Moving…",
   "gameRollDice": "Roll the dice",
   "gameUnknownPlayer": "A player",
+
+  "gameLeave": "Leave game",
+  "gameLeaveTitle": "Leave this game?",
+  "gameLeaveBody": "You'll lose this game and can't come back to it.",
+  "gameLeaveConfirm": "Leave",
 
   "gameOverTitle": "Game over",
   "gameOverWon": "You win!",
@@ -142,7 +172,11 @@
   "errorGameAlreadyStarted": "That game has already started.",
   "errorGameNotStarted": "The game hasn't started yet.",
   "errorNotHost": "Only the host can start the game.",
-  "errorNotYourSeat": "This device isn't in that seat any more. Join the room again.",
+  "errorNotYourSeat": "That isn't your seat.",
+  "errorNotInRoom": "You're not in this room any more.",
+  "errorAlreadyInGame": "You're still playing another game. Finish or leave it first.",
+  "errorSignedOut": "You were signed out. Please sign in again.",
+  "errorRateLimited": "Too many tries. Please wait a moment and try again.",
   "errorNotYourTurn": "It's not your turn.",
   "errorWrongPhase": "You can't do that right now.",
   "errorIllegalMove": "That token can't move with this roll.",

@@ -7,11 +7,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
-import '../../../core/network/api_service.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/websocket/socket_providers.dart';
 import '../../../core/websocket/socket_service.dart';
+import '../../multiplayer/data/room_repository.dart';
 import '../../multiplayer/domain/room_session_controller.dart';
 import '../domain/ludo_path.dart';
 import '../domain/turn_clock.dart';
@@ -103,7 +103,6 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
   String? roomCode;
   String? myPlayerId;
-  String? _playerToken;
   bool _winnerShown = false;
 
   String? currentTurnPlayerId;
@@ -152,7 +151,6 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
     roomCode = session.roomCode;
     myPlayerId = session.playerId;
-    _playerToken = session.playerToken;
 
     _connectSocket();
   }
@@ -620,9 +618,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
   Future<void> _rollDice() async {
     final room = roomCode;
-    final me = myPlayerId;
-    final secret = _playerToken;
-    if (room == null || me == null || secret == null) return;
+    if (room == null || myPlayerId == null) return;
     if (_isReconnecting || _isAnimatingMove || _isRollingDice) return;
 
     setState(() {
@@ -630,16 +626,12 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     });
 
     try {
-      final response = await ApiService.rollDice(
-        roomCode: room,
-        playerId: me,
-        playerToken: secret,
-      );
+      final result = await ref.read(roomRepositoryProvider).rollDice(room);
       // The dice_rolled message may have arrived first; it says the same.
       if (mounted && lastDice == null) {
         setState(() {
-          lastDice = (response['dice'] as num?)?.toInt();
-          _movableTokenIds = _parseTokenIds(response['movable_token_ids']);
+          lastDice = result.dice;
+          _movableTokenIds = result.movableTokenIds.toSet();
           _isRollingDice = false;
         });
       }
@@ -655,18 +647,11 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
   Future<void> _moveToken(String tokenId) async {
     final room = roomCode;
-    final me = myPlayerId;
-    final secret = _playerToken;
-    if (room == null || me == null || secret == null) return;
+    if (room == null || myPlayerId == null) return;
     if (_isReconnecting || _isAnimatingMove) return;
 
     try {
-      await ApiService.moveToken(
-        roomCode: room,
-        playerId: me,
-        playerToken: secret,
-        tokenId: tokenId,
-      );
+      await ref.read(roomRepositoryProvider).moveToken(room, tokenId);
     } catch (e) {
       _showNotice(_l10n.apiErrorText(e));
     }
@@ -875,6 +860,41 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     );
   }
 
+  /// Leaving a started game forfeits it, so ask first.
+  Future<void> _confirmLeave() async {
+    final room = roomCode;
+    if (room == null || _winnerShown) return;
+    final l10n = _l10n;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.gameLeaveTitle),
+        content: Text(l10n.gameLeaveBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.gameLeaveConfirm),
+          ),
+        ],
+      ),
+    );
+    if (leave != true || !mounted) return;
+    try {
+      await ref.read(roomRepositoryProvider).leaveRoom(room);
+    } catch (e) {
+      _showNotice(l10n.apiErrorText(e));
+      return;
+    }
+    if (!mounted) return;
+    _winnerShown = true; // no result dialog for a game we left
+    ref.read(roomSessionProvider.notifier).clear();
+    context.go(AppRoutes.home);
+  }
+
   void _showWinner(String winnerId) {
     if (_winnerShown) return;
     _winnerShown = true;
@@ -946,137 +966,154 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
         !_isReconnecting;
 
     final majlis = context.majlis;
-    return Scaffold(
-      appBar: AppBar(title: Text(_l10n.appTitle), centerTitle: true),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final shortest = math.min(
-              constraints.maxWidth,
-              constraints.maxHeight,
-            );
-            final boardSide = (shortest - 140).clamp(260.0, 520.0);
-
-            final tokenGroups = <String, List<_TokenInfo>>{};
-            final tokenGridById = <String, math.Point<int>>{};
-            for (final token in _tokensById.values) {
-              final player = _playersById[token.playerId];
-              final pathColor = _pathColorForBackend(player?.color ?? '');
-              final tokenIndex = tokenIndexById[token.id] ?? 0;
-              final grid = _gridForToken(
-                token: token,
-                pathColor: pathColor,
-                tokenIndex: tokenIndex,
+    // Back (button or gesture) asks before leaving: leaving forfeits.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmLeave();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_l10n.appTitle),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              tooltip: _l10n.gameLeave,
+              icon: const Icon(Icons.exit_to_app),
+              onPressed: _confirmLeave,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final shortest = math.min(
+                constraints.maxWidth,
+                constraints.maxHeight,
               );
-              tokenGridById[token.id] = grid;
-              final key = 'g:${grid.x}:${grid.y}';
-              (tokenGroups[key] ??= []).add(token);
-            }
-            for (final group in tokenGroups.values) {
-              group.sort((a, b) => a.id.compareTo(b.id));
-            }
+              final boardSide = (shortest - 140).clamp(260.0, 520.0);
 
-            final tileSize = boardSide / 15;
-            final tokenVisualSize = (tileSize * 0.9).clamp(22.0, 48.0);
-            final stackRadius = (tileSize * 0.22).clamp(
-              3.0,
-              tokenVisualSize * 0.25,
-            );
-
-            final tokenWidgets = <Widget>[];
-            for (final group in tokenGroups.values) {
-              for (int i = 0; i < group.length; i++) {
-                final token = group[i];
+              final tokenGroups = <String, List<_TokenInfo>>{};
+              final tokenGridById = <String, math.Point<int>>{};
+              for (final token in _tokensById.values) {
                 final player = _playersById[token.playerId];
-                final color = MajlisColors.seatColor(player?.color);
-
-                final isMine = token.playerId == me;
-                final canTap =
-                    isMine &&
-                    !_isAnimatingMove &&
-                    !_isReconnecting &&
-                    _canMoveToken(token);
-
-                final grid = tokenGridById[token.id];
-                if (grid == null) continue;
-
-                final baseCenter = LudoPath.gridToPixel(
-                  x: grid.x,
-                  y: grid.y,
-                  boardSize: boardSide,
+                final pathColor = _pathColorForBackend(player?.color ?? '');
+                final tokenIndex = tokenIndexById[token.id] ?? 0;
+                final grid = _gridForToken(
+                  token: token,
+                  pathColor: pathColor,
+                  tokenIndex: tokenIndex,
                 );
-                final center =
-                    baseCenter + _spreadOffset(i, group.length, stackRadius);
-
-                tokenWidgets.add(
-                  AnimatedPlayerToken(
-                    center: center,
-                    size: tokenVisualSize,
-                    duration: _moveStepDuration,
-                    child: PlayerToken(
-                      color: color,
-                      label: tokenLabels[token.id] ?? '',
-                      enabled: isMine ? canTap : true,
-                      flashing: _flashingTokenIds.contains(token.id),
-                      onTap: canTap ? () => _moveToken(token.id) : null,
-                    ),
-                  ),
-                );
+                tokenGridById[token.id] = grid;
+                final key = 'g:${grid.x}:${grid.y}';
+                (tokenGroups[key] ??= []).add(token);
               }
-            }
+              for (final group in tokenGroups.values) {
+                group.sort((a, b) => a.id.compareTo(b.id));
+              }
 
-            return Center(
-              child: SizedBox(
-                width: boardSide,
-                height: boardSide,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Positioned.fill(child: BoardWidget()),
-                    ...tokenWidgets,
-                    for (int seat = 0; seat < playersInSeat.length; seat++)
-                      if (playersInSeat[seat] != null)
-                        _buildPlayerPanel(playersInSeat[seat]!, seat),
-                    Positioned(
-                      left: -10,
-                      bottom: -10,
-                      child: _buildStatusChip(),
-                    ),
-                    Positioned(
-                      right: -10,
-                      bottom: -10,
-                      child: DiceWidget(
-                        value: lastDice,
-                        enabled: canRollDice,
-                        rolling: _isRollingDice,
-                        onTap: _rollDice,
+              final tileSize = boardSide / 15;
+              final tokenVisualSize = (tileSize * 0.9).clamp(22.0, 48.0);
+              final stackRadius = (tileSize * 0.22).clamp(
+                3.0,
+                tokenVisualSize * 0.25,
+              );
+
+              final tokenWidgets = <Widget>[];
+              for (final group in tokenGroups.values) {
+                for (int i = 0; i < group.length; i++) {
+                  final token = group[i];
+                  final player = _playersById[token.playerId];
+                  final color = MajlisColors.seatColor(player?.color);
+
+                  final isMine = token.playerId == me;
+                  final canTap =
+                      isMine &&
+                      !_isAnimatingMove &&
+                      !_isReconnecting &&
+                      _canMoveToken(token);
+
+                  final grid = tokenGridById[token.id];
+                  if (grid == null) continue;
+
+                  final baseCenter = LudoPath.gridToPixel(
+                    x: grid.x,
+                    y: grid.y,
+                    boardSize: boardSide,
+                  );
+                  final center =
+                      baseCenter + _spreadOffset(i, group.length, stackRadius);
+
+                  tokenWidgets.add(
+                    AnimatedPlayerToken(
+                      center: center,
+                      size: tokenVisualSize,
+                      duration: _moveStepDuration,
+                      child: PlayerToken(
+                        color: color,
+                        label: tokenLabels[token.id] ?? '',
+                        enabled: isMine ? canTap : true,
+                        flashing: _flashingTokenIds.contains(token.id),
+                        onTap: canTap ? () => _moveToken(token.id) : null,
                       ),
                     ),
-                    if (_isAnimatingMove || _isReconnecting)
-                      Positioned.fill(
-                        child: AbsorbPointer(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            color: majlis.scrim.withValues(alpha: 0.18),
-                            child: Center(
-                              child: Text(
-                                _isReconnecting
-                                    ? _l10n.gameReconnecting
-                                    : _l10n.gameMoving,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: majlis.onSeat,
+                  );
+                }
+              }
+
+              return Center(
+                child: SizedBox(
+                  width: boardSide,
+                  height: boardSide,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Positioned.fill(child: BoardWidget()),
+                      ...tokenWidgets,
+                      for (int seat = 0; seat < playersInSeat.length; seat++)
+                        if (playersInSeat[seat] != null)
+                          _buildPlayerPanel(playersInSeat[seat]!, seat),
+                      Positioned(
+                        left: -10,
+                        bottom: -10,
+                        child: _buildStatusChip(),
+                      ),
+                      Positioned(
+                        right: -10,
+                        bottom: -10,
+                        child: DiceWidget(
+                          value: lastDice,
+                          enabled: canRollDice,
+                          rolling: _isRollingDice,
+                          onTap: _rollDice,
+                        ),
+                      ),
+                      if (_isAnimatingMove || _isReconnecting)
+                        Positioned.fill(
+                          child: AbsorbPointer(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              color: majlis.scrim.withValues(alpha: 0.18),
+                              child: Center(
+                                child: Text(
+                                  _isReconnecting
+                                      ? _l10n.gameReconnecting
+                                      : _l10n.gameMoving,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: majlis.onSeat,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

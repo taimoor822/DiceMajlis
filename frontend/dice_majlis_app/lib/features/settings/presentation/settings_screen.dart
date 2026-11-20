@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/account.dart';
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/theme/theme_mode_controller.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_card.dart';
 
-/// Device settings. Today: the theme (saved on this device).
-// TODO(Phase 2): language, sound, notifications, account.
+/// Your account (sign out) and device settings: the theme (saved on this
+/// device).
+// TODO(Phase 2): language, sound, notifications; 1.7: email and password.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -29,6 +32,8 @@ class SettingsScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  const _AccountCard(),
+                  const SizedBox(height: 16),
                   MajlisCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,6 +79,77 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AccountCard extends ConsumerWidget {
+  const _AccountCard();
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final isGuest = ref.read(accountProvider)?.isGuest ?? false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.settingsSignOutTitle),
+        content: Text(
+          isGuest ? l10n.settingsSignOutGuest : l10n.settingsSignOutBody,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.settingsSignOut),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // The router takes the player to the welcome screen.
+    await ref.read(authControllerProvider.notifier).signOut();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final account = ref.watch(accountProvider);
+    if (account == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final majlis = context.majlis;
+
+    return MajlisCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.settingsAccount, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(account.displayName, style: theme.textTheme.bodyLarge),
+          Text(
+            l10n.homePlayerId(formatPlayerId(account.playerId)),
+            style: theme.textTheme.bodyMedium?.copyWith(color: majlis.gold),
+          ),
+          if (account.isGuest)
+            Text(
+              l10n.settingsGuestAccount,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: majlis.textMuted,
+              ),
+            ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.logout),
+              label: Text(l10n.settingsSignOut),
+              onPressed: () => _signOut(context, ref),
+            ),
+          ),
+        ],
       ),
     );
   }

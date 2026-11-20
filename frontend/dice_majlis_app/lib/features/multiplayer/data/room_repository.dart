@@ -26,34 +26,76 @@ class RoomOptions {
   final int defaultPlayerCount;
 }
 
-/// Room actions the screens use. Wraps ApiService so screens get typed
-/// results, and tests can swap in a fake through [roomRepositoryProvider].
-///
-/// The server picks each player's name and seat colour.
-// TODO(1.6 accounts / 1.7 profile): send the player's own name.
-class RoomRepository {
-  const RoomRepository();
+/// The server's answer to a roll.
+class RollResult {
+  const RollResult({required this.dice, required this.movableTokenIds});
 
+  factory RollResult.fromJson(Map<String, dynamic> json) => RollResult(
+    dice: (json['dice'] as num?)?.toInt(),
+    movableTokenIds: [
+      for (final id in (json['movable_token_ids'] as List? ?? const []))
+        id.toString(),
+    ],
+  );
+
+  final int? dice;
+
+  /// The only tokens that may move with this roll (the server decides).
+  final List<String> movableTokenIds;
+}
+
+/// Room actions the screens use, signed in as the current account (the
+/// server finds your seat from it). Tests swap in a fake through
+/// [roomRepositoryProvider].
+abstract class RoomRepository {
+  Future<RoomOptions> roomOptions();
+  Future<RoomSession> createRoom({required int maxPlayers});
+  Future<RoomSession> joinRoom(String code);
+  Future<void> startGame(String roomCode);
+  Future<RollResult> rollDice(String roomCode);
+  Future<void> moveToken(String roomCode, String tokenId);
+
+  /// Before the start: frees your seat. During a game: you forfeit.
+  Future<void> leaveRoom(String roomCode);
+}
+
+/// [RoomRepository] on the real server.
+class ApiRoomRepository implements RoomRepository {
+  const ApiRoomRepository(this._api);
+
+  final ApiService _api;
+
+  @override
   Future<RoomOptions> roomOptions() async =>
-      RoomOptions.fromJson(await ApiService.roomOptions());
+      RoomOptions.fromJson(await _api.roomOptions());
 
+  @override
   Future<RoomSession> createRoom({required int maxPlayers}) async =>
       RoomSession.fromRoomResponse(
-        await ApiService.createRoom(maxPlayers: maxPlayers),
+        await _api.createRoom(maxPlayers: maxPlayers),
       );
 
+  @override
   Future<RoomSession> joinRoom(String code) async =>
-      RoomSession.fromRoomResponse(await ApiService.joinRoom(code: code));
+      RoomSession.fromRoomResponse(await _api.joinRoom(code: code));
 
-  Future<void> startGame(RoomSession session) => ApiService.startGame(
-    roomCode: session.roomCode,
-    playerId: session.playerId,
-    playerToken: session.playerToken,
-  );
+  @override
+  Future<void> startGame(String roomCode) => _api.startGame(roomCode: roomCode);
+
+  @override
+  Future<RollResult> rollDice(String roomCode) async =>
+      RollResult.fromJson(await _api.rollDice(roomCode: roomCode));
+
+  @override
+  Future<void> moveToken(String roomCode, String tokenId) =>
+      _api.moveToken(roomCode: roomCode, tokenId: tokenId);
+
+  @override
+  Future<void> leaveRoom(String roomCode) => _api.leaveRoom(roomCode: roomCode);
 }
 
 final roomRepositoryProvider = Provider<RoomRepository>(
-  (ref) => const RoomRepository(),
+  (ref) => ApiRoomRepository(ref.watch(apiServiceProvider)),
 );
 
 /// The create-room choices, loaded from the server once per visit to the

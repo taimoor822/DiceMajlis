@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
 import '../../features/ludo/presentation/game_board_screen.dart';
@@ -14,12 +15,35 @@ import '../../features/navigation/presentation/main_shell.dart';
 import '../../features/navigation/presentation/tab_placeholders.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../auth/auth_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'app_routes.dart';
 
+/// Where a page request must go instead, or null to show it.
+///
+/// - While the saved sign-in is being checked (or the server can't be
+///   reached), everything waits on the splash screen.
+/// - Signed out: the welcome screen ("Play as guest").
+/// - Signed in: never the welcome screen again, and rooms need a session for
+///   that room ([roomGuard]). The splash screen moves on by itself.
+String? appRedirect({
+  required AuthState auth,
+  required RoomSession? session,
+  required Uri location,
+}) {
+  final path = location.path;
+  final atSplash = path == AppRoutes.splash;
+  final atWelcome = path == AppRoutes.welcome;
+  return switch (auth) {
+    AuthLoading() || AuthOffline() => atSplash ? null : AppRoutes.splash,
+    SignedOut() => atSplash || atWelcome ? null : AppRoutes.welcome,
+    SignedIn() => atWelcome ? AppRoutes.home : roomGuard(session, location),
+  };
+}
+
 /// Room and game pages need a session for that room; without one (e.g. a
-/// stale link or a phone that restarted) the player goes Home instead of
-/// seeing a broken screen. Returns the path to redirect to, or null.
+/// stale link) the player goes Home instead of seeing a broken screen.
+/// Returns the path to redirect to, or null.
 String? roomGuard(RoomSession? session, Uri location) {
   final segments = location.pathSegments;
   if (segments.length < 2) return null;
@@ -41,14 +65,27 @@ StatefulShellBranch _tab(
 );
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // Signing in or out sends the player to the right place at once.
+  final authChanged = ValueNotifier<int>(0);
+  ref.listen(authControllerProvider, (_, _) => authChanged.value++);
+  ref.onDispose(authChanged.dispose);
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
-    redirect: (context, state) =>
-        roomGuard(ref.read(roomSessionProvider), state.uri),
+    refreshListenable: authChanged,
+    redirect: (context, state) => appRedirect(
+      auth: ref.read(authControllerProvider),
+      session: ref.read(roomSessionProvider),
+      location: state.uri,
+    ),
     routes: [
       GoRoute(
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        builder: (context, state) => const WelcomeScreen(),
       ),
       // The five tabs, with the bottom bar. The order here is the order of
       // the bar (MainShell); Battle, in the centre, is the Home lobby.

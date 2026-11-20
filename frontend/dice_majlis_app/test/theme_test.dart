@@ -1,9 +1,13 @@
+import 'package:dice_majlis_app/core/auth/auth_controller.dart';
 import 'package:dice_majlis_app/core/l10n/generated/app_localizations.dart';
 import 'package:dice_majlis_app/core/theme/app_theme.dart';
 import 'package:dice_majlis_app/core/theme/majlis_colors.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/fakes.dart';
 
 void main() {
   for (final (name, theme) in [
@@ -13,15 +17,19 @@ void main() {
     testWidgets('Home builds in the $name theme', (tester) async {
       expect(theme.extension<MajlisColors>(), isNotNull);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: theme,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const HomeScreen(),
+        ProviderScope(
+          overrides: [accountProvider.overrideWithValue(testAccount)],
+          child: MaterialApp(
+            theme: theme,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomeScreen(),
+          ),
         ),
       );
       expect(tester.takeException(), isNull);
       expect(find.text('PLAY LUDO'), findsOneWidget);
+      expect(find.text('Player ID 123 456 789'), findsOneWidget);
     });
   }
 

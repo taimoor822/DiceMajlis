@@ -34,6 +34,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   RoomSession? _session;
   List<RoomPlayer> _players = const [];
   bool _starting = false;
+  bool _leaving = false;
 
   @override
   void initState() {
@@ -85,7 +86,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     setState(() => _starting = true);
     try {
       // The server answers on the socket with `game_started`.
-      await ref.read(roomRepositoryProvider).startGame(session);
+      await ref.read(roomRepositoryProvider).startGame(session.roomCode);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -94,6 +95,27 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     } finally {
       if (mounted) setState(() => _starting = false);
     }
+  }
+
+  /// Gives the seat back (the host role passes on) and goes to the Game Hub.
+  Future<void> _leave() async {
+    final session = _session;
+    if (session == null || _leaving) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() => _leaving = true);
+    try {
+      await ref.read(roomRepositoryProvider).leaveRoom(session.roomCode);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _leaving = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.apiErrorText(e))));
+      return;
+    }
+    if (!mounted) return;
+    ref.read(roomSessionProvider.notifier).clear();
+    context.go(AppRoutes.hub);
   }
 
   Future<void> _copyCode() async {
@@ -119,6 +141,17 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // Back (button or gesture) leaves the room on the server too.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leave();
+      },
+      child: _page(context, session),
+    );
+  }
+
+  Widget _page(BuildContext context, RoomSession session) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final majlis = context.majlis;
@@ -129,7 +162,14 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: Text(l10n.waitingRoomTitle)),
+      appBar: AppBar(
+        title: Text(l10n.waitingRoomTitle),
+        leading: IconButton(
+          tooltip: l10n.waitingRoomLeave,
+          icon: const Icon(Icons.close),
+          onPressed: _leaving ? null : _leave,
+        ),
+      ),
       body: MajlisBackground(
         child: SafeArea(
           child: Padding(

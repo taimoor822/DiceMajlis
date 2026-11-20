@@ -18,8 +18,11 @@ class AppConfig {
     _apiBaseOverride.isNotEmpty ? _apiBaseOverride : defaultServerUrl(),
   );
 
+  /// Base for the REST API, e.g. `http://10.0.2.2:8000/api/`.
+  static String get apiUrl => '$serverUrl/api/';
+
   /// Base for the game REST API, e.g. `http://10.0.2.2:8000/api/game/`.
-  static String get gameApiUrl => '$serverUrl/api/game/';
+  static String get gameApiUrl => '${apiUrl}game/';
 
   /// WebSocket root, e.g. `ws://10.0.2.2:8000`.
   static String get webSocketUrl => _wsBaseOverride.isNotEmpty

@@ -25,7 +25,10 @@ The owner may send an updated plan. When the plan changes, update `docs/planning
 
 ```
 backend/core/              Django project (run manage.py from here)
-  core/                    settings (env-driven), asgi.py (starts turn timer), urls
+  core/                    settings (env-driven), asgi.py (starts turn timer), urls,
+                           api_errors.py (one {"error","code"} shape)
+  accounts/                User (UUID + 9-digit Player ID), DeviceSession, JWT +
+                           rotating refresh tokens, guest sign-in, /api/me
   ludo_engine/             PURE Python rules engine + tests (no Django inside)
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
@@ -77,7 +80,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~120 tests)
+python manage.py test                                  # everything (~155 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
 
@@ -101,33 +104,46 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - The project (and CI) uses **Flutter 3.38.7**. Newer Flutter versions rewrite
   `analysis_options.yaml` and `pubspec.lock` on `pub get`, and newer package
   versions need Flutter 3.47+. Revert those unless the change is intended.
+  `path_provider_foundation` is kept below 2.6 in `pubspec.yaml`: 2.6+ brings
+  build hooks (`objective_c`) that `build_runner` can't compile on 3.38.
 - The analyzer **infos** on newer Flutter are deprecation notices, not errors.
 - Generated files (`*.freezed.dart`, `*.g.dart`, `lib/core/l10n/generated/`) are
   committed; CI fails if they're stale. User-facing text goes in `app_en.arb`,
   colours in `core/theme/` (read with `context.majlis`), never inline in widgets.
-- Widget tests use `test/helpers/fakes.dart` (fake room API + fake sockets via
-  provider overrides); no test touches the network.
-- Backend tests use `GAME_BOTS_INLINE=True` (bots run synchronously) and the in-memory
-  channel layer. Script dice by patching `game.services.SecureDice.roll`.
+- Widget tests use `test/helpers/fakes.dart` (fake room API, fake sign-in API,
+  in-memory token store, fake sockets via provider overrides); no test touches the
+  network. `testApp()` opens signed in (a saved refresh token); pass
+  `tokens: MemoryTokenStore()` for a signed-out start.
+- Backend tests use `GAME_BOTS_INLINE=True` (bots run synchronously), the in-memory
+  channel layer and a local-memory cache (rate limits). Script dice by patching
+  `game.services.SecureDice.roll`. `GameApiTestCase.post(..., player_id=X)` signs in
+  as the account holding seat X; without it, as a brand-new guest.
 - Engine token index ↔ DB token: tokens of a player sorted by `str(id)` (the Flutter
   board uses the same order).
 - Games started before the engine (`Game.state` is NULL) return `409 legacy_game`.
-- Until accounts (1.6), seat actions need the device's `player_token` from
-  create/join (`game/player_auth.py`); tests get it via `GameApiTestCase.post`.
-  API errors are `{"error", "code"}`; the app maps `code` to text in
+- Accounts (1.6): every room endpoint needs `Authorization: Bearer <access>`; the
+  server finds the seat from the account (`Player.user`), never from the request
+  body. Leaving goes through `services.leave_room` (forfeit via `perform()`).
+  App side: `core/auth/` (`AuthController`, `TokenStore` = secure storage,
+  `AuthApi`), `core/network/auth_interceptor.dart` adds/refreshes tokens; the
+  router (`appRedirect`) sends signed-out players to `/welcome`. API errors are
+  `{"error", "code"}`; the app maps `code` to text in
   `core/l10n/api_error_text.dart` and never shows the server's English.
 - Navigation: five tabs in a GoRouter `StatefulShellRoute` (`app_router.dart`,
   `features/navigation/`); Battle, the centre tab, is the Home lobby at `/home`. Unbuilt sections use `ComingSoonPage` / `SoonBadge`.
   Device settings use `sharedPreferencesProvider` (null in tests unless overridden).
-- The app keeps the current room (`roomSessionProvider`) only in memory on phones
-  (web uses browser storage); persistent sessions arrive with accounts (step 1.6).
+- The current room (`roomSessionProvider`) lives in memory only; after a restart
+  the splash screen puts it back from `GET /api/me` → `active_room`.
+- A dev database from before 1.6 can't migrate (new user model): delete
+  `backend/core/db.sqlite3` and run `migrate` again.
 
 ## Status
 
 See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
 Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
-Flutter architecture + Majlis theme (1.4), main navigation (1.5).
-Next: 1.6 accounts with Player ID, 1.7 email + profile, 1.8 currency foundation.
+Flutter architecture + Majlis theme (1.4), main navigation (1.5), guest accounts with
+Player ID + session restore (1.6).
+Next: 1.7 email + profile, 1.8 currency foundation, 1.9 local play.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

@@ -2,6 +2,9 @@
 abstract final class AppRoutes {
   static const splash = '/';
 
+  /// First visit or signed out: "Play as guest" (more sign-in options later).
+  static const welcome = '/welcome';
+
   // Main navigation: five tabs (each keeps its own history). Battle, in the
   // centre, is the Home lobby where the app opens.
   static const events = '/events';
@@ -21,4 +24,8 @@ abstract final class AppRoutes {
 
   /// Game board for a game room: `/game/AB12` (full screen, no tab bar).
   static String game(String code) => '/game/$code';
+
+  /// The page for a room you're in: the board once the game has started.
+  static String roomOrGame(String code, {required bool started}) =>
+      started ? game(code) : room(code);
 }

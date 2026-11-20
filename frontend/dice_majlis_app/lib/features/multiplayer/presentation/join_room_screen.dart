@@ -38,7 +38,10 @@ class _JoinRoomScreenState extends ConsumerState<JoinRoomScreen> {
       final session = await ref.read(roomRepositoryProvider).joinRoom(code);
       if (!mounted) return;
       ref.read(roomSessionProvider.notifier).start(session);
-      context.push(AppRoutes.room(session.roomCode));
+      // Joining a game you're already playing takes you back to the board.
+      context.push(
+        AppRoutes.roomOrGame(session.roomCode, started: session.isStarted),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

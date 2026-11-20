@@ -8,19 +8,24 @@ platform.
 
 Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
-> **Status: early development.** Online games work end to end. The app has its
-> Majlis look (dark navy and gold, plus a light theme) and its main navigation;
-> accounts and profiles come next (see [roadmap](#roadmap)).
+> **Status: early development.** Online games work end to end, with guest
+> accounts and a permanent Player ID. The app has its Majlis look (dark navy and
+> gold, plus a light theme) and its main navigation; profiles and coins come next
+> (see [roadmap](#roadmap)).
 
 ---
 
 ## What works today
 
+- **Play as guest** — one tap gives you an account with a permanent 9-digit
+  **Player ID** (shown on Home, with a copy button). The app stays signed in
+  (secure phone storage) and you can sign out in Settings. Email, Google and Apple
+  sign-in say "coming soon"
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
 - **Play against a bot** — start alone and "Majlis AI" joins opposite you
 - **Server-controlled game** — the server rolls the dice and checks every move,
-  so the app can't cheat. Each device gets a private seat key, so nobody can
-  roll or move for someone else (signed-in accounts replace it in step 1.6)
+  so the app can't cheat. Your seat belongs to your account, so nobody can roll
+  or move for someone else
 - **Clear messages** — if something fails (room full, wrong code, no
   connection), the app says why
 - **Main navigation** — bottom bar with Events, Game Hub, Battle, Chat and Social;
@@ -31,9 +36,11 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   three sixes ends your turn, exact roll to get home
 - **30-second turn timer** — if a player is idle, the server plays for them;
   miss 3 turns in a row and you're removed, so a game never freezes
-- **Reconnect** — if the connection drops, the app reconnects and gets the full
-  game back (on web, even after a page refresh). Reopening a closed phone app
-  comes with accounts in step 1.6
+- **Come back to your game** — if the connection drops, the app reconnects and
+  gets the full game back. Close the app (or refresh the web page) and open it
+  again: it goes straight back to your waiting room or game
+- **Leave properly** — leaving a waiting room gives your seat back (the host role
+  passes on); leaving a game asks first, then you forfeit
 - **Move log** — every action is saved and any game can be replayed exactly
   (viewable in the Django admin)
 
@@ -57,6 +64,7 @@ DiceMajlis/
 │   └── core/                    # Django project (manage.py lives here)
 │       ├── core/                # settings, ASGI, URLs
 │       ├── ludo_engine/         # the Ludo rules engine + tests
+│       ├── accounts/            # guest sign-in, tokens, Player ID, devices
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app
@@ -117,22 +125,26 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
 
 If `DJANGO_ALLOWED_HOSTS` in `.env` isn't `*`, add that IP to it.
 
-> Updating from an older version? Run `python manage.py migrate` and start a new
-> game — games started before the rules engine can't be continued.
+> **Updating from an older version?** Step 1.6 added accounts, so the old local
+> database can't be upgraded. Stop the server, delete `backend/core/db.sqlite3`
+> (only test rooms are lost), then run `python manage.py migrate` again. The first
+> time the app opens, press **Play as guest**.
 
 ## Tests
 
 ```bash
-# Backend: rules engine + API, input checks, seat keys, sockets, turn timer (122 tests)
+# Backend: rules engine, accounts and tokens, API, input checks, seats, leaving,
+# sockets, turn timer (156 tests)
 cd backend/core
 python manage.py test
 
 # Rules engine only, without Django
 python -m unittest discover -s ludo_engine/tests -t .
 
-# Flutter: app start, navigation (tabs, back button), create/join/waiting-room
-# flow, error messages, routes, themes + saved theme, board (only server-listed
-# tokens move), server address, countdown
+# Flutter: sign-in (guest, staying signed in, offline retry, sign out, token
+# refresh), going back to your room, navigation, create/join/waiting-room/leave
+# flow, error messages, routes, themes, board (only server-listed tokens move,
+# leave game), server address, countdown
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -158,7 +170,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

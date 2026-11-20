@@ -4,7 +4,6 @@ from ludo_engine import MAX_PLAYERS, MIN_PLAYERS, SEAT_COLORS
 
 from .models import Player, Room
 
-NAME_MAX_LENGTH = Player._meta.get_field('name').max_length
 CODE_MAX_LENGTH = Room._meta.get_field('code').max_length
 
 
@@ -36,29 +35,23 @@ class RoomCodeField(serializers.CharField):
         return super().to_internal_value(data).upper()
 
 
-class _PlayerDetailsInput(serializers.Serializer):
-    # Optional: the server picks a name and a free seat colour when they're missing.
-    name = serializers.CharField(max_length=NAME_MAX_LENGTH, required=False, allow_blank=True)
-    color = serializers.ChoiceField(choices=SEAT_COLORS, required=False)
-
-
-class CreateRoomInput(_PlayerDetailsInput):
+class CreateRoomInput(serializers.Serializer):
     max_players = serializers.IntegerField(
         min_value=MIN_PLAYERS, max_value=MAX_PLAYERS, default=MAX_PLAYERS
     )
+    # Optional: the server picks a free seat colour when it's missing or taken.
+    color = serializers.ChoiceField(choices=SEAT_COLORS, required=False)
 
 
-class JoinRoomInput(_PlayerDetailsInput):
-    code = RoomCodeField()
-
-
-class SeatInput(serializers.Serializer):
-    """A request made from a seat: who is asking, and the secret proving it."""
+class RoomInput(serializers.Serializer):
+    """A request about one room. Who is asking comes from the sign-in, never the body."""
 
     code = RoomCodeField()
-    player_id = serializers.UUIDField()
-    player_token = serializers.CharField(max_length=128)
 
 
-class MoveTokenInput(SeatInput):
+class JoinRoomInput(RoomInput):
+    color = serializers.ChoiceField(choices=SEAT_COLORS, required=False)
+
+
+class MoveTokenInput(RoomInput):
     token_id = serializers.UUIDField()
