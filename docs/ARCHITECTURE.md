@@ -222,7 +222,7 @@ lib/
         └── presentation/     # pages, widgets, Riverpod controllers
 ```
 
-### What step 1.4 built ✅
+### What steps 1.4 and 1.5 built ✅
 
 ```
 lib/
@@ -232,15 +232,20 @@ lib/
 │   ├── config/app_config.dart    server address (--dart-define=API_BASE_URL)
 │   ├── network/api_service.dart  REST calls (Dio)
 │   ├── websocket/                socket_service.dart + socket_providers.dart (swappable in tests)
-│   ├── storage/                  session storage (browser storage on web, memory on phones)
+│   ├── storage/                  session storage (browser storage on web, memory on phones),
+│   │                             preferences.dart (device settings, shared_preferences)
 │   ├── theme/                    majlis_palette (raw colours), majlis_colors (ThemeExtension,
 │   │                             `context.majlis`), app_theme (dark + light), theme_mode_controller
-│   ├── routing/                  app_routes (paths), app_router (GoRouter + roomGuard)
+│   ├── routing/                  app_routes (paths), app_router (GoRouter: tab shell + roomGuard)
 │   └── l10n/                     app_en.arb → generated/ (flutter gen-l10n)
-├── shared/widgets/               MajlisBackground, MajlisButton, MajlisCard, MajlisWordmark, GlowContainer
+├── shared/widgets/               MajlisBackground, MajlisButton, MajlisCard, MajlisWordmark, GlowContainer,
+│                                 ComingSoonPage + SoonBadge (honest placeholders)
 └── features/
     ├── splash/presentation/
-    ├── home/presentation/
+    ├── navigation/presentation/  main_shell.dart (bottom bar), tab_placeholders.dart
+    ├── home/presentation/        Home: play, profile (soon), shortcuts
+    ├── hub/presentation/         Game Hub: Classic Ludo rooms + modes coming soon
+    ├── settings/presentation/    theme (saved on the device)
     ├── multiplayer/
     │   ├── data/room_repository.dart        typed room API (+ provider)
     │   ├── domain/room_session.dart         Freezed RoomSession / RoomPlayer
@@ -251,9 +256,16 @@ lib/
         └── presentation/          game_board_screen.dart + widgets/
 ```
 
-- **Routes:** `/`, `/home`, `/create-room`, `/join-room`, `/room/:code`, `/game/:code`.
+- **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Home · Events · Game Hub ·
+  Battle · Chat · Social**; each tab keeps its own history. `/home` (+ `/home/settings`),
+  `/events`, `/hub` (+ `/hub/create-room`, `/hub/join-room`), `/battle`, `/chat`, `/social`.
+  Rooms and games are full screen above the bar: `/room/:code`, `/game/:code`.
+  Back on another tab returns Home; back on Home leaves the app.
   `roomGuard` sends room and game links without a matching session to Home
   (a stale link or a phone that restarted).
+- **Unbuilt sections** (Events, Battle, Chat, Social, Shop, Rankings, ...) show
+  `ComingSoonPage` / a "Soon" badge, never made-up content. Each is replaced by its
+  real screen in its phase.
 - **State:** Riverpod. Screens get the API through `roomRepositoryProvider` and sockets
   through `socketServiceFactoryProvider`, so widget tests swap in fakes
   (`test/helpers/fakes.dart`) and never touch the network.
@@ -261,9 +273,8 @@ lib/
   After changing a Freezed model or `app_en.arb`, run
   `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`;
   CI fails if they are out of date.
-- **Not yet moved:** the game board still has its own strings and colours; they move to
-  l10n and theme tokens when the board is reworked (1.9 local play / 1.12). Arabic and
-  Urdu ARB files come with the language settings (Phase 2).
+- The board's strings and colours moved to l10n and theme tokens in the review fixes.
+  Arabic and Urdu ARB files come with the language settings (Phase 2).
 - Deleted: the old neon theme, `NeonButton`, `LoadingIndicator`, the unused win screen,
   and the empty `models/`, `providers/`, `utils/` files.
 

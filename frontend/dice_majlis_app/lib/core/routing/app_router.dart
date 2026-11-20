@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/hub/presentation/game_hub_screen.dart';
 import '../../features/ludo/presentation/game_board_screen.dart';
 import '../../features/multiplayer/domain/room_session.dart';
 import '../../features/multiplayer/domain/room_session_controller.dart';
 import '../../features/multiplayer/presentation/create_room_screen.dart';
 import '../../features/multiplayer/presentation/join_room_screen.dart';
 import '../../features/multiplayer/presentation/waiting_room_screen.dart';
+import '../../features/navigation/presentation/main_shell.dart';
+import '../../features/navigation/presentation/tab_placeholders.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'app_routes.dart';
@@ -25,6 +29,17 @@ String? roomGuard(RoomSession? session, Uri location) {
   return null;
 }
 
+/// One tab of the main navigation: its first page and the pages under it.
+StatefulShellBranch _tab(
+  String path,
+  Widget page, [
+  List<RouteBase> children = const [],
+]) => StatefulShellBranch(
+  routes: [
+    GoRoute(path: path, builder: (context, state) => page, routes: children),
+  ],
+);
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -35,18 +50,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+      // Home + the five tabs, with the bottom bar. The order here is the
+      // order of the bar (MainShell).
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => MainShell(navigationShell: shell),
+        branches: [
+          _tab(AppRoutes.home, const HomeScreen(), [
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) => const SettingsScreen(),
+            ),
+          ]),
+          _tab(AppRoutes.events, const EventsScreen()),
+          _tab(AppRoutes.hub, const GameHubScreen(), [
+            GoRoute(
+              path: 'create-room',
+              builder: (context, state) => const CreateRoomScreen(),
+            ),
+            GoRoute(
+              path: 'join-room',
+              builder: (context, state) => const JoinRoomScreen(),
+            ),
+          ]),
+          _tab(AppRoutes.battle, const BattleScreen()),
+          _tab(AppRoutes.chat, const ChatScreen()),
+          _tab(AppRoutes.social, const SocialScreen()),
+        ],
       ),
-      GoRoute(
-        path: AppRoutes.createRoom,
-        builder: (context, state) => const CreateRoomScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.joinRoom,
-        builder: (context, state) => const JoinRoomScreen(),
-      ),
+      // Rooms and games are full screen, above the tab bar.
       GoRoute(
         path: '/room/:code',
         builder: (context, state) =>

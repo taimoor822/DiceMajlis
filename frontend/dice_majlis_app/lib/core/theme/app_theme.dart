@@ -159,6 +159,34 @@ abstract final class AppTheme {
         iconColor: colors.onSurfaceVariant,
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: majlis.backgroundBottom,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: majlis.gold.withValues(alpha: 0.22),
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? majlis.gold
+                : majlis.textMuted,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => text.labelSmall?.copyWith(
+            color: states.contains(WidgetState.selected)
+                ? majlis.gold
+                : majlis.textMuted,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            // Six items share the bar: slightly smaller, no extra spacing,
+            // so labels stay on one line on small phones.
+            fontSize: 10.5,
+            letterSpacing: 0,
+          ),
+        ),
+      ),
     );
   }
 }

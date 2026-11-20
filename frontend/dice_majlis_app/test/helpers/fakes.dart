@@ -115,14 +115,19 @@ List<Override> fakeNetwork({
   socketServiceFactoryProvider.overrideWithValue(sockets.create),
 ];
 
-/// The whole app with fakes in place of the network.
+/// The whole app with fakes in place of the network. [overrides] adds more
+/// (e.g. settings storage).
 Widget testApp({
   required FakeRoomRepository repository,
   required FakeSockets sockets,
+  List<Override> overrides = const [],
 }) {
   SessionStorage.clear();
   return ProviderScope(
-    overrides: fakeNetwork(repository: repository, sockets: sockets),
+    overrides: [
+      ...fakeNetwork(repository: repository, sockets: sockets),
+      ...overrides,
+    ],
     child: const DiceMajlisApp(),
   );
 }

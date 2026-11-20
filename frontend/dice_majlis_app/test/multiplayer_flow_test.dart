@@ -9,9 +9,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/fakes.dart';
 
-Future<void> openHome(WidgetTester tester, Widget app) async {
+/// Starts the app and opens the Game Hub tab, where the room flow lives.
+Future<void> openHub(WidgetTester tester, Widget app) async {
   await tester.pumpWidget(app);
   await tester.pump(const Duration(seconds: 2)); // splash
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Game Hub'));
   await tester.pumpAndSettle();
 }
 
@@ -21,7 +24,7 @@ void main() {
   ) async {
     final repo = FakeRoomRepository();
     final sockets = FakeSockets();
-    await openHome(tester, testApp(repository: repo, sockets: sockets));
+    await openHub(tester, testApp(repository: repo, sockets: sockets));
 
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
@@ -63,7 +66,7 @@ void main() {
   testWidgets('a guest joins and waits for the host', (tester) async {
     final repo = FakeRoomRepository();
     final sockets = FakeSockets();
-    await openHome(tester, testApp(repository: repo, sockets: sockets));
+    await openHub(tester, testApp(repository: repo, sockets: sockets));
 
     await tester.tap(find.text('JOIN ROOM'));
     await tester.pumpAndSettle();
@@ -89,7 +92,7 @@ void main() {
   testWidgets('a failed create says why and stays put', (tester) async {
     final repo = FakeRoomRepository();
     final sockets = FakeSockets();
-    await openHome(tester, testApp(repository: repo, sockets: sockets));
+    await openHub(tester, testApp(repository: repo, sockets: sockets));
 
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
@@ -107,7 +110,7 @@ void main() {
     final repo = FakeRoomRepository(
       options: const RoomOptions(playerCounts: [2, 3], defaultPlayerCount: 3),
     );
-    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+    await openHub(tester, testApp(repository: repo, sockets: FakeSockets()));
 
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
@@ -129,7 +132,7 @@ void main() {
     tester,
   ) async {
     final repo = FakeRoomRepository(failWith: 'network_error');
-    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+    await openHub(tester, testApp(repository: repo, sockets: FakeSockets()));
 
     await tester.tap(find.text('CREATE ROOM'));
     await tester.pumpAndSettle();
@@ -145,7 +148,7 @@ void main() {
 
   testWidgets('joining a full room says so', (tester) async {
     final repo = FakeRoomRepository(failWith: 'room_full');
-    await openHome(tester, testApp(repository: repo, sockets: FakeSockets()));
+    await openHub(tester, testApp(repository: repo, sockets: FakeSockets()));
 
     await tester.tap(find.text('JOIN ROOM'));
     await tester.pumpAndSettle();

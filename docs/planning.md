@@ -24,7 +24,7 @@ The master prompt's priority list (items 1–15), in build order.
 - [x] **1.2** Turn timer, AFK handling, idle players removed
 - [x] **1.3** Dev setup + CI: requirements, production guard, Redis-free dev, server address setting, GitHub Actions, `CLAUDE.md`
 - [x] **1.4** Flutter architecture: `core/ shared/ features/`, Riverpod, GoRouter (guarded routes), Freezed, design system with the Majlis theme (dark + light), localisation-ready (item 1)
-- [ ] **1.5** Main navigation: Home + **Events · Game Hub · Battle · Chat · Social**; today's room flow lives in Game Hub; unbuilt sections say "coming soon" (item 3)
+- [x] **1.5** Main navigation: Home + **Events · Game Hub · Battle · Chat · Social**; today's room flow lives in Game Hub; unbuilt sections say "coming soon" (item 3)
 - [ ] **1.6** Accounts: guest login + JWT + **permanent 9-digit Player ID** + session restore; rooms use the account (item 2)
 - [ ] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
 - [ ] **1.8** Currency foundation: wallet ledger (two currencies), daily login reward, balances on Home (item 5, **S6**)

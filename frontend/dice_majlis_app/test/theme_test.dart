@@ -21,7 +21,7 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
-      expect(find.text('CREATE ROOM'), findsOneWidget);
+      expect(find.text('PLAY LUDO'), findsOneWidget);
     });
   }
 

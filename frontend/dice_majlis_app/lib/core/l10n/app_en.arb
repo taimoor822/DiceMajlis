@@ -6,9 +6,66 @@
 
   "commonRetry": "Try again",
 
+  "navHome": "Home",
+  "navEvents": "Events",
+  "navGameHub": "Game Hub",
+  "navBattle": "Battle",
+  "navChat": "Chat",
+  "navSocial": "Social",
+
+  "comingSoon": "Coming soon",
+  "comingSoonBadge": "Soon",
+  "comingSoonNamed": "{feature} is coming soon.",
+  "@comingSoonNamed": {
+    "placeholders": {
+      "feature": {"type": "String"}
+    }
+  },
+
   "homeSubtitle": "Ludo in the Majlis. Play with friends or the Majlis AI.",
-  "homeCreateRoom": "Create room",
-  "homeJoinRoom": "Join room",
+  "homePlay": "Play Ludo",
+  "homeJoinWithCode": "Join with a code",
+  "homeProfileTitle": "Your profile",
+  "homeProfileSoon": "Your Player ID, level and coins arrive with accounts.",
+  "homeShortcuts": "More",
+  "homeShop": "Shop",
+  "homeCollection": "Collection",
+  "homeRankings": "Rankings",
+  "homeVip": "VIP",
+  "homeNotifications": "Notifications",
+  "homeSettings": "Settings",
+
+  "hubTitle": "Game Hub",
+  "hubClassicTitle": "Classic Ludo",
+  "hubClassicBody": "Play with friends in a private room, or start alone and the Majlis AI joins you.",
+  "hubCreateRoom": "Create room",
+  "hubJoinRoom": "Join room",
+  "hubMoreModes": "More ways to play",
+  "hubLocalPlay": "Local play",
+  "hubLocalPlayBody": "Pass one phone around the table.",
+  "hubTeamLudo": "Team Ludo",
+  "hubTeamLudoBody": "Two against two, as partners.",
+  "hubTournaments": "Tournaments",
+  "hubTournamentsBody": "Brackets with prizes.",
+  "hubMoreGames": "More games",
+  "hubMoreGamesBody": "Domino and Jackaroo are next.",
+
+  "eventsTitle": "Events",
+  "eventsBody": "Live events, daily missions and rewards will appear here.",
+  "battleTitle": "Battle",
+  "battleBody": "Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.",
+  "battleOpenHub": "Open Game Hub",
+  "chatTitle": "Chat",
+  "chatBody": "Private and group chats with your friends will live here.",
+  "socialTitle": "Social",
+  "socialBody": "Find players, add friends and see what your Majlis is up to.",
+
+  "settingsTitle": "Settings",
+  "settingsTheme": "Theme",
+  "settingsThemeDark": "Dark",
+  "settingsThemeLight": "Light",
+  "settingsThemeSystem": "Phone",
+  "settingsThemeHint": "Phone follows your phone's dark mode setting.",
 
   "createRoomTitle": "Create room",
   "createRoomMaxPlayers": "How many players?",

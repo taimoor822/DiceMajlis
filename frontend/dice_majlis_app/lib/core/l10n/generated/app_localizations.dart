@@ -112,23 +112,305 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get commonRetry;
 
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// No description provided for @navEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get navEvents;
+
+  /// No description provided for @navGameHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Hub'**
+  String get navGameHub;
+
+  /// No description provided for @navBattle.
+  ///
+  /// In en, this message translates to:
+  /// **'Battle'**
+  String get navBattle;
+
+  /// No description provided for @navChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get navChat;
+
+  /// No description provided for @navSocial.
+  ///
+  /// In en, this message translates to:
+  /// **'Social'**
+  String get navSocial;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
+  /// No description provided for @comingSoonBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Soon'**
+  String get comingSoonBadge;
+
+  /// No description provided for @comingSoonNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'{feature} is coming soon.'**
+  String comingSoonNamed(String feature);
+
   /// No description provided for @homeSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Ludo in the Majlis. Play with friends or the Majlis AI.'**
   String get homeSubtitle;
 
-  /// No description provided for @homeCreateRoom.
+  /// No description provided for @homePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Ludo'**
+  String get homePlay;
+
+  /// No description provided for @homeJoinWithCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Join with a code'**
+  String get homeJoinWithCode;
+
+  /// No description provided for @homeProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile'**
+  String get homeProfileTitle;
+
+  /// No description provided for @homeProfileSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Player ID, level and coins arrive with accounts.'**
+  String get homeProfileSoon;
+
+  /// No description provided for @homeShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get homeShortcuts;
+
+  /// No description provided for @homeShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get homeShop;
+
+  /// No description provided for @homeCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get homeCollection;
+
+  /// No description provided for @homeRankings.
+  ///
+  /// In en, this message translates to:
+  /// **'Rankings'**
+  String get homeRankings;
+
+  /// No description provided for @homeVip.
+  ///
+  /// In en, this message translates to:
+  /// **'VIP'**
+  String get homeVip;
+
+  /// No description provided for @homeNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get homeNotifications;
+
+  /// No description provided for @homeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get homeSettings;
+
+  /// No description provided for @hubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game Hub'**
+  String get hubTitle;
+
+  /// No description provided for @hubClassicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic Ludo'**
+  String get hubClassicTitle;
+
+  /// No description provided for @hubClassicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Play with friends in a private room, or start alone and the Majlis AI joins you.'**
+  String get hubClassicBody;
+
+  /// No description provided for @hubCreateRoom.
   ///
   /// In en, this message translates to:
   /// **'Create room'**
-  String get homeCreateRoom;
+  String get hubCreateRoom;
 
-  /// No description provided for @homeJoinRoom.
+  /// No description provided for @hubJoinRoom.
   ///
   /// In en, this message translates to:
   /// **'Join room'**
-  String get homeJoinRoom;
+  String get hubJoinRoom;
+
+  /// No description provided for @hubMoreModes.
+  ///
+  /// In en, this message translates to:
+  /// **'More ways to play'**
+  String get hubMoreModes;
+
+  /// No description provided for @hubLocalPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Local play'**
+  String get hubLocalPlay;
+
+  /// No description provided for @hubLocalPlayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass one phone around the table.'**
+  String get hubLocalPlayBody;
+
+  /// No description provided for @hubTeamLudo.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Ludo'**
+  String get hubTeamLudo;
+
+  /// No description provided for @hubTeamLudoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Two against two, as partners.'**
+  String get hubTeamLudoBody;
+
+  /// No description provided for @hubTournaments.
+  ///
+  /// In en, this message translates to:
+  /// **'Tournaments'**
+  String get hubTournaments;
+
+  /// No description provided for @hubTournamentsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Brackets with prizes.'**
+  String get hubTournamentsBody;
+
+  /// No description provided for @hubMoreGames.
+  ///
+  /// In en, this message translates to:
+  /// **'More games'**
+  String get hubMoreGames;
+
+  /// No description provided for @hubMoreGamesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Domino and Jackaroo are next.'**
+  String get hubMoreGamesBody;
+
+  /// No description provided for @eventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get eventsTitle;
+
+  /// No description provided for @eventsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Live events, daily missions and rewards will appear here.'**
+  String get eventsBody;
+
+  /// No description provided for @battleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Battle'**
+  String get battleTitle;
+
+  /// No description provided for @battleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.'**
+  String get battleBody;
+
+  /// No description provided for @battleOpenHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Game Hub'**
+  String get battleOpenHub;
+
+  /// No description provided for @chatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chatTitle;
+
+  /// No description provided for @chatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Private and group chats with your friends will live here.'**
+  String get chatBody;
+
+  /// No description provided for @socialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Social'**
+  String get socialTitle;
+
+  /// No description provided for @socialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Find players, add friends and see what your Majlis is up to.'**
+  String get socialBody;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
+  /// No description provided for @settingsThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDark;
+
+  /// No description provided for @settingsThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsThemeLight;
+
+  /// No description provided for @settingsThemeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get settingsThemeSystem;
+
+  /// No description provided for @settingsThemeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone follows your phone\'s dark mode setting.'**
+  String get settingsThemeHint;
 
   /// No description provided for @createRoomTitle.
   ///
