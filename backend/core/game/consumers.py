@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class LobbyConsumer(AsyncWebsocketConsumer):
     """
     Read-only room channel: the server pushes lobby and game updates here.
-    Players act through the REST API (which checks their seat secret), never
-    through this socket.
+    Players act through the REST API (signed in with their account), never
+    through this socket. Sign-in on the socket arrives with /ws/v1/ (step 1.11).
     """
 
     async def connect(self):

@@ -80,9 +80,40 @@ INSTALLED_APPS = [
     'corsheaders',
     'channels',
 
+    'accounts',
     'game',
-    'users',
 ]
+
+# Our own user model (accounts.User): UUID key + permanent 9-digit Player ID.
+AUTH_USER_MODEL = 'accounts.User'
+
+REST_FRAMEWORK = {
+    # "Authorization: Bearer <access token>" (accounts.tokens). Views say who may call them.
+    'DEFAULT_AUTHENTICATION_CLASSES': ['accounts.authentication.AccessTokenAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
+    'EXCEPTION_HANDLER': 'core.api_errors.api_exception_handler',
+    # Proxies in front of the server (for per-IP rate limits). 0 = use the
+    # connecting address; never trust X-Forwarded-For unless a proxy sets it.
+    'NUM_PROXIES': int(os.getenv('DJANGO_NUM_PROXIES', '0')),
+}
+
+# Sign-in tokens (see accounts/tokens.py).
+import hashlib  # noqa: E402
+from datetime import timedelta  # noqa: E402
+
+_jwt_key = os.getenv('JWT_SIGNING_KEY', '')
+if not DEBUG and _jwt_key and len(_jwt_key) < 32:
+    raise ImproperlyConfigured("JWT_SIGNING_KEY must be at least 32 random characters when DJANGO_DEBUG=false.")
+# Without JWT_SIGNING_KEY, a key is derived from SECRET_KEY (always 64 characters).
+AUTH_JWT_SIGNING_KEY = _jwt_key or hashlib.sha256(f"dice-majlis-jwt:{SECRET_KEY}".encode()).hexdigest()
+AUTH_ACCESS_TOKEN_LIFETIME = timedelta(minutes=int(os.getenv('AUTH_ACCESS_MINUTES', '15')))
+AUTH_REFRESH_TOKEN_LIFETIME = timedelta(days=int(os.getenv('AUTH_REFRESH_DAYS', '30')))
+# Two refreshes racing on one device within this window are refused, not punished.
+AUTH_REFRESH_REUSE_GRACE = timedelta(seconds=30)
+AUTH_RATE_LIMITS = {
+    'guest_signup': os.getenv('AUTH_GUEST_SIGNUP_RATE', '20/hour'),
+    'auth_refresh': os.getenv('AUTH_REFRESH_RATE', '240/hour'),
+}
 
 
 
@@ -139,6 +170,13 @@ elif CHANNEL_LAYER == "redis":
             'CONFIG': {
                 'hosts': [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", "6379")))],
             },
+        },
+    }
+    # Shared cache (rate limits) for every server process.
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': f'redis://{os.getenv("REDIS_HOST", "127.0.0.1")}:{os.getenv("REDIS_PORT", "6379")}/1',
         },
     }
 else:

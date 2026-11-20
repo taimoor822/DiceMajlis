@@ -11,12 +11,15 @@ from unittest import mock
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.core.cache import cache
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 import ludo_engine as le
+from accounts import tokens as account_tokens
+from accounts.models import User
 from ludo_engine import GameState, TurnPhase
 
 from . import services, timers
@@ -24,48 +27,69 @@ from .consumers import LobbyConsumer
 from .models import Game, GameAction, Player, Token
 
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+LOCAL_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
 @override_settings(
     GAME_BOTS_INLINE=True,
     GAME_BOT_DELAY_SECONDS=(0, 0),
     CHANNEL_LAYERS=IN_MEMORY_LAYER,
+    CACHES=LOCAL_CACHE,
 )
 class GameApiTestCase(TestCase):
     capture_broadcasts = True
 
     def setUp(self):
+        cache.clear()
         self.api = APIClient()
-        self.sent = []
-        self.tokens = {}  # player id -> seat secret, as each device would keep it
+        self.sent = []  # game events, in order
+        self.lobby = []  # players_updated messages
+        self.access = {}  # seat (player) id -> that account's access token
         if self.capture_broadcasts:
-            patcher = mock.patch(
-                "game.services.broadcast",
-                side_effect=lambda code, msgs: self.sent.extend(m["payload"] for m in msgs),
-            )
+            patcher = mock.patch("game.services.broadcast", side_effect=self._capture)
             patcher.start()
             self.addCleanup(patcher.stop)
 
+    def _capture(self, code, messages):
+        for message in messages:
+            if message["type"] == "game_event":
+                self.sent.append(message["payload"])
+            else:
+                self.lobby.append(message)
+
     # ---- helpers ---------------------------------------------------------
 
-    def post(self, endpoint, **data):
-        """POST like the app: seat requests carry that player's own secret."""
-        if "player_id" in data and "player_token" not in data:
-            data["player_token"] = self.tokens.get(str(data["player_id"]), "no-secret")
-        return self.api.post(f"/api/game/{endpoint}/", data, format="json")
+    def new_account(self):
+        """A fresh guest account signed in on its own phone; returns its access token."""
+        user = User.objects.create_guest()
+        return account_tokens.start_session(user, device_id="test-device", platform="other").access
 
-    def create_room(self, name="Host", color="red"):
-        r = self.post("create-room", name=name, color=color, max_players=4)
+    def post(self, endpoint, *, player_id=None, as_account=None, signed_in=True, **data):
+        """
+        POST like the app. Signed in as the account sitting at ``player_id``, or
+        ``as_account`` (an access token), or else a brand-new guest. The seat
+        itself is never sent: the server finds it from the account.
+        """
+        headers = {}
+        if signed_in:
+            token = as_account or self.access.get(str(player_id)) or self.new_account()
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        return self.api.post(f"/api/game/{endpoint}/", data, format="json", **headers)
+
+    def create_room(self, color="red", max_players=4, account=None):
+        account = account or self.new_account()
+        r = self.post("create-room", as_account=account, color=color, max_players=max_players)
         self.assertEqual(r.status_code, 201, r.data)
         player_id = str(r.data["player"]["id"])
-        self.tokens[player_id] = r.data["player_token"]
+        self.access[player_id] = account
         return r.data["room"]["code"], player_id
 
-    def join(self, code, name, color="blue"):
-        r = self.post("join-room", code=code, name=name, color=color)
+    def join(self, code, color="blue", account=None):
+        account = account or self.new_account()
+        r = self.post("join-room", as_account=account, code=code, color=color)
         self.assertEqual(r.status_code, 200, r.data)
         player_id = str(r.data["player"]["id"])
-        self.tokens[player_id] = r.data["player_token"]
+        self.access[player_id] = account
         return player_id
 
     def start(self, code, host):
@@ -74,7 +98,7 @@ class GameApiTestCase(TestCase):
 
     def two_humans(self):
         code, host = self.create_room()
-        guest = self.join(code, "Guest")
+        guest = self.join(code)
         self.start(code, host)
         return code, host, guest
 
@@ -115,8 +139,8 @@ class GameApiTestCase(TestCase):
 class StartGameTests(GameApiTestCase):
     def test_players_keep_their_colour_seat_and_clashes_get_a_free_seat(self):
         code, host = self.create_room(color="red")
-        a = self.join(code, "A", color="blue")
-        b = self.join(code, "B", color="blue")  # the app sends blue for every joiner
+        a = self.join(code, color="blue")
+        b = self.join(code, color="blue")  # two people asking for the same colour
         self.start(code, host)
 
         seats = {p.player_id: p.seat for p in self.state(code).players}
@@ -140,10 +164,10 @@ class StartGameTests(GameApiTestCase):
 
     def test_only_the_host_can_start(self):
         code, host = self.create_room()
-        guest = self.join(code, "Guest")
+        guest = self.join(code)
         r = self.post("start-game", code=code, player_id=guest)
         self.assertEqual((r.status_code, r.data["code"]), (403, "not_host"))
-        r = self.post("start-game", code=code, player_id="not-a-uuid")
+        r = self.post("start-game")
         self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
 
 
@@ -308,7 +332,7 @@ class SafetyTests(GameApiTestCase):
         self.assertEqual((r.status_code, r.data["code"]), (409, "legacy_game"))
 
     def test_unknown_room(self):
-        r = self.post("roll-dice", code="NOPE", player_id="00000000-0000-4000-8000-000000000000")
+        r = self.post("roll-dice", code="NOPE")
         self.assertEqual((r.status_code, r.data["code"]), (404, "room_not_found"))
 
 
@@ -481,21 +505,22 @@ class RoomInputTests(GameApiTestCase):
         r = self.post("create-room", max_players="3")
         self.assertEqual((r.status_code, r.data["room"]["max_players"]), (201, 3))
 
-    def test_names_and_colours_are_checked(self):
-        r = self.post("create-room", name="x" * 31)
-        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
+    def test_colours_are_checked(self):
         r = self.post("create-room", color="purple")
         self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
 
-    def test_server_picks_names_and_free_seats_when_the_app_sends_none(self):
-        r = self.post("create-room", max_players=4)
+    def test_names_come_from_the_account_and_seats_are_picked_by_the_server(self):
+        host = self.new_account()
+        r = self.post("create-room", as_account=host, max_players=4, name="Somebody else")
         code = r.data["room"]["code"]
-        self.assertEqual((r.data["player"]["name"], r.data["player"]["color"]), ("Player 1", "red"))
-        joined = [self.post("join-room", code=code).data["player"] for _ in range(3)]
+        host_user = User.objects.get(seats__id=r.data["player"]["id"])
         self.assertEqual(
-            [(p["name"], p["color"]) for p in joined],
-            [("Player 2", "green"), ("Player 3", "blue"), ("Player 4", "yellow")],
+            (r.data["player"]["name"], r.data["player"]["color"]), (host_user.public_name, "red")
         )
+        joined = [self.post("join-room", code=code).data["player"] for _ in range(3)]
+        self.assertEqual([p["color"] for p in joined], ["green", "blue", "yellow"])
+        for seat in joined:
+            self.assertEqual(seat["name"], User.objects.get(seats__id=seat["id"]).public_name)
 
     def test_join_accepts_any_case_and_reports_why_it_failed(self):
         code, _ = self.create_room()
@@ -518,53 +543,172 @@ class RoomInputTests(GameApiTestCase):
         self.assertEqual((r.status_code, r.data["code"]), (400, "game_already_started"))
 
     def test_room_codes_use_the_secure_random_generator(self):
+        account = self.new_account()  # signing up uses secrets.choice too
         with mock.patch("game.views.secrets.choice", return_value="Q") as choice:
-            r = self.post("create-room")
+            r = self.post("create-room", as_account=account)
         self.assertEqual(r.data["room"]["code"], "QQQQ")
         self.assertEqual(choice.call_count, 4)
 
 
-class SeatSecretTests(GameApiTestCase):
-    """Knowing someone's player id (the whole room sees it) is not enough to play for them."""
+class AccountSeatTests(GameApiTestCase):
+    """Rooms belong to accounts: your seat is the one your account holds."""
 
-    def test_each_device_gets_its_own_secret_and_only_a_hash_is_stored(self):
+    def test_rooms_need_a_signed_in_account(self):
         code, host = self.create_room()
-        guest = self.join(code, "Guest")
-        self.assertNotEqual(self.tokens[host], self.tokens[guest])
-        stored = Player.objects.get(id=host).secret_hash
-        self.assertEqual(len(stored), 64)
-        self.assertNotIn(self.tokens[host], stored)
+        for endpoint in ("create-room", "join-room", "start-game", "roll-dice", "move-token", "leave-room"):
+            r = self.post(endpoint, signed_in=False, code=code)
+            self.assertEqual((r.status_code, r.data["code"]), (401, "not_authenticated"), endpoint)
+        r = self.api.get("/api/game/room-options/")
+        self.assertEqual(r.status_code, 200)  # reading the rules needs no account
 
-    def test_you_cannot_roll_or_move_for_someone_else(self):
-        code, host, guest = self.two_humans()
-        # The guest knows the host's id but not the host's secret.
-        r = self.post("roll-dice", code=code, player_id=host, player_token=self.tokens[guest])
-        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
-        self.dice(6)
-        self.post("roll-dice", code=code, player_id=host)
-        token = self.token_ids(code, host)[0]
-        r = self.post("move-token", code=code, player_id=host, token_id=token, player_token="guess")
-        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
-        self.assertEqual(Token.objects.get(id=token).position, -1)
-
-    def test_only_the_host_with_their_secret_can_start(self):
-        code, host = self.create_room()
-        self.join(code, "Guest")
-        r = self.post("start-game", code=code, player_id=host, player_token="")
-        self.assertEqual((r.status_code, r.data["code"]), (400, "invalid_input"))
-        r = self.post("start-game", code=code, player_id=host, player_token="wrong")
-        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
-        self.assertFalse(self.game_exists(code))
-
-    def test_nobody_can_act_as_the_bot(self):
+    def test_seats_are_linked_to_accounts_and_bots_have_none(self):
         code, host = self.create_room()
         self.start(code, host)
-        bot = str(Player.objects.get(room__code=code, is_bot=True).id)
-        r = self.post("roll-dice", code=code, player_id=bot, player_token="anything")
-        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_seat"))
+        self.assertIsNotNone(Player.objects.get(id=host).user)
+        self.assertIsNone(Player.objects.get(room__code=code, is_bot=True).user)
 
-    def game_exists(self, code):
-        return Game.objects.filter(room__code=code).exists()
+    def test_you_cannot_act_in_a_room_you_are_not_in(self):
+        code, host, _ = self.two_humans()
+        outsider = self.new_account()
+        for endpoint in ("start-game", "roll-dice"):
+            r = self.post(endpoint, as_account=outsider, code=code)
+            self.assertEqual((r.status_code, r.data["code"]), (403, "not_in_room"), endpoint)
+        r = self.post(
+            "move-token", as_account=outsider, code=code, token_id=self.token_ids(code, host)[0]
+        )
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_in_room"))
+
+    def test_you_only_ever_play_your_own_seat(self):
+        code, host, guest = self.two_humans()
+        # It's the host's turn; the guest asking to roll is the guest rolling.
+        r = self.post("roll-dice", code=code, player_id=guest)
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_turn"))
+        self.dice(6)
+        self.post("roll-dice", code=code, player_id=host)
+        r = self.post("move-token", code=code, player_id=guest, token_id=self.token_ids(code, host)[0])
+        self.assertEqual((r.status_code, r.data["code"]), (404, "not_your_token"))
+
+    def test_joining_twice_gives_back_the_same_seat(self):
+        code, host = self.create_room()
+        account = self.new_account()
+        first = self.join(code, account=account)
+        second = self.join(code, account=account)
+        self.assertEqual(first, second)
+        self.assertEqual(Player.objects.filter(room__code=code).count(), 2)
+        # The host joining their own room is fine too.
+        r = self.post("join-room", player_id=host, code=code)
+        self.assertEqual((r.status_code, str(r.data["player"]["id"])), (200, host))
+
+    def test_you_can_rejoin_a_started_game_you_are_in(self):
+        code, host, guest = self.two_humans()
+        r = self.post("join-room", player_id=guest, code=code)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual((str(r.data["player"]["id"]), r.data["room"]["is_started"]), (guest, True))
+
+    def test_one_game_at_a_time(self):
+        code, host, _ = self.two_humans()
+        account = self.access[host]
+        r = self.post("create-room", as_account=account)
+        self.assertEqual((r.status_code, r.data["code"]), (409, "already_in_game"))
+        self.assertEqual(r.data["room_code"], code)
+        other, _ = self.create_room()
+        r = self.post("join-room", as_account=account, code=other)
+        self.assertEqual((r.status_code, r.data["code"]), (409, "already_in_game"))
+
+    def test_a_new_room_replaces_the_one_you_were_waiting_in(self):
+        account = self.new_account()
+        alone, _ = self.create_room(account=account)
+        shared, host = self.create_room()
+        guest = self.join(shared, account=account)
+        self.assertFalse(Player.objects.filter(room__code=alone).exists())  # empty room closed
+        self.create_room(account=account)
+        self.assertFalse(Player.objects.filter(id=guest).exists())
+        self.assertTrue(Player.objects.filter(id=host).exists())
+
+
+class LeaveRoomTests(GameApiTestCase):
+    def test_leaving_before_the_start_frees_the_seat(self):
+        code, host = self.create_room()
+        guest = self.join(code)
+        self.lobby.clear()
+        r = self.post("leave-room", player_id=guest, code=code)
+        self.assertEqual((r.status_code, r.data), (200, {"status": "left"}))
+        self.assertFalse(Player.objects.filter(id=guest).exists())
+        self.assertEqual(self.lobby[-1]["type"], "players_updated")
+        self.assertEqual([p["id"] for p in self.lobby[-1]["players"]], [host])
+
+    def test_the_host_role_passes_on_and_an_empty_room_closes(self):
+        code, host = self.create_room()
+        guest = self.join(code)
+        self.post("leave-room", player_id=host, code=code)
+        self.assertTrue(Player.objects.get(id=guest).is_host)
+        self.post("leave-room", player_id=guest, code=code)
+        self.assertFalse(Player.objects.filter(room__code=code).exists())
+        self.assertEqual(self.post("join-room", code=code).data["code"], "room_not_found")
+
+    def test_leaving_a_game_forfeits_it(self):
+        code, host, guest = self.two_humans()
+        r = self.post("leave-room", player_id=guest, code=code)
+        self.assertEqual(r.status_code, 200)
+        state = self.state(code)
+        self.assertEqual(state.player(guest).status, le.PlayerStatus.FORFEITED)
+        self.assertEqual(state.winner_id, host)  # only one player was left
+        self.assertIn("player_forfeited", self.sent_types())
+        self.assertEqual(GameAction.objects.last().action["type"], "forfeit")
+
+    def test_leaving_twice_or_an_unknown_room_is_fine(self):
+        code, host, guest = self.two_humans()
+        self.post("leave-room", player_id=guest, code=code)
+        r = self.post("leave-room", player_id=guest, code=code)
+        self.assertEqual(r.status_code, 200)
+        r = self.post("leave-room", code="ZZZZ")
+        self.assertEqual(r.status_code, 200)
+
+    def test_leaving_a_bot_game_on_the_bots_turn_lets_the_game_end(self):
+        code, host = self.create_room()
+        self.start(code, host)
+        self.post("leave-room", player_id=host, code=code)
+        self.assertTrue(self.game(code).is_finished)
+
+
+class SessionRestoreTests(GameApiTestCase):
+    """GET /api/me tells the app which room to go back to."""
+
+    def me(self, account):
+        return self.api.get("/api/me/", HTTP_AUTHORIZATION=f"Bearer {account}").data
+
+    def test_active_room_follows_the_account(self):
+        account = self.new_account()
+        self.assertIsNone(self.me(account)["active_room"])
+        code, host = self.create_room(account=account)
+        room = self.me(account)["active_room"]
+        self.assertEqual(
+            room,
+            {"code": code, "seat_id": host, "is_host": True, "max_players": 4, "started": False},
+        )
+        guest = self.join(code)
+        self.start(code, host)
+        self.assertTrue(self.me(account)["active_room"]["started"])
+        self.assertEqual(self.me(self.access[guest])["active_room"]["code"], code)
+
+    def test_no_active_room_after_leaving_or_when_the_game_ends(self):
+        code, host, guest = self.two_humans()
+        self.post("leave-room", player_id=guest, code=code)
+        self.assertIsNone(self.me(self.access[guest])["active_room"])
+        self.assertIsNone(self.me(self.access[host])["active_room"])  # the game is over
+
+    def test_a_player_removed_for_idling_has_no_active_room(self):
+        code, host, guest = self.two_humans()
+        game = self.game(code)
+        state = self.state(code)
+        players = tuple(
+            replace(p, status=le.PlayerStatus.FORFEITED) if p.player_id == host else p
+            for p in state.players
+        )
+        game.state = replace(state, players=players).to_dict()
+        game.save(update_fields=["state"])
+        self.assertIsNone(self.me(self.access[host])["active_room"])
+        self.assertEqual(self.me(self.access[guest])["active_room"]["code"], code)
 
 
 class MovableTokenTests(GameApiTestCase):

@@ -1,7 +1,8 @@
 """
 Room and game REST API. Every request is checked here before anything changes:
-inputs are validated, and seat actions (start, roll, move) need the player's
-seat secret (see game.player_auth). Game state itself only changes through
+inputs are validated, and every room action needs a signed-in account
+(accounts app). Your seat is the one your account holds in that room; the app
+never says which player it is. Game state itself only changes through
 game.services.
 
 Errors always look like ``{"error": "<message>", "code": "<stable_code>"}``;
@@ -15,7 +16,8 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ludo_engine import (
@@ -27,15 +29,15 @@ from ludo_engine import (
     UnknownPlayer,
 )
 
-from . import player_auth, services
+from . import services
 from .models import Game, Player, Room
 from .serializers import (
     CreateRoomInput,
     JoinRoomInput,
     MoveTokenInput,
     PlayerSerializer,
+    RoomInput,
     RoomSerializer,
-    SeatInput,
 )
 
 ROOM_CODE_LENGTH = 4
@@ -61,8 +63,19 @@ def _room_not_found():
     return _error('Room not found', 'room_not_found', status.HTTP_404_NOT_FOUND)
 
 
-def _not_your_seat():
-    return _error('This seat belongs to someone else', 'not_your_seat', status.HTTP_403_FORBIDDEN)
+def _not_in_room():
+    return _error('You are not in this room', 'not_in_room', status.HTTP_403_FORBIDDEN)
+
+
+def _already_in_game(room):
+    return Response(
+        {
+            'error': 'You are still playing another game',
+            'code': 'already_in_game',
+            'room_code': room.code,
+        },
+        status=status.HTTP_409_CONFLICT,
+    )
 
 
 def _game_error_response(exc):
@@ -86,33 +99,18 @@ def _game_error_response(exc):
     raise exc
 
 
-def _seat_owner(room, player_id, secret):
-    """The human player at ``player_id`` in ``room`` if ``secret`` is theirs, else None."""
-    player = Player.objects.filter(id=player_id, room=room, is_bot=False).first()
-    if player is None or not player_auth.owns_seat(player, secret):
-        return None
-    return player
+def _my_seat(room, user):
+    """The seat ``user`` holds in ``room``, or None."""
+    return room.players.filter(user=user, is_bot=False).first()
 
 
 def generate_room_code():
     return ''.join(secrets.choice(ROOM_CODE_ALPHABET) for _ in range(ROOM_CODE_LENGTH))
 
 
-def broadcast_players(room):
-    async_to_sync(get_channel_layer().group_send)(
-        services.group_name(room.code),
-        {'type': 'players_updated', 'players': services.players_payload(room)},
-    )
-
-
-def _joined_response(room, player, secret, http_status):
+def _seat_response(room, player, http_status):
     return Response(
-        {
-            'room': RoomSerializer(room).data,
-            'player': PlayerSerializer(player).data,
-            # Only this device gets it. Send it back with start / roll / move.
-            'player_token': secret,
-        },
+        {'room': RoomSerializer(room).data, 'player': PlayerSerializer(player).data},
         status=http_status,
     )
 
@@ -135,11 +133,19 @@ def room_options(request):
 # =========================
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_room(request):
     form = CreateRoomInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
     data = form.validated_data
+    user = request.user
+
+    # One game at a time; an older room you were only waiting in is left for you.
+    playing = services.game_in_progress_for(user)
+    if playing is not None:
+        return _already_in_game(playing)
+    services.leave_waiting_rooms(user)
 
     with transaction.atomic():
         code = generate_room_code()
@@ -148,13 +154,13 @@ def create_room(request):
         room = Room.objects.create(code=code, max_players=data['max_players'])
         player = Player.objects.create(
             room=room,
-            name=data.get('name') or services.default_player_name(room),
+            user=user,
+            name=user.public_name,
             color=services.color_for_new_player(room, data.get('color')),
             is_host=True,
         )
-        secret = player_auth.issue_secret(player)
 
-    return _joined_response(room, player, secret, status.HTTP_201_CREATED)
+    return _seat_response(room, player, status.HTTP_201_CREATED)
 
 
 # =========================
@@ -162,11 +168,26 @@ def create_room(request):
 # =========================
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def join_room(request):
+    """Take a seat. Joining a room you are already in just returns your seat."""
     form = JoinRoomInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
     data = form.validated_data
+    user = request.user
+
+    room = Room.objects.filter(code=data['code']).first()
+    if room is None:
+        return _room_not_found()
+    seat = _my_seat(room, user)
+    if seat is not None:
+        return _seat_response(room, seat, status.HTTP_200_OK)
+
+    playing = services.game_in_progress_for(user, exclude_room=room)
+    if playing is not None:
+        return _already_in_game(playing)
+    services.leave_waiting_rooms(user, keep=room)
 
     with transaction.atomic():
         # Locked so two people can't take the last seat at the same moment.
@@ -180,14 +201,14 @@ def join_room(request):
 
         player = Player.objects.create(
             room=room,
-            name=data.get('name') or services.default_player_name(room),
+            user=user,
+            name=user.public_name,
             color=services.color_for_new_player(room, data.get('color')),
             is_host=False,
         )
-        secret = player_auth.issue_secret(player)
 
-    broadcast_players(room)
-    return _joined_response(room, player, secret, status.HTTP_200_OK)
+    services.broadcast_players(room)
+    return _seat_response(room, player, status.HTTP_200_OK)
 
 
 # =========================
@@ -195,8 +216,9 @@ def join_room(request):
 # =========================
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def start_game(request):
-    form = SeatInput(data=request.data)
+    form = RoomInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
     data = form.validated_data
@@ -205,9 +227,9 @@ def start_game(request):
         room = Room.objects.select_for_update().filter(code=data['code']).first()
         if room is None:
             return _room_not_found()
-        host = _seat_owner(room, data['player_id'], data['player_token'])
+        host = _my_seat(room, request.user)
         if host is None:
-            return _not_your_seat()
+            return _not_in_room()
         if not host.is_host:
             return _error('Only the host can start the game', 'not_host', status.HTTP_403_FORBIDDEN)
         if room.is_started:
@@ -248,9 +270,10 @@ def start_game(request):
 # =========================
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def roll_dice(request):
     """The server rolls (SecureDice); the client only asks to roll."""
-    form = SeatInput(data=request.data)
+    form = RoomInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
     data = form.validated_data
@@ -258,11 +281,12 @@ def roll_dice(request):
     room = Room.objects.filter(code=data['code']).first()
     if room is None:
         return _room_not_found()
-    if _seat_owner(room, data['player_id'], data['player_token']) is None:
-        return _not_your_seat()
+    seat = _my_seat(room, request.user)
+    if seat is None:
+        return _not_in_room()
 
     try:
-        result = services.perform(room.code, {'type': 'roll', 'player_id': str(data['player_id'])})
+        result = services.perform(room.code, {'type': 'roll', 'player_id': str(seat.id)})
     except Game.DoesNotExist:
         return _error('The game has not started', 'game_not_started', status.HTTP_400_BAD_REQUEST)
     except (EngineError, services.GameConflict, services.LegacyGame) as exc:
@@ -283,19 +307,22 @@ def roll_dice(request):
 # =========================
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def move_token(request):
     """Move one of your tokens by the rolled value. The engine decides if it's legal."""
     form = MoveTokenInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
     data = form.validated_data
-    player_id, token_id = str(data['player_id']), str(data['token_id'])
+    token_id = str(data['token_id'])
 
     room = Room.objects.filter(code=data['code']).first()
     if room is None:
         return _room_not_found()
-    if _seat_owner(room, player_id, data['player_token']) is None:
-        return _not_your_seat()
+    seat = _my_seat(room, request.user)
+    if seat is None:
+        return _not_in_room()
+    player_id = str(seat.id)
 
     my_tokens = services.token_ids_by_player(room).get(player_id, [])
     if token_id not in my_tokens:
@@ -318,3 +345,28 @@ def move_token(request):
     if result.state.is_finished and result.state.winner_id == player_id:
         return Response({'winner': True, 'version': result.state.version})
     return Response({'success': True, 'version': result.state.version})
+
+
+# =========================
+# LEAVE ROOM
+# =========================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def leave_room(request):
+    """
+    Leave a room. Before the start your seat is freed (the host role passes on);
+    during a game you forfeit. Leaving a room you are not in is not an error.
+    """
+    form = RoomInput(data=request.data)
+    if not form.is_valid():
+        return _invalid(form)
+
+    room = Room.objects.filter(code=form.validated_data['code']).first()
+    seat = _my_seat(room, request.user) if room is not None else None
+    if seat is not None:
+        try:
+            services.leave_room(seat)
+        except services.GameConflict as exc:
+            return _game_error_response(exc)
+    return Response({'status': 'left'})

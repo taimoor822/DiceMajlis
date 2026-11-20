@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db import models
+from django.db.models import Q
 import uuid
 
 
@@ -22,9 +24,25 @@ class Player(models.Model):
     is_host = models.BooleanField(default=False)
     is_bot = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
-    # SHA-256 of the seat secret only this player's device holds (game.player_auth).
-    # Empty for bots and for players created before secrets existed.
-    secret_hash = models.CharField(max_length=64, blank=True, default='')
+    # The account sitting here. NULL for bots (and if an account is ever deleted,
+    # so the game history stays intact).
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='seats',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        constraints = [
+            # One seat per account in a room.
+            models.UniqueConstraint(
+                fields=['room', 'user'],
+                condition=Q(user__isnull=False),
+                name='unique_seat_per_user',
+            ),
+        ]
 
     def __str__(self):
         return self.name

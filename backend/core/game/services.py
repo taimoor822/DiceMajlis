@@ -121,11 +121,6 @@ def color_for_new_player(room: Room, requested: str | None = None) -> str:
     return COLOR_BY_SEAT[seat]
 
 
-def default_player_name(room: Room) -> str:
-    """Placeholder until profiles (plan step 1.7) give people real names."""
-    return f"Player {room.players.count() + 1}"
-
-
 def bot_seat_for(used_seats: set[int], host_seat: int) -> int:
     """Classic 2-player Ludo: the bot sits opposite the host when it can."""
     for offset in (2, 1, 3):
@@ -170,6 +165,122 @@ def start_game(room: Room, host: Player) -> tuple[Game, GameState]:
         for _ in range(state.rules.tokens_per_player):
             Token.objects.create(player=player)
     return game, state
+
+
+# ---------------------------------------------------------------------------
+# Seats held by accounts
+# ---------------------------------------------------------------------------
+
+
+def seats_of(user, *, exclude_room: Room | None = None) -> list[Player]:
+    """``user``'s seats in rooms that are not over yet, newest first."""
+    seats = (
+        Player.objects.filter(user=user, is_bot=False)
+        .exclude(room__game__is_finished=True)
+        .select_related("room")
+        .order_by("-joined_at")
+    )
+    if exclude_room is not None:
+        seats = seats.exclude(room=exclude_room)
+    return list(seats)
+
+
+def seat_in_play(player: Player) -> bool:
+    """
+    Whether ``player`` still has something to come back to: a room that has not
+    started, or a running game they have not finished, left or timed out of.
+    """
+    room = player.room
+    if not room.is_started:
+        return True
+    game = Game.objects.filter(room=room).only("state", "is_finished").first()
+    if game is None or game.is_finished or game.state is None:
+        return False
+    try:
+        status = GameState.from_dict(game.state).player(str(player.id)).status
+    except EngineError:
+        return False
+    return status is engine.PlayerStatus.ACTIVE
+
+
+def active_seat_for(user) -> dict[str, Any] | None:
+    """The room ``user`` goes back to when the app opens (session restore), or None."""
+    for seat in seats_of(user):
+        if seat_in_play(seat):
+            room = seat.room
+            return {
+                "code": room.code,
+                "seat_id": str(seat.id),
+                "is_host": seat.is_host,
+                "max_players": room.max_players,
+                "started": room.is_started,
+            }
+    return None
+
+
+def game_in_progress_for(user, *, exclude_room: Room | None = None) -> Room | None:
+    """A started game ``user`` is still playing (one game at a time), or None."""
+    for seat in seats_of(user, exclude_room=exclude_room):
+        if seat.room.is_started and seat_in_play(seat):
+            return seat.room
+    return None
+
+
+def leave_waiting_rooms(user, *, keep: Room | None = None) -> None:
+    """Free ``user``'s seats in rooms that have not started (except ``keep``)."""
+    for seat in seats_of(user, exclude_room=keep):
+        if not seat.room.is_started:
+            leave_room(seat, forfeit=False)
+
+
+def leave_room(player: Player, *, forfeit: bool = True) -> None:
+    """
+    The account at ``player`` leaves its room.
+
+    Room not started: the seat is freed, the host role passes to the next
+    person, and a room with nobody left closes. Game started: they forfeit
+    (through perform(), like every game change) unless ``forfeit`` is False.
+    Already out of the game, or the game is over: nothing to do.
+    """
+    with transaction.atomic():
+        room = Room.objects.select_for_update().filter(pk=player.room_id).first()
+        if room is None:
+            return
+        started = room.is_started
+        closed = False if started else _free_seat(room, player)
+    if not started:
+        if not closed:
+            broadcast_players(room)
+        return
+    if not forfeit:
+        return
+
+    action = {"type": "forfeit", "player_id": str(player.id), "reason": "left"}
+    for attempt in range(3):
+        try:
+            result = perform(room.code, action)
+        except GameConflict:
+            if attempt == 2:
+                raise
+            continue
+        except (EngineError, LegacyGame, Game.DoesNotExist):
+            return  # already out, or the game is over
+        if result.next_is_bot:
+            schedule_bots(room.code)
+        return
+
+
+def _free_seat(room: Room, player: Player) -> bool:
+    """Remove a seat from a room that has not started. True if the room closed."""
+    was_host = player.is_host
+    Player.objects.filter(pk=player.pk).delete()
+    successor = room.players.filter(is_bot=False).order_by("joined_at").first()
+    if successor is None:
+        room.delete()
+        return True
+    if was_host:
+        Player.objects.filter(pk=successor.pk).update(is_host=True)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +564,11 @@ def socket_messages(
 
 def group_name(room_code: str) -> str:
     return f"lobby_{room_code}"
+
+
+def broadcast_players(room: Room) -> None:
+    """Tell everyone watching ``room`` who is seated now."""
+    broadcast(room.code, [{"type": "players_updated", "players": players_payload(room)}])
 
 
 def broadcast(room_code: str, messages: list[dict]) -> None:
