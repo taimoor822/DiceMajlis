@@ -112,12 +112,6 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get commonRetry;
 
-  /// No description provided for @navHome.
-  ///
-  /// In en, this message translates to:
-  /// **'Home'**
-  String get navHome;
-
   /// No description provided for @navEvents.
   ///
   /// In en, this message translates to:
@@ -333,24 +327,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Live events, daily missions and rewards will appear here.'**
   String get eventsBody;
-
-  /// No description provided for @battleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Battle'**
-  String get battleTitle;
-
-  /// No description provided for @battleBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.'**
-  String get battleBody;
-
-  /// No description provided for @battleOpenHub.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Game Hub'**
-  String get battleOpenHub;
 
   /// No description provided for @chatTitle.
   ///

@@ -23,8 +23,9 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   roll or move for someone else (signed-in accounts replace it in step 1.6)
 - **Clear messages** — if something fails (room full, wrong code, no
   connection), the app says why
-- **Main navigation** — bottom bar with Home, Events, Game Hub, Battle, Chat and
-  Social. Rooms live in Game Hub; sections not built yet say "coming soon"
+- **Main navigation** — bottom bar with Events, Game Hub, Battle, Chat and Social;
+  Battle in the centre is the Home lobby. Rooms live in Game Hub; sections not built
+  yet say "coming soon"
 - **Dark and light themes** — pick one in Settings; the phone remembers it
 - **Full Ludo rules** — enter on a 6, captures, safe squares, extra turns,
   three sixes ends your turn, exact roll to get home

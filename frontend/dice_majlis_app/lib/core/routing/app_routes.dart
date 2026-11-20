@@ -2,11 +2,11 @@
 abstract final class AppRoutes {
   static const splash = '/';
 
-  // Main navigation: Home and the five tabs (each keeps its own history).
-  static const home = '/home';
+  // Main navigation: five tabs (each keeps its own history). Battle, in the
+  // centre, is the Home lobby where the app opens.
   static const events = '/events';
   static const hub = '/hub';
-  static const battle = '/battle';
+  static const home = '/home';
   static const chat = '/chat';
   static const social = '/social';
 

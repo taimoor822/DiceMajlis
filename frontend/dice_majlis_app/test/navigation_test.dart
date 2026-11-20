@@ -1,4 +1,5 @@
-// Main navigation: Home + Events · Game Hub · Battle · Chat · Social.
+// Main navigation: Events · Game Hub · Battle · Chat · Social, where Battle
+// (centre) is the Home lobby the app opens on.
 
 import 'package:dice_majlis_app/core/storage/preferences.dart';
 import 'package:dice_majlis_app/core/theme/theme_mode_controller.dart';
@@ -15,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fakes.dart';
 
-const tabs = ['Home', 'Events', 'Game Hub', 'Battle', 'Chat', 'Social'];
+const tabs = ['Events', 'Game Hub', 'Battle', 'Chat', 'Social'];
 
 Future<void> openApp(
   WidgetTester tester, {
@@ -46,8 +47,13 @@ Future<void> pressBack(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('the bar shows Home and the five tabs, in order', (tester) async {
+  testWidgets('the bar shows the five tabs; the app opens on Battle', (
+    tester,
+  ) async {
     await openApp(tester);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(bar.selectedIndex, tabs.indexOf('Battle'));
     final labels = tester
         .widgetList<NavigationDestination>(find.byType(NavigationDestination))
         .map((d) => d.label)
@@ -62,15 +68,14 @@ void main() {
     final pages = <String, Type>{
       'Events': EventsScreen,
       'Game Hub': GameHubScreen,
-      'Battle': BattleScreen,
       'Chat': ChatScreen,
       'Social': SocialScreen,
-      'Home': HomeScreen,
+      'Battle': HomeScreen,
     };
     for (final MapEntry(key: tab, value: page) in pages.entries) {
       await tapTab(tester, tab);
       expect(find.byType(page), findsOneWidget, reason: tab);
-      final soon = ['Events', 'Battle', 'Chat', 'Social'].contains(tab);
+      final soon = ['Events', 'Chat', 'Social'].contains(tab);
       expect(
         find.byType(ComingSoonPage),
         soon ? findsOneWidget : findsNothing,
@@ -96,7 +101,7 @@ void main() {
     expect(find.byType(GameHubScreen), findsOneWidget);
   });
 
-  testWidgets('back closes the inner page first, then goes Home', (
+  testWidgets('back closes the inner page first, then goes to the lobby', (
     tester,
   ) async {
     await openApp(tester);
@@ -109,16 +114,6 @@ void main() {
 
     await pressBack(tester);
     expect(find.byType(HomeScreen), findsOneWidget);
-  });
-
-  testWidgets('Battle points to the room flow that works today', (
-    tester,
-  ) async {
-    await openApp(tester);
-    await tapTab(tester, 'Battle');
-    await tester.tap(find.text('OPEN GAME HUB'));
-    await tester.pumpAndSettle();
-    expect(find.byType(GameHubScreen), findsOneWidget);
   });
 
   testWidgets('Home shortcuts: Settings opens, the rest say coming soon', (
