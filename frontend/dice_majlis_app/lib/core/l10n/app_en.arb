@@ -6,7 +6,6 @@
 
   "commonRetry": "Try again",
 
-  "navHome": "Home",
   "navEvents": "Events",
   "navGameHub": "Game Hub",
   "navBattle": "Battle",
@@ -52,9 +51,6 @@
 
   "eventsTitle": "Events",
   "eventsBody": "Live events, daily missions and rewards will appear here.",
-  "battleTitle": "Battle",
-  "battleBody": "Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.",
-  "battleOpenHub": "Open Game Hub",
   "chatTitle": "Chat",
   "chatBody": "Private and group chats with your friends will live here.",
   "socialTitle": "Social",

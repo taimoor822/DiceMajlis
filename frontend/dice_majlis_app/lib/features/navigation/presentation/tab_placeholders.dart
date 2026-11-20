@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/generated/app_localizations.dart';
-import '../../../core/routing/app_routes.dart';
 import '../../../shared/widgets/coming_soon.dart';
-import '../../../shared/widgets/majlis_button.dart';
 
 // The tabs whose features come in later phases. Each one is replaced by its
-// real screen when built (Events: Phase 8, Battle: Phases 4/6, Chat and
-// Social: Phase 5; see docs/planning.md).
+// real screen when built (Events: Phase 8, Chat and Social: Phase 5; see
+// docs/planning.md). Battle is the Home lobby (home_screen.dart).
 
 class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});
@@ -20,26 +17,6 @@ class EventsScreen extends StatelessWidget {
       title: l10n.eventsTitle,
       icon: Icons.celebration_outlined,
       message: l10n.eventsBody,
-    );
-  }
-}
-
-class BattleScreen extends StatelessWidget {
-  const BattleScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ComingSoonPage(
-      title: l10n.battleTitle,
-      icon: Icons.bolt_outlined,
-      message: l10n.battleBody,
-      action: MajlisButton(
-        label: l10n.battleOpenHub,
-        icon: Icons.casino_outlined,
-        style: MajlisButtonStyle.secondary,
-        onPressed: () => context.go(AppRoutes.hub),
-      ),
     );
   }
 }

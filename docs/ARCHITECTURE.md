@@ -243,7 +243,7 @@ lib/
 └── features/
     ├── splash/presentation/
     ├── navigation/presentation/  main_shell.dart (bottom bar), tab_placeholders.dart
-    ├── home/presentation/        Home: play, profile (soon), shortcuts
+    ├── home/presentation/        Home lobby (Battle tab): play, profile (soon), shortcuts
     ├── hub/presentation/         Game Hub: Classic Ludo rooms + modes coming soon
     ├── settings/presentation/    theme (saved on the device)
     ├── multiplayer/
@@ -256,14 +256,15 @@ lib/
         └── presentation/          game_board_screen.dart + widgets/
 ```
 
-- **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Home · Events · Game Hub ·
-  Battle · Chat · Social**; each tab keeps its own history. `/home` (+ `/home/settings`),
-  `/events`, `/hub` (+ `/hub/create-room`, `/hub/join-room`), `/battle`, `/chat`, `/social`.
+- **Routes (1.5):** a `StatefulShellRoute` gives the bottom bar **Events · Game Hub ·
+  Battle · Chat · Social**; each tab keeps its own history. Battle, in the centre, is the
+  Home lobby where the app opens. `/events`, `/hub` (+ `/hub/create-room`,
+  `/hub/join-room`), `/home` (+ `/home/settings`), `/chat`, `/social`.
   Rooms and games are full screen above the bar: `/room/:code`, `/game/:code`.
-  Back on another tab returns Home; back on Home leaves the app.
+  Back on another tab returns to the lobby; back there leaves the app.
   `roomGuard` sends room and game links without a matching session to Home
   (a stale link or a phone that restarted).
-- **Unbuilt sections** (Events, Battle, Chat, Social, Shop, Rankings, ...) show
+- **Unbuilt sections** (Events, Chat, Social, Shop, Rankings, ...) show
   `ComingSoonPage` / a "Soon" badge, never made-up content. Each is replaced by its
   real screen in its phase.
 - **State:** Riverpod. Screens get the API through `roomRepositoryProvider` and sockets

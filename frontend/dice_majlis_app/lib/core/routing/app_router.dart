@@ -50,17 +50,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
       ),
-      // Home + the five tabs, with the bottom bar. The order here is the
-      // order of the bar (MainShell).
+      // The five tabs, with the bottom bar. The order here is the order of
+      // the bar (MainShell); Battle, in the centre, is the Home lobby.
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(navigationShell: shell),
         branches: [
-          _tab(AppRoutes.home, const HomeScreen(), [
-            GoRoute(
-              path: 'settings',
-              builder: (context, state) => const SettingsScreen(),
-            ),
-          ]),
           _tab(AppRoutes.events, const EventsScreen()),
           _tab(AppRoutes.hub, const GameHubScreen(), [
             GoRoute(
@@ -72,7 +66,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const JoinRoomScreen(),
             ),
           ]),
-          _tab(AppRoutes.battle, const BattleScreen()),
+          _tab(AppRoutes.home, const HomeScreen(), [
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) => const SettingsScreen(),
+            ),
+          ]),
           _tab(AppRoutes.chat, const ChatScreen()),
           _tab(AppRoutes.social, const SocialScreen()),
         ],

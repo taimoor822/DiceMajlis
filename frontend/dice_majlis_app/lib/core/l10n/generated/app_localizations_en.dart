@@ -18,9 +18,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Try again';
 
   @override
-  String get navHome => 'Home';
-
-  @override
   String get navEvents => 'Events';
 
   @override
@@ -133,16 +130,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get eventsBody =>
       'Live events, daily missions and rewards will appear here.';
-
-  @override
-  String get battleTitle => 'Battle';
-
-  @override
-  String get battleBody =>
-      'Quick Match, Ranked and Team Battles are on the way. Until then, start a private room in Game Hub.';
-
-  @override
-  String get battleOpenHub => 'Open Game Hub';
 
   @override
   String get chatTitle => 'Chat';

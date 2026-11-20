@@ -69,14 +69,16 @@ Where the prompts overlap, they're merged, not duplicated:
 
 **Home** sits above the tabs (the app opens there): avatar, name, level/XP, coins and
 gems, league and rank, featured content, announcements, shortcuts to Shop, Collection,
-Rankings, VIP, Notifications, Settings. In the app (step 1.5) Home is the first item
-of the bottom bar, so it is always one tap away: **Home · Events · Game Hub · Battle ·
-Chat · Social**.
+Rankings, VIP, Notifications, Settings. **Home is the game lobby, and the Battle tab in
+the centre of the bar opens it** (decided 2026-11-20 from the owner's reference
+screens): **Events · Game Hub · Battle · Chat · Social**. The lobby shows the games as a
+carousel (Ludo · Jackaroo · Domino) with mode tiles; tapping a mode opens a match setup
+(players, rules variant, entry). Design: the "Dice Majlis — Home design" canvas.
 
 ### Routing
 
-- GoRouter with a `StatefulShellRoute` for Home and the five tabs (each keeps its own
-  stack). Built in step 1.5.
+- GoRouter with a `StatefulShellRoute` for the five tabs (each keeps its own stack);
+  Battle (centre) is the Home lobby at `/home`. Built in step 1.5.
 - **Guarded routes:** signed-out users go to login; VIP-only screens check entitlements;
   routes for unfinished features show a clear "coming soon" page, never fake content.
 - Deep links (`dicemajlis://room/ABCD`, `/profile/123456789`, `/tournament/…`) for
@@ -85,7 +87,7 @@ Chat · Social**.
 ```
 /splash → /login | /home
 /home   (+ /shop /collection /rankings /vip /notifications /settings /profile/:playerId)
-/events · /hub · /battle · /chat · /social          ← the five tabs
+/events · /hub · /home (Battle) · /chat · /social  ← the five tabs
 /hub/ludo/:mode · /room/:code · /game/:gameId · /local
 ```
 

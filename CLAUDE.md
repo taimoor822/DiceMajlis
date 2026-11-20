@@ -116,8 +116,8 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   create/join (`game/player_auth.py`); tests get it via `GameApiTestCase.post`.
   API errors are `{"error", "code"}`; the app maps `code` to text in
   `core/l10n/api_error_text.dart` and never shows the server's English.
-- Navigation: Home + five tabs in a GoRouter `StatefulShellRoute` (`app_router.dart`,
-  `features/navigation/`). Unbuilt sections use `ComingSoonPage` / `SoonBadge`.
+- Navigation: five tabs in a GoRouter `StatefulShellRoute` (`app_router.dart`,
+  `features/navigation/`); Battle, the centre tab, is the Home lobby at `/home`. Unbuilt sections use `ComingSoonPage` / `SoonBadge`.
   Device settings use `sharedPreferencesProvider` (null in tests unless overridden).
 - The app keeps the current room (`roomSessionProvider`) only in memory on phones
   (web uses browser storage); persistent sessions arrive with accounts (step 1.6).
