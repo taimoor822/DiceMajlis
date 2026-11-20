@@ -9,9 +9,9 @@ platform.
 Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 
 > **Status: early development.** Online games work end to end, with accounts
-> (guest or email), a permanent Player ID and a basic profile. The app has its
-> Majlis look (dark navy and gold, plus a light theme) and its main navigation;
-> coins come next (see [roadmap](#roadmap)).
+> (guest or email), a permanent Player ID, a basic profile, and Gold and Diamonds
+> with a daily reward. The app has its Majlis look (dark navy and gold, plus a light
+> theme) and its main navigation; local play comes next (see [roadmap](#roadmap)).
 
 ---
 
@@ -25,6 +25,12 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 - **Profile** — your name, avatar (16 built-in pictures), country, the languages you
   speak, and your level with an XP bar. Home shows your avatar, name, level and Player
   ID. Earning XP from games comes in Phase 2
+- **Gold and Diamonds** — balances at the top of Home and a **Wallet** with the full
+  history of every change. A **daily reward** grows for 7 days in a row (day 7 adds
+  diamonds); miss a day and it starts again. The day changes at midnight Bahrain
+  time, by the server's clock. Balances only change on the server, through a ledger
+  that can't be edited, and the team can grant or take back currency in the admin
+  with a reason. Buying gold and diamonds comes later
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
 - **Play against a bot** — start alone and "Majlis AI" joins opposite you
 - **Server-controlled game** — the server rolls the dice and checks every move,
@@ -70,6 +76,8 @@ DiceMajlis/
 │       ├── ludo_engine/         # the Ludo rules engine + tests
 │       ├── accounts/            # sign-in (guest, email), tokens, Player ID, devices, password reset
 │       ├── profiles/            # name, avatar, country, languages, XP/level
+│       ├── wallet/              # gold + diamonds: ledger, admin adjustments, audit
+│       ├── rewards/             # grant() engine, daily reward
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app
@@ -141,8 +149,8 @@ code is printed in the terminal where the server runs (look for "Your code is").
 ## Tests
 
 ```bash
-# Backend: rules engine, accounts (guest, email, tokens, reset), profiles, API,
-# input checks, seats, leaving, sockets, turn timer (190 tests)
+# Backend: rules engine, accounts (guest, email, tokens, reset), profiles, wallet
+# ledger, rewards, API, input checks, seats, leaving, sockets, turn timer (224 tests)
 cd backend/core
 python manage.py test
 
@@ -150,7 +158,8 @@ python manage.py test
 python -m unittest discover -s ludo_engine/tests -t .
 
 # Flutter: sign-in (guest, email, forgotten password, save account, staying signed
-# in, offline retry, sign out, token refresh), profile editing, going back to your
+# in, offline retry, sign out, token refresh), profile editing, balances, daily
+# reward, wallet history, going back to your
 # room, navigation, create/join/waiting-room/leave flow, error messages, routes,
 # themes, board (only server-listed tokens move, leave game), server address, countdown
 cd frontend/dice_majlis_app
@@ -178,7 +187,7 @@ All of these are settings in `backend/core/ludo_engine/rules.py`.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · currency · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

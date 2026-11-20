@@ -14,10 +14,12 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
 import '../../../shared/widgets/player_avatar.dart';
+import '../../rewards/presentation/daily_reward_card.dart';
+import '../../wallet/presentation/balance_chips.dart';
 
-/// Where the app opens. The profile card shows the signed-in account; wallet
-/// and the shortcuts fill in as their plan steps land (profile 1.7, currency
-/// 1.8, ...); until then they say "coming soon" instead of made-up numbers.
+/// Where the app opens: balances, profile card, daily reward, play buttons.
+/// The shortcuts fill in as their plan steps land; until then they say
+/// "coming soon" instead of made-up numbers.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -38,13 +40,16 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: IconButton(
-                        tooltip: l10n.homeSettings,
-                        icon: const Icon(Icons.settings_outlined),
-                        onPressed: () => context.go(AppRoutes.settings),
-                      ),
+                    Row(
+                      children: [
+                        const BalanceChips(),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: l10n.homeSettings,
+                          icon: const Icon(Icons.settings_outlined),
+                          onPressed: () => context.go(AppRoutes.settings),
+                        ),
+                      ],
                     ),
                     MajlisWordmark(
                       title: l10n.appTitle,
@@ -74,6 +79,8 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     const _ProfileCard(),
+                    const SizedBox(height: 16),
+                    const DailyRewardCard(),
                     const SizedBox(height: 24),
                     Text(
                       l10n.homeShortcuts,

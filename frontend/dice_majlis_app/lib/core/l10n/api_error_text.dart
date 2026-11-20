@@ -44,6 +44,8 @@ extension ApiErrorText on AppLocalizations {
       'invalid_code' => errorInvalidCode,
       'code_expired' => errorCodeExpired,
       'too_many_attempts' => errorTooManyCodeTries,
+      'already_claimed' => errorAlreadyClaimed,
+      'insufficient_funds' => errorInsufficientFunds,
       'invalid_input' => errorInvalidInput,
       _ => errorGeneric,
     };

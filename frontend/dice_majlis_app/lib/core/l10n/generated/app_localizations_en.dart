@@ -265,6 +265,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeShortcuts => 'More';
 
   @override
+  String get homeWallet => 'Wallet';
+
+  @override
+  String get currencyGold => 'Gold';
+
+  @override
+  String get currencyDiamond => 'Diamonds';
+
+  @override
+  String get dailyTitle => 'Daily reward';
+
+  @override
+  String dailyDay(int day) {
+    return 'Day $day';
+  }
+
+  @override
+  String get dailyClaim => 'Claim';
+
+  @override
+  String dailyClaimed(int day) {
+    return 'Claimed! Come back tomorrow for day $day.';
+  }
+
+  @override
+  String dailyNextIn(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+      zero: 'less than an hour',
+    );
+    return 'Next reward in $_temp0';
+  }
+
+  @override
+  String get dailyHint =>
+      'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.';
+
+  @override
+  String dailyGot(String amount) {
+    return 'You got $amount';
+  }
+
+  @override
+  String get dailyFailed => 'Couldn\'t load the daily reward.';
+
+  @override
+  String get walletTitle => 'Wallet';
+
+  @override
+  String get walletHistory => 'History';
+
+  @override
+  String get walletEmpty =>
+      'Nothing yet. Claim your daily reward to get started.';
+
+  @override
+  String get walletLoadMore => 'Show more';
+
+  @override
+  String get walletFailed => 'Couldn\'t load your wallet.';
+
+  @override
+  String get walletEarnHint =>
+      'Earn gold every day. Buying gold and diamonds comes later.';
+
+  @override
+  String get walletTypeDaily => 'Daily reward';
+
+  @override
+  String get walletTypeAdminGrant => 'From the Dice Majlis team';
+
+  @override
+  String get walletTypeAdminRevoke => 'Taken back by the team';
+
+  @override
+  String get walletTypeReversal => 'Correction';
+
+  @override
+  String get walletTypeOther => 'Other';
+
+  @override
   String get homeShop => 'Shop';
 
   @override
@@ -612,6 +696,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorPasswordSimilar =>
       'That password is too close to your email.';
+
+  @override
+  String get errorAlreadyClaimed => 'Today\'s reward is already claimed.';
+
+  @override
+  String get errorInsufficientFunds => 'You don\'t have enough for that.';
 
   @override
   String get errorNotYourTurn => 'It\'s not your turn.';

@@ -32,6 +32,9 @@ backend/core/              Django project (run manage.py from here)
                            guest account, password reset code, /api/me
   profiles/                Profile (name, avatar key, country, languages, XP),
                            level curve, PATCH /api/me/profile/
+  wallet/                  gold + diamond accounts, append-only ledger, post() /
+                           reverse(), admin adjustments, audit_wallets command
+  rewards/                 grant() engine, reward-day (00:00 Bahrain), daily login
   ludo_engine/             PURE Python rules engine + tests (no Django inside)
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
@@ -83,9 +86,10 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~190 tests)
+python manage.py test                                  # everything (~225 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
+python manage.py audit_wallets                         # every balance = its ledger
 
 # Flutter (from frontend/dice_majlis_app)
 flutter pub get
@@ -151,18 +155,29 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   (signed in / out / loading), not when the account is updated (profile edits).
 - Country names and the picker come from `country_picker`; its names load through
   `core/l10n/country_names.dart` (synchronous, so the first frame isn't blank).
+- Wallet (1.8): currencies are `gold` and `diamond`. Balances change only through
+  `wallet.services.post()` (or `reverse()`); ledger rows can't be saved twice or
+  deleted (`LedgerIsAppendOnly`). Rewards go through `rewards.engine.grant()` with an
+  idempotency key; add a new reward kind to `LEDGER_TYPES` and a new ledger type to
+  `TransactionType`. Daily reward amounts are placeholders in `rewards/daily.py`.
+  Tests pin the clock by passing `now=` (reward-day = Bahrain time).
+- App economy state: `balancesProvider` (set it from any answer that brings new
+  balances), `dailyRewardProvider`. Widget tests get wallet/reward fakes from
+  `fakeNetwork()`, or `fakeEconomy()` when pumping a screen alone.
 
 ## Status
 
 See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation).
 Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
 Flutter architecture + Majlis theme (1.4), main navigation (1.5), guest accounts with
-Player ID + session restore (1.6), email sign-in + password reset + basic profile (1.7).
-Next: 1.8 currency foundation, 1.9 local play, 1.10 game platform layer.
+Player ID + session restore (1.6), email sign-in + password reset + basic profile (1.7),
+gold + diamonds wallet ledger, grant() and daily reward (1.8).
+Next: 1.9 local play, 1.10 game platform layer, 1.11 WebSocket v1.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.
 
-Decided: real money yes (two currencies + VIP via App Store / Google Play).
+Decided: real money yes (two currencies + VIP via App Store / Google Play); the
+currencies are **Gold** and **Diamonds**.
 Open owner decisions and their defaults: table at the end of `docs/planning.md`.
 Ask when the phase that needs one starts.
