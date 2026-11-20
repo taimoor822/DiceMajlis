@@ -82,6 +82,8 @@ INSTALLED_APPS = [
 
     'accounts',
     'profiles',
+    'wallet',
+    'rewards',
     'game',
 ]
 
@@ -126,6 +128,10 @@ AUTH_LOGIN_FAILURE_WINDOW = timedelta(minutes=15)
 AUTH_RESET_CODE_LIFETIME = timedelta(hours=1)
 AUTH_RESET_CODE_ATTEMPTS = 5
 AUTH_RESET_CODES_PER_HOUR = 5
+
+# Daily rewards reset at the same moment for everyone (the server's clock decides).
+REWARD_DAY_TIMEZONE = os.getenv('REWARD_DAY_TIMEZONE', 'Asia/Bahrain')
+REWARD_DAY_START_HOUR = int(os.getenv('REWARD_DAY_START_HOUR', '0'))
 
 # Email (password reset codes). Development prints emails in the server's terminal.
 # Production: set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and the
