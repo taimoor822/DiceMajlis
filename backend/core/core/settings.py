@@ -108,8 +108,9 @@ if not DEBUG and _jwt_key and len(_jwt_key) < 32:
 AUTH_JWT_SIGNING_KEY = _jwt_key or hashlib.sha256(f"dice-majlis-jwt:{SECRET_KEY}".encode()).hexdigest()
 AUTH_ACCESS_TOKEN_LIFETIME = timedelta(minutes=int(os.getenv('AUTH_ACCESS_MINUTES', '15')))
 AUTH_REFRESH_TOKEN_LIFETIME = timedelta(days=int(os.getenv('AUTH_REFRESH_DAYS', '30')))
-# Two refreshes racing on one device within this window are refused, not punished.
-AUTH_REFRESH_REUSE_GRACE = timedelta(seconds=30)
+# The previous refresh token still works this long after it was replaced (the
+# answer may have been lost on a bad network). Later = copied token, session ended.
+AUTH_REFRESH_REUSE_GRACE = timedelta(minutes=2)
 AUTH_RATE_LIMITS = {
     'guest_signup': os.getenv('AUTH_GUEST_SIGNUP_RATE', '20/hour'),
     'auth_refresh': os.getenv('AUTH_REFRESH_RATE', '240/hour'),

@@ -1,11 +1,12 @@
 // The board never guesses the rules: only tokens the server lists can move.
 
 import 'package:dice_majlis_app/app.dart';
+import 'package:dice_majlis_app/core/auth/auth_controller.dart';
 import 'package:dice_majlis_app/core/routing/app_router.dart';
 import 'package:dice_majlis_app/core/routing/app_routes.dart';
-import 'package:dice_majlis_app/core/storage/session_storage.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/game_board_screen.dart';
+import 'package:dice_majlis_app/features/ludo/presentation/widgets/dice_widget.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/widgets/player_token.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session_controller.dart';
@@ -43,22 +44,28 @@ Map<String, dynamic> snapshot({
   'winner_id': winner,
 };
 
-/// Opens /game/AB12 with a host session already in place.
-Future<FakeSockets> openBoard(WidgetTester tester) async {
-  SessionStorage.clear();
+/// Opens /game/AB12, signed in, with a host session already in place.
+Future<FakeSockets> openBoard(
+  WidgetTester tester, {
+  FakeRoomRepository? repository,
+}) async {
   final sockets = FakeSockets();
   final container = ProviderContainer(
-    overrides: fakeNetwork(repository: FakeRoomRepository(), sockets: sockets),
+    overrides: fakeNetwork(
+      repository: repository ?? FakeRoomRepository(),
+      sockets: sockets,
+    ),
   );
   addTearDown(container.dispose);
+  await container.read(authControllerProvider.notifier).restore();
   container
       .read(roomSessionProvider.notifier)
       .start(
         const RoomSession(
           roomCode: 'AB12',
           playerId: me,
-          playerToken: 'secret-host',
           isHost: true,
+          isStarted: true,
         ),
       );
   await tester.pumpWidget(
@@ -127,5 +134,46 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('leaving asks first, then forfeits on the server', (
+    tester,
+  ) async {
+    final repo = FakeRoomRepository();
+    final sockets = await openBoard(tester, repository: repo);
+    sockets.last.emit(snapshot());
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Leave game'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Leave this game?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(repo.calls, isEmpty);
+    expect(find.byType(GameBoardScreen), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Leave game'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Leave'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(repo.calls, ['leave:AB12']);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('rolling asks the server; the app never sends who it is', (
+    tester,
+  ) async {
+    final repo = FakeRoomRepository();
+    final sockets = await openBoard(tester, repository: repo);
+    sockets.last.emit(snapshot());
+    await tester.pump();
+
+    await tester.tap(find.byType(DiceWidget));
+    await tester.pump();
+    expect(repo.calls, ['roll:AB12']);
   });
 }

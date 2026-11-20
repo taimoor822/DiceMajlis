@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/auth/account.dart';
+
 part 'room_session.freezed.dart';
 part 'room_session.g.dart';
 
@@ -18,30 +20,30 @@ abstract class RoomPlayer with _$RoomPlayer {
       _$RoomPlayerFromJson(json);
 }
 
-/// The room this device is currently in. Replaces passing untyped route
-/// arguments between screens (those were lost on a web refresh).
+/// The room this account is currently in. Replaces passing untyped route
+/// arguments between screens.
 @freezed
 abstract class RoomSession with _$RoomSession {
   const factory RoomSession({
     required String roomCode,
-    required String playerId,
 
-    /// Secret only this device holds; proves the seat is ours on start /
-    /// roll / move. Never shown, never shared.
-    required String playerToken,
+    /// This account's seat (player) id in the room.
+    required String playerId,
     @Default(false) bool isHost,
 
-    /// Seats in the room, as the server set them. Null when unknown
-    /// (e.g. restored after a web refresh).
+    /// True once the game has started.
+    @Default(false) bool isStarted,
+
+    /// Seats in the room, as the server set them. Null when unknown.
     int? maxPlayers,
 
-    /// This device's own player entry, when the server sent it.
+    /// This account's own player entry, when the server sent it.
     RoomPlayer? self,
   }) = _RoomSession;
 
   /// From the create-room / join-room API response:
-  /// `{"room": {"code": ..., "max_players": ...},
-  ///   "player": {"id": ..., "is_host": ...}, "player_token": ...}`.
+  /// `{"room": {"code": ..., "max_players": ..., "is_started": ...},
+  ///   "player": {"id": ..., "is_host": ...}}`.
   factory RoomSession.fromRoomResponse(Map<String, dynamic> response) {
     final room = Map<String, dynamic>.from(response['room'] as Map);
     final player = Map<String, dynamic>.from(response['player'] as Map);
@@ -50,17 +52,22 @@ abstract class RoomSession with _$RoomSession {
       'id': player['id'].toString(),
     });
     final maxPlayers = room['max_players'];
-    final token = response['player_token'];
-    if (token is! String || token.isEmpty) {
-      throw const FormatException('Room response has no player_token');
-    }
     return RoomSession(
       roomCode: room['code'].toString(),
       playerId: self.id,
-      playerToken: token,
       isHost: self.isHost,
+      isStarted: room['is_started'] == true,
       maxPlayers: maxPlayers is num ? maxPlayers.toInt() : null,
       self: self,
     );
   }
+
+  /// The room the server says this account is in (app start).
+  factory RoomSession.fromActiveRoom(ActiveRoom room) => RoomSession(
+    roomCode: room.code,
+    playerId: room.seatId,
+    isHost: room.isHost,
+    isStarted: room.started,
+    maxPlayers: room.maxPlayers,
+  );
 }

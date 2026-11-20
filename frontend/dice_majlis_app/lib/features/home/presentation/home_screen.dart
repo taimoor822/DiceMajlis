@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/account.dart';
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
@@ -10,9 +14,9 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
 
-/// Where the app opens. Profile, wallet and the shortcuts fill in as their
-/// plan steps land (accounts 1.6, currency 1.8, ...); until then they say
-/// "coming soon" instead of showing made-up numbers.
+/// Where the app opens. The profile card shows the signed-in account; wallet
+/// and the shortcuts fill in as their plan steps land (profile 1.7, currency
+/// 1.8, ...); until then they say "coming soon" instead of made-up numbers.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -68,42 +72,7 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () => context.go(AppRoutes.joinRoom),
                     ),
                     const SizedBox(height: 24),
-                    MajlisCard(
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: majlis.glassBorder,
-                            child: Icon(Icons.person, color: majlis.gold),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      l10n.homeProfileTitle,
-                                      style: theme.textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const SoonBadge(),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  l10n.homeProfileSoon,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: majlis.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const _ProfileCard(),
                     const SizedBox(height: 24),
                     Text(
                       l10n.homeShortcuts,
@@ -142,6 +111,85 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Who you are: your name and permanent Player ID (friends add you with it).
+class _ProfileCard extends ConsumerWidget {
+  const _ProfileCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final account = ref.watch(accountProvider);
+    if (account == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final majlis = context.majlis;
+
+    Future<void> copyPlayerId() async {
+      await Clipboard.setData(ClipboardData(text: '${account.playerId}'));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.homePlayerIdCopied)));
+    }
+
+    return MajlisCard(
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: majlis.glassBorder,
+            child: Icon(Icons.person, color: majlis.gold),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      account.displayName,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    if (account.isGuest)
+                      Text(
+                        l10n.homeGuestTag,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: majlis.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.homePlayerId(formatPlayerId(account.playerId)),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: majlis.gold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.homeProfileSoon,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: majlis.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: l10n.homeCopyPlayerId,
+            icon: const Icon(Icons.copy_rounded),
+            onPressed: copyPlayerId,
+          ),
+        ],
       ),
     );
   }

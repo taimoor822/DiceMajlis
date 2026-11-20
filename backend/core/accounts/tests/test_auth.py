@@ -147,18 +147,18 @@ class RefreshTests(AuthTestCase):
         # The new one works again.
         self.assertEqual(self.refresh(r.data["refresh"]).status_code, 200)
 
-    def test_a_racing_second_refresh_is_refused_without_signing_out(self):
+    def test_a_lost_answer_can_be_retried_with_the_previous_token(self):
         data = self.guest()
-        fresh = self.refresh(data["refresh"]).data
-        r = self.refresh(data["refresh"])  # same old token, seconds later
-        self.assertEqual((r.status_code, r.data["code"]), (401, "refresh_superseded"))
-        self.assertEqual(self.refresh(fresh["refresh"]).status_code, 200)
+        self.refresh(data["refresh"])  # the app never receives this answer
+        retry = self.refresh(data["refresh"])  # ...so it tries again, seconds later
+        self.assertEqual(retry.status_code, 200, retry.data)
+        self.assertEqual(self.refresh(retry.data["refresh"]).status_code, 200)
 
     def test_reusing_an_old_refresh_token_ends_the_session(self):
         data = self.guest()
         fresh = self.refresh(data["refresh"]).data
         DeviceSession.objects.update(rotated_at=timezone.now() - timedelta(minutes=5))
-        r = self.refresh(data["refresh"])  # a copied token comes back
+        r = self.refresh(data["refresh"])  # a copied token comes back, long after
         self.assertEqual((r.status_code, r.data["code"]), (401, "session_revoked"))
         self.assertEqual(DeviceSession.objects.get().revoked_reason, "refresh_reused")
         # The thief and the owner are both signed out.
@@ -224,3 +224,4 @@ class SettingsTests(TestCase):
     def test_lifetimes_match_the_design(self):
         self.assertEqual(settings.AUTH_ACCESS_TOKEN_LIFETIME, timedelta(minutes=15))
         self.assertEqual(settings.AUTH_REFRESH_TOKEN_LIFETIME, timedelta(days=30))
+        self.assertLessEqual(settings.AUTH_REFRESH_REUSE_GRACE, timedelta(minutes=5))

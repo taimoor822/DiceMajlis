@@ -112,6 +112,54 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get commonRetry;
 
+  /// No description provided for @commonCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get commonCancel;
+
+  /// No description provided for @splashOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the Majlis server. Check your connection and try again.'**
+  String get splashOffline;
+
+  /// No description provided for @welcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ludo in the Majlis. Play with friends, family or the Majlis AI.'**
+  String get welcomeBody;
+
+  /// No description provided for @welcomePlayAsGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Play as guest'**
+  String get welcomePlayAsGuest;
+
+  /// No description provided for @welcomeGuestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You get a permanent Player ID right away. Your guest account lives on this device; adding email, Google or Apple later will keep it safe.'**
+  String get welcomeGuestHint;
+
+  /// No description provided for @welcomeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with email'**
+  String get welcomeEmail;
+
+  /// No description provided for @welcomeGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get welcomeGoogle;
+
+  /// No description provided for @welcomeApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get welcomeApple;
+
   /// No description provided for @navEvents.
   ///
   /// In en, this message translates to:
@@ -178,16 +226,34 @@ abstract class AppLocalizations {
   /// **'Join with a code'**
   String get homeJoinWithCode;
 
-  /// No description provided for @homeProfileTitle.
+  /// No description provided for @homePlayerId.
   ///
   /// In en, this message translates to:
-  /// **'Your profile'**
-  String get homeProfileTitle;
+  /// **'Player ID {id}'**
+  String homePlayerId(String id);
+
+  /// No description provided for @homeCopyPlayerId.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Player ID'**
+  String get homeCopyPlayerId;
+
+  /// No description provided for @homePlayerIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Player ID copied'**
+  String get homePlayerIdCopied;
+
+  /// No description provided for @homeGuestTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest'**
+  String get homeGuestTag;
 
   /// No description provided for @homeProfileSoon.
   ///
   /// In en, this message translates to:
-  /// **'Your Player ID, level and coins arrive with accounts.'**
+  /// **'Your name, picture, level and coins arrive in the next updates.'**
   String get homeProfileSoon;
 
   /// No description provided for @homeShortcuts.
@@ -388,6 +454,42 @@ abstract class AppLocalizations {
   /// **'Phone follows your phone\'s dark mode setting.'**
   String get settingsThemeHint;
 
+  /// No description provided for @settingsAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccount;
+
+  /// No description provided for @settingsGuestAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest account'**
+  String get settingsGuestAccount;
+
+  /// No description provided for @settingsSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get settingsSignOut;
+
+  /// No description provided for @settingsSignOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out?'**
+  String get settingsSignOutTitle;
+
+  /// No description provided for @settingsSignOutGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re playing as a guest. If you sign out, this account and its Player ID can\'t be recovered.'**
+  String get settingsSignOutGuest;
+
+  /// No description provided for @settingsSignOutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can sign in again any time.'**
+  String get settingsSignOutBody;
+
   /// No description provided for @createRoomTitle.
   ///
   /// In en, this message translates to:
@@ -453,6 +555,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Waiting room'**
   String get waitingRoomTitle;
+
+  /// No description provided for @waitingRoomLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave room'**
+  String get waitingRoomLeave;
 
   /// No description provided for @waitingRoomCodeLabel.
   ///
@@ -562,6 +670,30 @@ abstract class AppLocalizations {
   /// **'A player'**
   String get gameUnknownPlayer;
 
+  /// No description provided for @gameLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave game'**
+  String get gameLeave;
+
+  /// No description provided for @gameLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this game?'**
+  String get gameLeaveTitle;
+
+  /// No description provided for @gameLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll lose this game and can\'t come back to it.'**
+  String get gameLeaveBody;
+
+  /// No description provided for @gameLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get gameLeaveConfirm;
+
   /// No description provided for @gameOverTitle.
   ///
   /// In en, this message translates to:
@@ -667,8 +799,32 @@ abstract class AppLocalizations {
   /// No description provided for @errorNotYourSeat.
   ///
   /// In en, this message translates to:
-  /// **'This device isn\'t in that seat any more. Join the room again.'**
+  /// **'That isn\'t your seat.'**
   String get errorNotYourSeat;
+
+  /// No description provided for @errorNotInRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re not in this room any more.'**
+  String get errorNotInRoom;
+
+  /// No description provided for @errorAlreadyInGame.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still playing another game. Finish or leave it first.'**
+  String get errorAlreadyInGame;
+
+  /// No description provided for @errorSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'You were signed out. Please sign in again.'**
+  String get errorSignedOut;
+
+  /// No description provided for @errorRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Please wait a moment and try again.'**
+  String get errorRateLimited;
 
   /// No description provided for @errorNotYourTurn.
   ///

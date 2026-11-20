@@ -1,3 +1,4 @@
+import 'package:dice_majlis_app/core/auth/account.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,11 +13,10 @@ void main() {
         'is_host': true,
         'is_bot': false,
       },
-      'player_token': 'only-this-device',
     });
 
     expect(session.roomCode, 'AB12');
-    expect(session.playerToken, 'only-this-device');
+    expect(session.isStarted, isFalse);
     expect(session.playerId, '7d1c2b54-0000-4000-8000-000000000001');
     expect(session.isHost, isTrue);
     expect(session.maxPlayers, 3);
@@ -28,7 +28,6 @@ void main() {
     final session = RoomSession.fromRoomResponse({
       'room': {'code': 'AB12'},
       'player': {'id': 42, 'name': 'Player', 'color': 'blue'},
-      'player_token': 't',
     });
 
     expect(session.playerId, '42');
@@ -37,14 +36,30 @@ void main() {
     expect(session.self?.isBot, isFalse);
   });
 
-  test('a response without the seat secret is rejected', () {
-    expect(
-      () => RoomSession.fromRoomResponse({
-        'room': {'code': 'AB12'},
-        'player': {'id': 'p1', 'name': 'P', 'color': 'red'},
-      }),
-      throwsFormatException,
+  test('rejoining a started game says so', () {
+    final session = RoomSession.fromRoomResponse({
+      'room': {'code': 'AB12', 'is_started': true},
+      'player': {'id': 'p1', 'name': 'P', 'color': 'red'},
+    });
+    expect(session.isStarted, isTrue);
+  });
+
+  test('the room the account is in, from the server (app start)', () {
+    final session = RoomSession.fromActiveRoom(
+      const ActiveRoom(
+        code: 'AB12',
+        seatId: 'seat-1',
+        isHost: true,
+        maxPlayers: 3,
+        started: true,
+      ),
     );
+    expect(session.roomCode, 'AB12');
+    expect(session.playerId, 'seat-1');
+    expect(session.isHost, isTrue);
+    expect(session.maxPlayers, 3);
+    expect(session.isStarted, isTrue);
+    expect(session.self, isNull);
   });
 
   test('players from the lobby socket (snake_case keys)', () {

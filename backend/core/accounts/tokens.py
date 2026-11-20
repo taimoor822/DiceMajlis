@@ -6,8 +6,9 @@ Sign-in tokens.
   checks that the session is still active, so signing a device out works at once.
 - **Refresh token:** ``<session id>.<random secret>``, valid 30 days, kept in the
   app's secure storage. Only its SHA-256 is stored. Each use returns a NEW refresh
-  token (rotation). If an OLD one is used again, someone copied it, so the whole
-  session is ended.
+  token (rotation). If the previous one comes back within a short grace period,
+  the answer was most likely lost on the way (bad network), so new tokens are
+  issued again. If it comes back later, someone copied it: the session is ended.
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ class TokenExpired(TokenError):
 
 class RefreshRefused(TokenError):
     """The refresh token can't be used. Codes: invalid_refresh, refresh_expired,
-    session_revoked, refresh_superseded."""
+    session_revoked."""
 
     code = "invalid_refresh"
 
@@ -154,8 +155,21 @@ def refresh_session(refresh_token: str, *, now=None) -> TokenPair:
             refusal = RefreshRefused("Unknown refresh token")
         elif not session.is_active:
             refusal = RefreshRefused("Signed out", code="session_revoked")
-        elif hmac.compare_digest(presented, session.refresh_hash):
-            if session.refresh_expires_at <= now:
+        else:
+            is_current = hmac.compare_digest(presented, session.refresh_hash)
+            is_previous = bool(session.previous_refresh_hash) and hmac.compare_digest(
+                presented, session.previous_refresh_hash
+            )
+            # The previous token, soon after it was replaced: the app most likely
+            # never received the answer (lost on a bad network). Issue again.
+            retry = is_previous and now - session.rotated_at <= settings.AUTH_REFRESH_REUSE_GRACE
+            if not (is_current or is_previous):
+                refusal = RefreshRefused("Unknown refresh token")
+            elif is_previous and not retry:
+                # An old token came back: it was copied. End the session everywhere.
+                session.revoke("refresh_reused", now=now)
+                refusal = RefreshRefused("Refresh token reused", code="session_revoked")
+            elif session.refresh_expires_at <= now:
                 session.revoke("expired", now=now)
                 refusal = RefreshRefused("Refresh token expired", code="refresh_expired")
             elif not session.user.is_active:
@@ -166,16 +180,4 @@ def refresh_session(refresh_token: str, *, now=None) -> TokenPair:
                 session.last_seen_at = now
                 session.save()
                 return TokenPair(issue_access(session, now=now), refresh, _access_seconds(), session)
-        elif session.previous_refresh_hash and hmac.compare_digest(
-            presented, session.previous_refresh_hash
-        ):
-            if now - session.rotated_at <= settings.AUTH_REFRESH_REUSE_GRACE:
-                # Two refreshes raced on the same device: refuse, but don't sign out.
-                refusal = RefreshRefused("Already refreshed", code="refresh_superseded")
-            else:
-                # An old token came back: it was copied. End the session everywhere.
-                session.revoke("refresh_reused", now=now)
-                refusal = RefreshRefused("Refresh token reused", code="session_revoked")
-        else:
-            refusal = RefreshRefused("Unknown refresh token")
     raise refusal  # after the transaction, so a revocation above is saved

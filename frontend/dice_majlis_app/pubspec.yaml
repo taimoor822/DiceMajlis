@@ -45,6 +45,11 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   shared_preferences: ^2.5.5
+  flutter_secure_storage: ^11.2.0
+  # Comes with flutter_secure_storage (through path_provider). Version 2.6+
+  # needs build hooks, which build_runner can't compile on Flutter 3.38.
+  # Remove this line when the project moves to a newer Flutter.
+  path_provider_foundation: ">=2.5.1 <2.6.0"
 
 dev_dependencies:
   flutter_test:

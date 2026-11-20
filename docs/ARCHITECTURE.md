@@ -48,7 +48,7 @@ Bugs found while reviewing, and where each one is handled:
 | No ASGI server or Postgres driver in `requirements.txt` | `backend/requirements.txt` | WebSockets need Daphne/Uvicorn, and `DB_ENGINE=postgres` needs `psycopg`, both installed by hand | ✅ 1.3 |
 | Create Room always sends `red`, Join Room always sends `blue` | `create_room_screen.dart`, `join_room_screen.dart` | 3rd/4th players share a colour and a board path | ✅ 1.1 (server reassigns clashing colours to free seats) |
 | `DATABASE_URL=sqlite:////abs/path` loses its leading `/` | `core/settings.py` | Absolute SQLite paths fail to open | ✅ 1.3 |
-| Server trusts any `player_id` sent with start/roll/move; the whole room sees everyone's id | `game/views.py` | Anyone calling the API directly can play for another player | ✅ review fixes (seat secret, see below) |
+| Server trusts any `player_id` sent with start/roll/move; the whole room sees everyone's id | `game/views.py` | Anyone calling the API directly can play for another player | ✅ review fixes (seat secret), then 1.6 (seats belong to accounts, see below) |
 | `create-room` accepts any `max_players` (0, 1, 5, `"abc"`) | `game/views.py` | Starting such a room crashes with a 500 | ✅ review fixes (validated 2–4, from the engine) |
 | Join checks "room full" without a lock | `game/views.py` | Two people can take the last seat at once | ✅ review fixes (row lock) |
 | Room codes from `random` | `game/views.py` | Predictable codes | ✅ review fixes (`secrets`) |
@@ -297,10 +297,10 @@ backend/
     │   └── tests/             # 72 tests incl. 300 simulated full games
     ├── game/                  # rooms + REST + WS; services.py = the only code that changes game state
     │                          # (split into rooms/ + gameplay/ later)
-    ├── users/                 # existing, empty → replaced by accounts/
+    ├── accounts/              # 1.6 users + Player ID, device sessions, JWT, guest sign-in
+    │                          #     (email 1.7, Google/Apple 1.15, phone later)
     │
     │  planned apps (each added in the phase that needs it)
-    ├── accounts/              # P1 users, devices/sessions, JWT, social + phone login
     ├── profiles/              # P1 display name, avatar, frame, stats summary
     ├── realtime/              # P2 socket envelope, auth, rate limits, idempotency
     ├── gameplay/              # P2 Redis game store, action log, turn-timer worker
@@ -341,8 +341,8 @@ append-only.
 
 | Phase | Table | Key columns / constraints |
 |---|---|---|
-| 1 | `accounts_user` | id, username (unique, case-insensitive), email (unique, nullable), phone (unique, nullable), is_guest, is_active, last_login |
-| 1 | `accounts_device_session` | user, device_id, platform, refresh_jti, last_seen, revoked_at — powers "log out other devices" |
+| 1 | `accounts_user` | id (UUID), player_id (9 digits, unique), username (unique, case-insensitive), email (unique, nullable), phone (unique, nullable, later), is_guest, is_active, last_login |
+| 1 | `accounts_device_session` | user, device_id, platform, refresh_hash, previous_refresh_hash, rotated_at, refresh_expires_at, last_seen_at, revoked_at, revoked_reason — powers "log out other devices" |
 | 1 | `profiles_profile` | user (1:1), display_name, avatar, country, xp, level |
 | 1→2 | `gameplay_game` | id, room, mode (2p/4p/team), ranked, status, rules (JSONB), initial_state (JSONB), final_state (JSONB), winner, started_at, ended_at |
 | 2 | `gameplay_game_player` | game, user, seat, place, rating_before/after — unique(game, seat), unique(game, user) |
@@ -531,16 +531,31 @@ socket drops → exponential backoff (1s, 2s, 4s … max 30s, with jitter)
 
 The client never "fixes" state itself. If anything looks wrong it sends `request_state`.
 
-### Seat secret (until accounts)
+### Seats belong to accounts (1.6)
 
-There are no accounts yet, so `create-room` and `join-room` give each device a random
-`player_token` (only its SHA-256 is stored). `start-game`, `roll-dice` and `move-token`
-need `code`, `player_id` **and** `player_token`; a wrong one gets `403 not_your_seat`.
-Step 1.6 replaces this with signed-in users. All errors are
-`{"error": "...", "code": "<stable_code>"}`; the app translates the `code`.
-`GET /api/game/room-options/` gives the allowed player counts (from the engine), and
-the roll response and the reconnect snapshot carry `movable_token_ids`, so the app
-never re-implements a rule.
+Every room endpoint except `room-options` needs `Authorization: Bearer <access token>`
+(§8). The server finds **your seat from your account**; the app never says which player
+it is. Each account has at most one seat per room.
+
+| Endpoint | Body | Notes |
+|---|---|---|
+| `POST /api/game/create-room/` | `{max_players, color?}` | 201 `{room, player}`; name = the account's name |
+| `POST /api/game/join-room/` | `{code, color?}` | Joining a room you're in returns your seat (also after the start) |
+| `POST /api/game/start-game/` | `{code}` | Host only (`403 not_host`) |
+| `POST /api/game/roll-dice/` · `move-token/` | `{code}` · `{code, token_id}` | `403 not_in_room` if your account has no seat there |
+| `POST /api/game/leave-room/` | `{code}` | Before the start: seat freed, host role passes on, an empty room closes. During a game: forfeit (through `services.perform`). Never fails for "not there" |
+
+One game at a time: creating or joining while you're still playing a started game
+gives `409 already_in_game` with its `room_code`; a room you were only *waiting* in is
+left for you. `GET /api/me/` returns `active_room` (`code, seat_id, is_host,
+max_players, started`) so the app can go straight back to it.
+
+All errors are `{"error": "...", "code": "<stable_code>"}` (DRF's own errors too, via
+`core/api_errors.py`); the app translates the `code`. `GET /api/game/room-options/`
+gives the allowed player counts (from the engine), and the roll response and the
+reconnect snapshot carry `movable_token_ids`, so the app never re-implements a rule.
+The lobby socket (`/ws/lobby/<code>/`) is still read-only and unauthenticated (it only
+broadcasts); first-message auth arrives with `/ws/v1/` in step 1.11.
 
 ### Migration from today
 
@@ -558,28 +573,45 @@ working) but runs them on the new engine and adds `version` to events. Phase 2 a
 | Identity | Our own `accounts.User` (UUID). Login methods link to it; a user can have several |
 | Methods (order) | **Guest** (device-bound, keeps today's "type a name and play") → **email/password** → **Google** and **Apple** (server verifies the ID token signature, audience, expiry) → **phone OTP** (provider such as Twilio Verify or Firebase Phone Auth; server verifies) |
 | Upgrade | A guest can attach email/Google/Apple later without losing progress |
-| Tokens | Access JWT, 15 min, kept in memory. Refresh token, 30 days, rotated on every use, old one blacklisted |
+| Tokens | Access JWT (HS256, 15 min, `sub` = user, `sid` = device session), kept in memory. Refresh token `<session id>.<secret>`, 30 days, only its SHA-256 stored, **rotated on every use**. The previous one still works for 2 minutes (the answer may have been lost on a bad network); after that it means a copied token → the whole session is ended |
 | Storage | Refresh token in `flutter_secure_storage` (Keychain / Android Keystore). Nothing secret in the app bundle |
-| Refresh | Dio interceptor: on 401, one shared refresh call (lock), then retry the queued requests; refresh fails → logout |
+| Refresh | The app refreshes ~30 s before the access token runs out; one shared refresh call for everyone waiting. A Dio interceptor adds the token, and on `401 token_expired` refreshes once and retries; `session_revoked` → signed out. Offline → the request fails, the player stays signed in |
 | Devices | `accounts_device_session` row per device; "log out other devices" revokes their refresh tokens |
 | Password reset | Emailed one-time token (Django's token generator), expires in 1 hour |
 | WebSocket | First-message auth with the access token (§7); server re-checks on reconnect |
 | Roles | Django groups: Super Admin, Admin, Moderator, Support, Event Manager. Django admin for staff at first |
-| Protection | Login rate limits per IP + account, password hashing (Django's Argon2/PBKDF2), TLS everywhere, audit log on admin actions |
+| Protection | Login rate limits per IP (+ account from 1.7; `DJANGO_NUM_PROXIES` behind a proxy), password hashing (Django's Argon2/PBKDF2), TLS everywhere, audit log on admin actions |
+| Player ID | `User.player_id`: random 9-digit number (100 000 000–999 999 999) from `secrets`, unique, never changes or gets reused; random so it doesn't reveal how many players exist |
+
+### API (built in 1.6)
+
+| Endpoint | | |
+|---|---|---|
+| `POST /api/auth/guest/` | `{device_id, platform}` | 201 tokens + account. Rate limited per IP (`AUTH_GUEST_SIGNUP_RATE`, default 20/hour) |
+| `POST /api/auth/refresh/` | `{refresh}` | 200 new tokens + account; 401 `invalid_refresh` · `refresh_expired` · `session_revoked` |
+| `POST /api/auth/logout/` | signed in | 204; this device signed out |
+| `POST /api/auth/logout-others/` | signed in | `{signed_out: n}` |
+| `GET /api/me/` | signed in | `{player_id, display_name, is_guest, created_at, active_room}` |
+
+Tokens answer `{access, refresh, token_type: "Bearer", access_expires_in, account}`.
+Bad access tokens get 401 `token_expired`, `invalid_token` or `session_revoked`; no
+token on a protected endpoint gets 401 `not_authenticated`. Until profiles (1.7) the
+display name is `Guest <last 4 digits of the Player ID>`.
 
 ### Splash flow
 
 ```
-1. Init: load env config, theme, locale, error reporting
+1. main(): theme, settings; app opens on the splash screen (logo ≥ 1.2 s)
 2. Read refresh token from secure storage
-3. None → Login (or "Play as guest")
-4. Present → POST /api/auth/refresh → new access token
-5. Load /api/me (profile, wallet summary, active game)
-6. Active game? → resume board. Else → Home
-   Any failure in 4–5 → clear tokens → Login
+3. None → Welcome ("Play as guest"; email / Google / Apple: coming soon)
+4. Present → POST /api/auth/refresh → new tokens + account (with active_room)
+5. active_room? → its waiting room, or the board if started. Else → Home
+   Refused (invalid / expired / revoked) → clear tokens → Welcome
+   Offline → stay on splash with "Try again" (the saved sign-in is kept)
 ```
 
----
+The router sends signed-out players to Welcome, never shows Welcome to a signed-in
+player, and keeps everything on the splash screen while the sign-in is checked.
 
 ## 9. Development environment
 

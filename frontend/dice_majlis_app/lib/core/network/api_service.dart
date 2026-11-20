@@ -1,25 +1,44 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../auth/auth_controller.dart';
 import '../config/app_config.dart';
 import 'api_exception.dart';
+import 'auth_interceptor.dart';
 
-/// Raw calls to the game REST API. Returns the server's JSON; the feature
-/// repositories turn it into typed objects. Every failure is an [ApiException].
+/// Raw calls to the game REST API, signed in as the current account. Returns
+/// the server's JSON; the feature repositories turn it into typed objects.
+/// Every failure is an [ApiException].
 ///
 /// The app only asks ("create a room", "roll", "move this token"). Sizes,
-/// dice, positions, names and colours are decided by the server.
+/// dice, positions, names and colours are decided by the server, and the
+/// server finds your seat from your account.
 class ApiService {
-  static final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.gameApiUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {'Content-Type': 'application/json'},
-    ),
-  );
+  ApiService(AuthController auth, {Dio? dio})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: AppConfig.apiUrl,
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+              headers: {'Content-Type': 'application/json'},
+            ),
+          ) {
+    _dio.interceptors.add(
+      AuthInterceptor(
+        accessToken: auth.accessToken,
+        refreshAccess: auth.refreshAccess,
+        onSessionEnded: auth.signOutLocally,
+        retry: _dio.fetch,
+      ),
+    );
+  }
 
-  static Future<Map<String, dynamic>> _send(
+  final Dio _dio;
+
+  Future<Map<String, dynamic>> _send(
     String method,
     String path, [
     Map<String, dynamic>? data,
@@ -37,51 +56,44 @@ class ApiService {
         statusCode: response.statusCode,
       );
     } on DioException catch (error) {
-      final failure = ApiException.fromDio(error);
+      final cause = error.error;
+      final failure = cause is ApiException
+          ? cause
+          : ApiException.fromDio(error);
       debugPrint('$method $path failed: $failure');
       throw failure;
     }
   }
 
   /// What the server allows when creating a room (e.g. the player counts).
-  static Future<Map<String, dynamic>> roomOptions() =>
-      _send('GET', 'room-options/');
+  Future<Map<String, dynamic>> roomOptions() =>
+      _send('GET', 'game/room-options/');
 
-  static Future<Map<String, dynamic>> createRoom({required int maxPlayers}) =>
-      _send('POST', 'create-room/', {'max_players': maxPlayers});
+  Future<Map<String, dynamic>> createRoom({required int maxPlayers}) =>
+      _send('POST', 'game/create-room/', {'max_players': maxPlayers});
 
-  static Future<Map<String, dynamic>> joinRoom({required String code}) =>
-      _send('POST', 'join-room/', {'code': code});
+  Future<Map<String, dynamic>> joinRoom({required String code}) =>
+      _send('POST', 'game/join-room/', {'code': code});
 
-  static Future<Map<String, dynamic>> startGame({
+  Future<Map<String, dynamic>> startGame({required String roomCode}) =>
+      _send('POST', 'game/start-game/', {'code': roomCode});
+
+  Future<Map<String, dynamic>> rollDice({required String roomCode}) =>
+      _send('POST', 'game/roll-dice/', {'code': roomCode});
+
+  Future<Map<String, dynamic>> moveToken({
     required String roomCode,
-    required String playerId,
-    required String playerToken,
-  }) => _send('POST', 'start-game/', {
-    'code': roomCode,
-    'player_id': playerId,
-    'player_token': playerToken,
-  });
-
-  static Future<Map<String, dynamic>> rollDice({
-    required String roomCode,
-    required String playerId,
-    required String playerToken,
-  }) => _send('POST', 'roll-dice/', {
-    'code': roomCode,
-    'player_id': playerId,
-    'player_token': playerToken,
-  });
-
-  static Future<Map<String, dynamic>> moveToken({
-    required String roomCode,
-    required String playerId,
-    required String playerToken,
     required String tokenId,
-  }) => _send('POST', 'move-token/', {
+  }) => _send('POST', 'game/move-token/', {
     'code': roomCode,
-    'player_id': playerId,
-    'player_token': playerToken,
     'token_id': tokenId,
   });
+
+  /// Before the start: frees your seat. During a game: you forfeit.
+  Future<Map<String, dynamic>> leaveRoom({required String roomCode}) =>
+      _send('POST', 'game/leave-room/', {'code': roomCode});
 }
+
+final apiServiceProvider = Provider<ApiService>(
+  (ref) => ApiService(ref.read(authControllerProvider.notifier)),
+);

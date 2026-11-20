@@ -18,6 +18,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRetry => 'Try again';
 
   @override
+  String get commonCancel => 'Cancel';
+
+  @override
+  String get splashOffline =>
+      'Can\'t reach the Majlis server. Check your connection and try again.';
+
+  @override
+  String get welcomeBody =>
+      'Ludo in the Majlis. Play with friends, family or the Majlis AI.';
+
+  @override
+  String get welcomePlayAsGuest => 'Play as guest';
+
+  @override
+  String get welcomeGuestHint =>
+      'You get a permanent Player ID right away. Your guest account lives on this device; adding email, Google or Apple later will keep it safe.';
+
+  @override
+  String get welcomeEmail => 'Sign in with email';
+
+  @override
+  String get welcomeGoogle => 'Continue with Google';
+
+  @override
+  String get welcomeApple => 'Continue with Apple';
+
+  @override
   String get navEvents => 'Events';
 
   @override
@@ -54,11 +81,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeJoinWithCode => 'Join with a code';
 
   @override
-  String get homeProfileTitle => 'Your profile';
+  String homePlayerId(String id) {
+    return 'Player ID $id';
+  }
+
+  @override
+  String get homeCopyPlayerId => 'Copy Player ID';
+
+  @override
+  String get homePlayerIdCopied => 'Player ID copied';
+
+  @override
+  String get homeGuestTag => 'Guest';
 
   @override
   String get homeProfileSoon =>
-      'Your Player ID, level and coins arrive with accounts.';
+      'Your name, picture, level and coins arrive in the next updates.';
 
   @override
   String get homeShortcuts => 'More';
@@ -165,6 +203,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Phone follows your phone\'s dark mode setting.';
 
   @override
+  String get settingsAccount => 'Account';
+
+  @override
+  String get settingsGuestAccount => 'Guest account';
+
+  @override
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutTitle => 'Sign out?';
+
+  @override
+  String get settingsSignOutGuest =>
+      'You\'re playing as a guest. If you sign out, this account and its Player ID can\'t be recovered.';
+
+  @override
+  String get settingsSignOutBody => 'You can sign in again any time.';
+
+  @override
   String get createRoomTitle => 'Create room';
 
   @override
@@ -196,6 +253,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get waitingRoomTitle => 'Waiting room';
+
+  @override
+  String get waitingRoomLeave => 'Leave room';
 
   @override
   String get waitingRoomCodeLabel => 'Room code';
@@ -253,6 +313,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameUnknownPlayer => 'A player';
+
+  @override
+  String get gameLeave => 'Leave game';
+
+  @override
+  String get gameLeaveTitle => 'Leave this game?';
+
+  @override
+  String get gameLeaveBody =>
+      'You\'ll lose this game and can\'t come back to it.';
+
+  @override
+  String get gameLeaveConfirm => 'Leave';
 
   @override
   String get gameOverTitle => 'Game over';
@@ -323,8 +396,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorNotHost => 'Only the host can start the game.';
 
   @override
-  String get errorNotYourSeat =>
-      'This device isn\'t in that seat any more. Join the room again.';
+  String get errorNotYourSeat => 'That isn\'t your seat.';
+
+  @override
+  String get errorNotInRoom => 'You\'re not in this room any more.';
+
+  @override
+  String get errorAlreadyInGame =>
+      'You\'re still playing another game. Finish or leave it first.';
+
+  @override
+  String get errorSignedOut => 'You were signed out. Please sign in again.';
+
+  @override
+  String get errorRateLimited =>
+      'Too many tries. Please wait a moment and try again.';
 
   @override
   String get errorNotYourTurn => 'It\'s not your turn.';
