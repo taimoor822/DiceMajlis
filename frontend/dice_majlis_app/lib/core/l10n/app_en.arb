@@ -252,6 +252,21 @@
     }
   },
 
+  "privilegesTitle": "Your privileges",
+  "privilegeWithValue": "{name}: {value}",
+  "@privilegeWithValue": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "int"}
+    }
+  },
+  "customiseNeedsPrivilege": "Needs: {privilege}",
+  "@customiseNeedsPrivilege": {
+    "placeholders": {
+      "privilege": {"type": "String"}
+    }
+  },
+
   "customiseTitle": "Customise",
   "customiseDice": "Dice",
   "customiseBoard": "Board",
@@ -565,6 +580,7 @@
   "errorEmailTaken": "That email already has an account. Sign in instead.",
   "errorItemNotOwned": "You don't own that item.",
   "errorItemUnavailable": "That item isn't available.",
+  "errorNeedsPrivilege": "That needs a privilege you don't have.",
   "errorSocialAccountTaken": "That account is already linked to another player.",
   "errorAlreadyLinked": "A different account of this kind is already linked.",
   "errorLastSignInMethod": "This is your only way to sign in, so it can't be unlinked.",

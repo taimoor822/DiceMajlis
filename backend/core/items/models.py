@@ -55,6 +55,9 @@ class ItemDefinition(models.Model):
     stackable = models.BooleanField(default=False)
     # Owned by every account, from the start (and can't be lost).
     is_starter = models.BooleanField(default=False)
+    # Only accounts with this privilege may wear/use it (entitlements engine), e.g.
+    # "royal_items". Empty = anyone who owns it.
+    requires_privilege = models.SlugField(max_length=64, blank=True, default="")
     # Hidden from new grants and lists, but kept for whoever owns it.
     active = models.BooleanField(default=True)
     sort_order = models.IntegerField(default=0)

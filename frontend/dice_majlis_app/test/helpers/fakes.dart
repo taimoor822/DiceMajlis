@@ -12,6 +12,7 @@ import 'package:dice_majlis_app/core/realtime/realtime_message.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
+import 'package:dice_majlis_app/core/entitlements/entitlements.dart';
 import 'package:dice_majlis_app/features/achievements/data/achievements_repository.dart';
 import 'package:dice_majlis_app/features/achievements/domain/achievements.dart';
 import 'package:dice_majlis_app/features/cosmetics/data/items_repository.dart';
@@ -577,6 +578,20 @@ class FakeItemsRepository implements ItemsRepository {
   }
 }
 
+/// Entitlements without a server: none until a test sets [entitlements].
+class FakeEntitlementsRepository implements EntitlementsRepository {
+  FakeEntitlementsRepository({this.entitlements = const Entitlements()});
+
+  Entitlements entitlements;
+  int loads = 0;
+
+  @override
+  Future<Entitlements> mine() async {
+    loads++;
+    return entitlements;
+  }
+}
+
 /// Achievements without a server: none until a test sets [overview].
 class FakeAchievementsRepository implements AchievementsRepository {
   FakeAchievementsRepository({this.overview = const AchievementsOverview()});
@@ -978,12 +993,16 @@ List<Override> fakeNetwork({
   FakeItemsRepository? items,
   FakeStatsRepository? stats,
   FakeAchievementsRepository? achievements,
+  FakeEntitlementsRepository? entitlements,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
   itemsRepositoryProvider.overrideWithValue(items ?? FakeItemsRepository()),
   statsRepositoryProvider.overrideWithValue(stats ?? FakeStatsRepository()),
   achievementsRepositoryProvider.overrideWithValue(
     achievements ?? FakeAchievementsRepository(),
+  ),
+  entitlementsRepositoryProvider.overrideWithValue(
+    entitlements ?? FakeEntitlementsRepository(),
   ),
   socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
@@ -1033,6 +1052,7 @@ Widget testApp({
   FakeItemsRepository? items,
   FakeStatsRepository? stats,
   FakeAchievementsRepository? achievements,
+  FakeEntitlementsRepository? entitlements,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -1050,6 +1070,7 @@ Widget testApp({
       items: items,
       stats: stats,
       achievements: achievements,
+      entitlements: entitlements,
     ),
     ...overrides,
   ],

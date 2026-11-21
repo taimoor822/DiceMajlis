@@ -64,6 +64,15 @@ def starter_items() -> list[ItemDefinition]:
     return list(ItemDefinition.objects.filter(is_starter=True))
 
 
+def may_use(user, item: ItemDefinition) -> bool:
+    """Owning isn't always enough: some items need a privilege (entitlements engine)."""
+    if not item.requires_privilege:
+        return True
+    from entitlements import engine
+
+    return engine.has(user, item.requires_privilege)
+
+
 def owns(user, item: ItemDefinition, now: datetime | None = None) -> bool:
     if item.is_starter:
         return True
@@ -112,7 +121,7 @@ def equipped_for_users(user_ids: Iterable, now: datetime | None = None) -> dict[
     user_ids = list(user_ids)
     defaults = _slot_defaults()
     result = {uid: {slot: defaults.get(slot) for slot in Slot.values} for uid in user_ids}
-    rows = list(EquippedCosmetic.objects.filter(user_id__in=user_ids).select_related("item"))
+    rows = list(EquippedCosmetic.objects.filter(user_id__in=user_ids).select_related("item", "user"))
     # Worn items must still be owned (an expired one falls back before the sweep runs).
     timed = {
         (uid, item_id)
@@ -122,6 +131,8 @@ def equipped_for_users(user_ids: Iterable, now: datetime | None = None) -> dict[
     }
     for row in rows:
         if row.item.is_starter or (row.user_id, row.item_id) in timed:
+            if row.item.requires_privilege and not may_use(row.user, row.item):
+                continue  # lost the privilege: back to the default look
             result[row.user_id][row.slot] = row.item
     return result
 
@@ -158,6 +169,13 @@ def item_payload(item: ItemDefinition) -> dict[str, Any]:
 def inventory_payload(user, now: datetime | None = None) -> dict[str, Any]:
     now = now or timezone.now()
     worn = equipped(user, now)
+    entries = owned_items(user, now)
+    needed = {e["item"].requires_privilege for e in entries if e["item"].requires_privilege}
+    names = {}
+    if needed:
+        from entitlements.models import Privilege
+
+        names = dict(Privilege.objects.filter(code__in=needed).values_list("code", "name"))
     return {
         "items": [
             {
@@ -165,8 +183,12 @@ def inventory_payload(user, now: datetime | None = None) -> dict[str, Any]:
                 "quantity": entry["quantity"],
                 "expires_at": entry["expires_at"].isoformat() if entry["expires_at"] else None,
                 "starter": entry["starter"],
+                # Owned, but it needs a privilege this account doesn't have.
+                "locked": not may_use(user, entry["item"]),
+                "requires_privilege": entry["item"].requires_privilege or None,
+                "requires_privilege_name": names.get(entry["item"].requires_privilege),
             }
-            for entry in owned_items(user, now)
+            for entry in entries
         ],
         "equipped": {slot: item.code if item else None for slot, item in worn.items()},
         "cosmetics": _assets(worn),
@@ -235,6 +257,9 @@ def change(
         row.save(update_fields=["quantity", "updated_at"])
         if row.quantity == 0:
             _unequip_if_gone(user, item)
+        from entitlements import engine
+
+        engine.forget(user)  # items can give privileges
         transaction.on_commit(lambda: _push(user, "inventory_changed"))
     return Changed(entry, created=True)
 
@@ -298,6 +323,8 @@ def equip(user, slot: str, code: str | None, now: datetime | None = None) -> dic
                 raise ItemError("wrong_slot", f"{code} isn't worn as {slot}")
             if not owns(user, item, now):
                 raise ItemError("not_owned", f"you don't own {code}")
+            if not may_use(user, item):
+                raise ItemError("needs_privilege", f"{code} needs {item.requires_privilege}")
             EquippedCosmetic.objects.update_or_create(user=user, slot=slot, defaults={"item": item})
         transaction.on_commit(lambda: _push_cosmetics(user))
     return inventory_payload(user, now)

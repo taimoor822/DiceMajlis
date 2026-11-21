@@ -44,6 +44,8 @@ backend/core/              Django project (run manage.py from here)
   stats/                   statistics from real online games (results + totals)
   progress/                progress engine: achievements (metrics, tiers, unlocks,
                            rewards through grant()); missions later
+  entitlements/            entitlement engine: privilege catalog, grants by source,
+                           admin overrides; has()/value() is the only privilege check
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
   game_platform/           PURE game registry: GameEngine contract, register/get_game,
@@ -111,7 +113,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~420 tests)
+python manage.py test                                  # everything (~435 tests)
 python manage.py check_achievements                    # unlock achievements players already qualify for
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
@@ -331,6 +333,20 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `RewardClaim.source` names what it was for; `GET /api/rewards/history/?before=` pages
   claims. App: `features/rewards/` (`RewardBundle`, `RewardChips`, `describeReward`,
   `RewardHistoryScreen` at `/home/wallet/rewards` from the Wallet's app bar).
+- Entitlements (2.6): `entitlements/` is the only place that decides privileges:
+  `engine.has(user, code)` / `engine.value(user, code)` (never `if user.is_vip`).
+  Sources come from resolvers (`engine.register_source`): `base` (everyone) and `item`
+  (`item:<code>` while owned) today; Royal levels / VIP tiers add theirs later with
+  `rank` (higher ranks inherit lower ones; a `revoke` grant takes back). Per privilege
+  the values merge (`any` / `max` / `sum`); `UserPrivilegeOverride` allow/deny comes
+  last and a deny wins. Answers are cached a minute; `engine.forget(user)` (items,
+  overrides) and `forget_everyone()` (catalog/grant edits, via signals) clear them, and
+  a changed answer is pushed as `entitlements_updated`. `Privilege.built` = the app acts
+  on it (today: `game_exp_bonus`, `higher_exp_limit` in `profiles/xp.py`;
+  `ItemDefinition.requires_privilege` checked by `items.services.may_use` on equip and
+  when drawing worn items). App: `core/entitlements/entitlements.dart`
+  (`entitlementsProvider`, `has`/`value`, UI only — the server re-checks), Profile
+  `PrivilegesCard`; tests use `FakeEntitlementsRepository` (`testApp(entitlements: …)`).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -350,8 +366,8 @@ reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
 Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1), item
 system + cosmetics (2.2), statistics (2.3), achievements (2.4), reward bundles with
-items and XP, admin daily cycle, reward history (2.5). Next: entitlement engine (2.6),
-see `docs/planning.md`.
+items and XP, admin daily cycle, reward history (2.5), entitlement engine (2.6).
+Phase 2 is complete; next is Phase 3 (Ludo engine complete), see `docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

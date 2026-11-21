@@ -11,6 +11,8 @@ class OwnedItem {
     this.quantity = 1,
     this.expiresAt,
     this.starter = false,
+    this.locked = false,
+    this.requiresPrivilegeName,
   });
 
   factory OwnedItem.fromJson(Map<String, dynamic> json) => OwnedItem(
@@ -26,6 +28,8 @@ class OwnedItem {
         ? null
         : DateTime.tryParse(json['expires_at'] as String),
     starter: json['starter'] == true,
+    locked: json['locked'] == true,
+    requiresPrivilegeName: json['requires_privilege_name'] as String?,
   );
 
   final String code;
@@ -44,6 +48,10 @@ class OwnedItem {
 
   /// Owned by everyone from the start.
   final bool starter;
+
+  /// Owned, but it needs a privilege this account doesn't have (can't be worn).
+  final bool locked;
+  final String? requiresPrivilegeName;
 }
 
 /// What the player owns and wears.

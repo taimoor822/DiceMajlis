@@ -36,6 +36,9 @@ def equip(request):
     try:
         payload = services.equip(request.user, form.validated_data["slot"], form.validated_data["item"])
     except services.ItemError as e:
-        code = status.HTTP_404_NOT_FOUND if e.code == "unknown_item" else status.HTTP_409_CONFLICT
+        code = {
+            "unknown_item": status.HTTP_404_NOT_FOUND,
+            "needs_privilege": status.HTTP_403_FORBIDDEN,
+        }.get(e.code, status.HTTP_409_CONFLICT)
         return Response({"error": str(e), "code": e.code}, status=code)
     return Response(payload)

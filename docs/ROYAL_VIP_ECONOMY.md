@@ -384,6 +384,13 @@ ref.watch(entitlementsProvider).has(Privilege.voiceMessaging)
   display needs no app update; one that adds new behaviour needs code once, then
   stays configurable.
 
+*Built in step 2.6* (`backend/core/entitlements/`): `Privilege`, `PrivilegeGrant`
+(sources `base` and `item` today; Royal/VIP/event resolvers plug into
+`engine.register_source` later, using `rank` for inheritance) and
+`UserPrivilegeOverride`. The snapshot is cached for a minute in the Django cache
+(Redis in production) and pushed as `entitlements_updated` when it changes.
+`Privilege.built` marks the ones the app acts on; the catalog below is seed data.
+
 ---
 
 ## 10. Privilege catalog

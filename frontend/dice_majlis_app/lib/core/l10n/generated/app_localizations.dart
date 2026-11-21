@@ -766,6 +766,24 @@ abstract class AppLocalizations {
   /// **'Achievement: {name}'**
   String gameOverAchievement(String name);
 
+  /// No description provided for @privilegesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your privileges'**
+  String get privilegesTitle;
+
+  /// No description provided for @privilegeWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}'**
+  String privilegeWithValue(String name, int value);
+
+  /// No description provided for @customiseNeedsPrivilege.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs: {privilege}'**
+  String customiseNeedsPrivilege(String privilege);
+
   /// No description provided for @customiseTitle.
   ///
   /// In en, this message translates to:
@@ -1893,6 +1911,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That item isn\'t available.'**
   String get errorItemUnavailable;
+
+  /// No description provided for @errorNeedsPrivilege.
+  ///
+  /// In en, this message translates to:
+  /// **'That needs a privilege you don\'t have.'**
+  String get errorNeedsPrivilege;
 
   /// No description provided for @errorSocialAccountTaken.
   ///

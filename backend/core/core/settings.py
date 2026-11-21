@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'items',
     'stats',
     'progress',
+    'entitlements',
     'wallet',
     'rewards',
     'game',

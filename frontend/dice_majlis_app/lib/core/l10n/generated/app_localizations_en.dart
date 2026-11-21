@@ -419,6 +419,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get privilegesTitle => 'Your privileges';
+
+  @override
+  String privilegeWithValue(String name, int value) {
+    return '$name: $value';
+  }
+
+  @override
+  String customiseNeedsPrivilege(String privilege) {
+    return 'Needs: $privilege';
+  }
+
+  @override
   String get customiseTitle => 'Customise';
 
   @override
@@ -1069,6 +1082,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorItemUnavailable => 'That item isn\'t available.';
+
+  @override
+  String get errorNeedsPrivilege => 'That needs a privilege you don\'t have.';
 
   @override
   String get errorSocialAccountTaken =>

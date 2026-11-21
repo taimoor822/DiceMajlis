@@ -10,7 +10,10 @@ from .models import EquippedCosmetic, InventoryItem, ItemAdjustment, ItemDefinit
 class ItemDefinitionAdmin(admin.ModelAdmin):
     """The catalog. Untick "active" instead of deleting: owners keep what they have."""
 
-    list_display = ("code", "name", "type", "subtype", "rarity", "asset", "is_starter", "active", "sort_order")
+    list_display = (
+        "code", "name", "type", "subtype", "rarity", "asset", "is_starter", "requires_privilege", "active",
+        "sort_order",
+    )
     list_filter = ("type", "subtype", "rarity", "is_starter", "active")
     search_fields = ("code", "name")
 

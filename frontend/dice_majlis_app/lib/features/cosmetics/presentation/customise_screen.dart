@@ -168,8 +168,11 @@ class _SlotCard extends ConsumerWidget {
                   name: item.name,
                   rarity: item.rarity,
                   expiresAt: item.expiresAt,
+                  needs: item.locked
+                      ? item.requiresPrivilegeName ?? item.code
+                      : null,
                   selected: equipped == item.code,
-                  onTap: enabled && equipped != item.code
+                  onTap: enabled && equipped != item.code && !item.locked
                       ? () => onChoose(item.code)
                       : null,
                   preview: _Preview(slot: slot, asset: item.asset),
@@ -243,9 +246,13 @@ class _Choice extends StatelessWidget {
     required this.preview,
     this.rarity,
     this.expiresAt,
+    this.needs,
   });
 
   final String name;
+
+  /// The privilege it needs, when this account can't wear it.
+  final String? needs;
   final String? rarity;
   final DateTime? expiresAt;
   final bool selected;
@@ -298,6 +305,25 @@ class _Choice extends StatelessWidget {
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: majlis.warning,
                   ),
+                ),
+              if (needs != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_outline, size: 12, color: majlis.textMuted),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
+                        l10n.customiseNeedsPrivilege(needs!),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: majlis.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               if (selected)
                 Icon(
