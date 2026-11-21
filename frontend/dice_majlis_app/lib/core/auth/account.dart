@@ -38,10 +38,18 @@ abstract class Account with _$Account {
 
     /// The room this account is in right now (to go straight back to it).
     ActiveRoom? activeRoom,
+
+    /// What this account wears, by slot (`dice`, `board`, `frame`): the
+    /// asset key the app draws, or null for an empty slot.
+    @Default(<String, String?>{}) Map<String, String?> cosmetics,
   }) = _Account;
 
   factory Account.fromJson(Map<String, dynamic> json) =>
       _$AccountFromJson(json);
+
+  String? get diceSkin => cosmetics['dice'];
+  String? get boardSkin => cosmetics['board'];
+  String? get frame => cosmetics['frame'];
 
   /// How far into the current level, 0 to 1 (for a progress bar).
   double get levelProgress {

@@ -126,6 +126,13 @@ class ApiService {
   /// Your balances: `{"balances": {"gold": n, "diamond": n}}`.
   Future<Map<String, dynamic>> wallet() => _send('GET', 'wallet/');
 
+  /// What you own and wear (cosmetics today).
+  Future<Map<String, dynamic>> myItems() => _send('GET', 'me/items/');
+
+  /// Wear [item] in [slot]; null puts the slot back to its default.
+  Future<Map<String, dynamic>> equipItem(String slot, String? item) =>
+      _send('POST', 'me/items/equip/', {'slot': slot, 'item': item});
+
   /// Your ledger, newest first; [before] is the last id of the previous page.
   Future<Map<String, dynamic>> walletTransactions({String? before}) => _send(
     'GET',

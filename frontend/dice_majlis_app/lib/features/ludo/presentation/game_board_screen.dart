@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/realtime/realtime_client.dart';
@@ -13,6 +14,7 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/websocket/socket_providers.dart';
 import '../../../core/websocket/socket_service.dart';
+import '../../../shared/widgets/board_skin_rim.dart';
 import '../../games/domain/game_catalog.dart';
 import '../../multiplayer/data/room_repository.dart';
 import '../../multiplayer/domain/room_session.dart';
@@ -45,6 +47,9 @@ class _PlayerInfo {
   /// False while the player has no live connection (their seat is kept).
   final bool connected;
 
+  /// Their dice skin (asset key); null for the AI and the plain die.
+  final String? diceSkin;
+
   const _PlayerInfo({
     required this.id,
     required this.name,
@@ -52,6 +57,7 @@ class _PlayerInfo {
     required this.isHost,
     required this.isBot,
     this.connected = true,
+    this.diceSkin,
   });
 
   factory _PlayerInfo.fromJson(Map<String, dynamic> json) {
@@ -62,6 +68,9 @@ class _PlayerInfo {
       isHost: json['is_host'] == true,
       isBot: json['is_bot'] == true,
       connected: json['connected'] != false,
+      diceSkin: json['cosmetics'] is Map
+          ? (json['cosmetics'] as Map)['dice']?.toString()
+          : null,
     );
   }
 
@@ -72,6 +81,7 @@ class _PlayerInfo {
     isHost: isHost,
     isBot: isBot,
     connected: value,
+    diceSkin: diceSkin,
   );
 }
 
@@ -1078,6 +1088,10 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     if (room == null || me == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Your own board skin (each player sees the board they chose).
+    final boardSkin = ref.watch(
+      accountProvider.select((account) => account?.boardSkin),
+    );
 
     final tokensByPlayer = <String, List<_TokenInfo>>{};
     for (final t in _tokensById.values) {
@@ -1218,6 +1232,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      BoardSkinRim(skin: boardSkin),
                       const Positioned.fill(child: BoardWidget()),
                       ...tokenWidgets,
                       for (int seat = 0; seat < playersInSeat.length; seat++)
@@ -1236,6 +1251,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
                           enabled: canRollDice,
                           rolling: _isRollingDice,
                           onTap: _rollDice,
+                          // The die of whoever's turn it is.
+                          skin: _playersById[currentTurnPlayerId]?.diceSkin,
                         ),
                       ),
                       if (_isAnimatingMove || _isReconnecting)

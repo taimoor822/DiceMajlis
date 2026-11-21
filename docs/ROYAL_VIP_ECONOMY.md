@@ -138,6 +138,12 @@ expiry, history and anti-duplication.
 - Expiry runs in the same sweep worker as the turn timer: expired items get an
   `expired` transaction and are unequipped.
 
+*Built in step 2.2* (`backend/core/items/`): `ItemDefinition`, `InventoryItem`,
+`ItemTransaction`, `EquippedCosmetic` and `ItemAdjustment` (admin grants) as above, with
+cosmetic slots `dice`, `board`, `frame` first. Starter items are owned by every account
+without inventory rows. `ItemActivation`, gifts from inventory and the other item types
+arrive with the features that use them.
+
 ### Gifts from inventory
 
 Sending a gift (SOCIAL_MAJLIS §7) can now be paid **from inventory** (owned gift,

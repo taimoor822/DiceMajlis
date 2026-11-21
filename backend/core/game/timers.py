@@ -32,6 +32,7 @@ from django.utils import timezone
 
 import game_platform
 from events.outbox import dispatch_pending
+from items.services import expire_due
 
 from . import connections, rooms, services
 from .models import Game, Player
@@ -119,6 +120,7 @@ def run_forever(interval: float = 1.0, stop: threading.Event | None = None) -> N
                 last_stale_check = time.monotonic()
                 connections.mark_stale()
                 dispatch_pending()  # domain events missed after a crash, or failed before
+                expire_due()  # time-limited items whose time is up
         except Exception:
             logger.exception("turn timer sweep failed")
         finally:

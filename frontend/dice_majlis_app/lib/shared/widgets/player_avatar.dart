@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/cosmetic_looks.dart';
 import '../../core/theme/majlis_colors.dart';
 
 /// The built-in avatar pictures, by the key the server stores. The server
@@ -24,17 +25,22 @@ const avatarIcons = <String, IconData>{
   'gamepad': Icons.sports_esports,
 };
 
-/// A player's avatar: a built-in picture on its own colour.
+/// A player's avatar: a built-in picture on its own colour, inside the profile
+/// frame they wear (if any).
 class PlayerAvatar extends StatelessWidget {
   const PlayerAvatar({
     super.key,
     required this.avatar,
     this.radius = 24,
     this.selected = false,
+    this.frame,
   });
 
   final String? avatar;
   final double radius;
+
+  /// The frame's asset key (a cosmetic), or null for none.
+  final String? frame;
 
   /// Draws a gold ring (avatar pickers).
   final bool selected;
@@ -55,6 +61,33 @@ class PlayerAvatar extends StatelessWidget {
         color: index < 0 ? majlis.gold : majlis.onSeat,
       ),
     );
+    final look = CosmeticLooks.frame(frame);
+    if (look != null) {
+      return DecoratedBox(
+        key: const Key('avatar-frame'),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: SweepGradient(colors: look.ring),
+          boxShadow: [
+            BoxShadow(
+              color: look.ring[look.ring.length ~/ 2].withValues(alpha: 0.45),
+              blurRadius: look.width * 2,
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(look.width),
+          // A thin dark gap keeps the ring apart from any avatar colour.
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: majlis.backgroundBottom, width: 2),
+            ),
+            child: Padding(padding: const EdgeInsets.all(2), child: circle),
+          ),
+        ),
+      );
+    }
     if (!selected) return circle;
     return DecoratedBox(
       decoration: BoxDecoration(

@@ -193,6 +193,47 @@ void main() {
     expect(find.byKey(const Key('game-over-xp')), findsNothing);
   });
 
+  testWidgets('the die wears the skin of whoever plays; the board wears yours', (
+    tester,
+  ) async {
+    final sockets = await openBoard(tester);
+    sockets.last.emit({
+      ...snapshot(),
+      'players': [
+        {
+          'id': me,
+          'name': 'Player 1',
+          'color': 'red',
+          'is_host': true,
+          'cosmetics': {'dice': 'dice_ruby', 'board': 'board_oasis'},
+        },
+        {'id': bot, 'name': 'Majlis AI', 'color': 'green', 'is_bot': true},
+      ],
+    });
+    await tester.pump();
+    DiceWidget dice() => tester.widget<DiceWidget>(find.byType(DiceWidget));
+    expect(dice().skin, 'dice_ruby');
+    sockets.last.emit({
+      'type': 'turn_changed',
+      'player_id': bot,
+      'current_turn_player_id': bot,
+    });
+    await tester.pump();
+    expect(dice().skin, isNull); // the AI's plain die
+
+    // The board skin is your own choice (the account), not the payload's.
+    expect(find.byKey(const Key('board-skin-rim')), findsNothing);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(GameBoardScreen)),
+    );
+    final account = container.read(accountProvider)!;
+    container
+        .read(authControllerProvider.notifier)
+        .accountChanged(account.copyWith(cosmetics: {'board': 'board_oasis'}));
+    await tester.pump();
+    expect(find.byKey(const Key('board-skin-rim')), findsOneWidget);
+  });
+
   testWidgets('a player drops: the seat stays, shown as away until back', (
     tester,
   ) async {

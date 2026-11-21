@@ -35,6 +35,7 @@ from rest_framework.response import Response
 
 from core.api_errors import invalid_input_response
 from game import services as game_services
+from items.services import cosmetics_payload
 from profiles.services import profile_payload
 
 from . import limits, recovery, social, tokens
@@ -79,6 +80,8 @@ def account_payload(user: User) -> dict:
         "linked": sorted(user.social_accounts.values_list("provider", flat=True)),
         # display_name, avatar, country, languages, level, xp, level_xp, next_level_xp
         **profile_payload(user),
+        # What the app draws for you: {"dice": asset, "board": asset, "frame": asset | null}
+        "cosmetics": cosmetics_payload(user),
         # The room this account is in right now, so the app can go straight back to it.
         "active_room": game_services.active_seat_for(user),
     }

@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_controller.dart';
-import '../../../core/realtime/realtime_providers.dart';
 
 /// XP the server added to this account (`xp_gained` on the `user/` channel),
 /// with the new level progress. The app never works XP out itself.
@@ -66,37 +65,3 @@ final xpGainsProvider =
     NotifierProvider<XpGainsController, Map<String, XpGain>>(
       XpGainsController.new,
     );
-
-/// Keeps the signed-in account's level live: listens for `xp_gained` and
-/// updates the account (and [xpGainsProvider] for games). Watched by the app
-/// root, so it runs whenever someone is signed in with a live connection.
-final xpLiveProvider = Provider<void>((ref) {
-  final playerId = ref.watch(
-    accountProvider.select((account) => account?.playerId),
-  );
-  final realtime = ref.watch(realtimeClientProvider);
-  if (realtime == null || playerId == null) return;
-  final live = realtime.channel(RealtimeChannels.user(playerId)).listen((
-    message,
-  ) {
-    if (message.type != 'xp_gained') return;
-    final gain = XpGain.fromJson(message.data);
-    if (gain == null) return;
-    final account = ref.read(accountProvider);
-    if (account != null && account.playerId == playerId) {
-      ref
-          .read(authControllerProvider.notifier)
-          .accountChanged(
-            account.copyWith(
-              level: gain.level,
-              xp: gain.xp,
-              levelXp: gain.levelXp,
-              nextLevelXp: gain.nextLevelXp,
-            ),
-          );
-    }
-    final room = gain.roomCode;
-    if (room != null) ref.read(xpGainsProvider.notifier).add(room, gain);
-  });
-  ref.onDispose(live.cancel);
-});

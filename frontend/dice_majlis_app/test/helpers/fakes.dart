@@ -12,6 +12,8 @@ import 'package:dice_majlis_app/core/realtime/realtime_message.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
+import 'package:dice_majlis_app/features/cosmetics/data/items_repository.dart';
+import 'package:dice_majlis_app/features/cosmetics/domain/inventory.dart';
 import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
 import 'package:dice_majlis_app/features/games/domain/game_catalog.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
@@ -468,6 +470,108 @@ class FakeAccountRepository implements AccountRepository {
 
 /// The wallet without a server: [balances] and a list of [entries] (newest
 /// first), served [pageSize] at a time.
+/// Items without a server: the starter set, and whatever a test adds. Equip
+/// checks ownership and slot like the server does.
+class FakeItemsRepository implements ItemsRepository {
+  FakeItemsRepository({List<OwnedItem>? items})
+    : items = items ?? [...starterItems];
+
+  static const starterItems = [
+    OwnedItem(
+      code: 'dice_ivory',
+      type: 'cosmetic',
+      slot: 'dice',
+      name: 'Ivory',
+      rarity: 'common',
+      asset: 'dice_ivory',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'dice_desert_gold',
+      type: 'cosmetic',
+      slot: 'dice',
+      name: 'Desert Gold',
+      rarity: 'rare',
+      asset: 'dice_desert_gold',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'board_majlis',
+      type: 'cosmetic',
+      slot: 'board',
+      name: 'Majlis',
+      rarity: 'common',
+      asset: 'board_majlis',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'board_oasis',
+      type: 'cosmetic',
+      slot: 'board',
+      name: 'Oasis',
+      rarity: 'rare',
+      asset: 'board_oasis',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'frame_brass',
+      type: 'cosmetic',
+      slot: 'frame',
+      name: 'Brass Ring',
+      rarity: 'common',
+      asset: 'frame_brass',
+      starter: true,
+    ),
+  ];
+
+  List<OwnedItem> items;
+  final equipped = <String, String?>{
+    'dice': 'dice_ivory',
+    'board': 'board_majlis',
+    'frame': null,
+  };
+  final calls = <String>[];
+  String? failWith;
+
+  Inventory get _inventory => Inventory(
+    items: items,
+    equipped: Map.of(equipped),
+    cosmetics: {
+      for (final entry in equipped.entries)
+        entry.key: entry.value == null
+            ? null
+            : items.firstWhere((item) => item.code == entry.value).asset,
+    },
+  );
+
+  @override
+  Future<Inventory> inventory() async {
+    calls.add('inventory');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return _inventory;
+  }
+
+  @override
+  Future<Inventory> equip(String slot, String? item) async {
+    calls.add('equip:$slot:$item');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    if (item != null) {
+      final owned = items.where((i) => i.code == item).firstOrNull;
+      if (owned == null) throw const ApiException('not_owned');
+      if (owned.slot != slot) throw const ApiException('wrong_slot');
+    }
+    // Nothing chosen: the slot's first starter (a frame may stay empty).
+    equipped[slot] =
+        item ??
+        (slot == 'frame'
+            ? null
+            : items.firstWhere((i) => i.slot == slot).code);
+    return _inventory;
+  }
+}
+
 class FakeWalletRepository implements WalletRepository {
   FakeWalletRepository({
     this.balance = const Balances(gold: 1250, diamond: 5),
@@ -821,8 +925,10 @@ List<Override> fakeNetwork({
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
+  FakeItemsRepository? items,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
+  itemsRepositoryProvider.overrideWithValue(items ?? FakeItemsRepository()),
   socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
     (realtime ?? FakeRealtimeServer()).connect,
@@ -868,6 +974,7 @@ Widget testApp({
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
+  FakeItemsRepository? items,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -882,6 +989,7 @@ Widget testApp({
       catalog: catalog,
       realtime: realtime,
       social: social,
+      items: items,
     ),
     ...overrides,
   ],

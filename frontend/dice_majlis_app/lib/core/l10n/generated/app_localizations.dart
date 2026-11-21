@@ -574,6 +574,72 @@ abstract class AppLocalizations {
   /// **'Earn XP by playing online games against other people.'**
   String get profileXpHow;
 
+  /// No description provided for @profileCustomise.
+  ///
+  /// In en, this message translates to:
+  /// **'Customise'**
+  String get profileCustomise;
+
+  /// No description provided for @profileCustomiseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Dice, board and profile frame'**
+  String get profileCustomiseHint;
+
+  /// No description provided for @customiseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customise'**
+  String get customiseTitle;
+
+  /// No description provided for @customiseDice.
+  ///
+  /// In en, this message translates to:
+  /// **'Dice'**
+  String get customiseDice;
+
+  /// No description provided for @customiseBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'Board'**
+  String get customiseBoard;
+
+  /// No description provided for @customiseFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile frame'**
+  String get customiseFrame;
+
+  /// No description provided for @customiseNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get customiseNone;
+
+  /// No description provided for @customiseWearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Wearing'**
+  String get customiseWearing;
+
+  /// No description provided for @customiseMoreSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'More items will come from achievements and rewards (coming soon).'**
+  String get customiseMoreSoon;
+
+  /// No description provided for @itemRarity.
+  ///
+  /// In en, this message translates to:
+  /// **'{rarity, select, common{Common} rare{Rare} epic{Epic} legendary{Legendary} other{Special}}'**
+  String itemRarity(String rarity);
+
+  /// No description provided for @itemExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String itemExpires(DateTime date);
+
   /// No description provided for @profileOptionsFailed.
   ///
   /// In en, this message translates to:
@@ -1617,6 +1683,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email already has an account. Sign in instead.'**
   String get errorEmailTaken;
+
+  /// No description provided for @errorItemNotOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t own that item.'**
+  String get errorItemNotOwned;
+
+  /// No description provided for @errorItemUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'That item isn\'t available.'**
+  String get errorItemUnavailable;
 
   /// No description provided for @errorSocialAccountTaken.
   ///

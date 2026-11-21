@@ -280,6 +280,54 @@ class AppLocalizationsEn extends AppLocalizations {
       'Earn XP by playing online games against other people.';
 
   @override
+  String get profileCustomise => 'Customise';
+
+  @override
+  String get profileCustomiseHint => 'Dice, board and profile frame';
+
+  @override
+  String get customiseTitle => 'Customise';
+
+  @override
+  String get customiseDice => 'Dice';
+
+  @override
+  String get customiseBoard => 'Board';
+
+  @override
+  String get customiseFrame => 'Profile frame';
+
+  @override
+  String get customiseNone => 'None';
+
+  @override
+  String get customiseWearing => 'Wearing';
+
+  @override
+  String get customiseMoreSoon =>
+      'More items will come from achievements and rewards (coming soon).';
+
+  @override
+  String itemRarity(String rarity) {
+    String _temp0 = intl.Intl.selectLogic(rarity, {
+      'common': 'Common',
+      'rare': 'Rare',
+      'epic': 'Epic',
+      'legendary': 'Legendary',
+      'other': 'Special',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String itemExpires(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Until $dateString';
+  }
+
+  @override
   String get profileOptionsFailed => 'Couldn\'t load the profile choices.';
 
   @override
@@ -870,6 +918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorEmailTaken =>
       'That email already has an account. Sign in instead.';
+
+  @override
+  String get errorItemNotOwned => 'You don\'t own that item.';
+
+  @override
+  String get errorItemUnavailable => 'That item isn\'t available.';
 
   @override
   String get errorSocialAccountTaken =>

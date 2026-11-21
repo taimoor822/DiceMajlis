@@ -23,7 +23,9 @@ mixin _$Account {
  List<String> get languages;/// Google / Apple sign-ins attached to this account (`google`, `apple`).
  List<String> get linked; int get level; int get xp;/// XP where this level starts and where the next one starts.
  int get levelXp; int get nextLevelXp;/// The room this account is in right now (to go straight back to it).
- ActiveRoom? get activeRoom;
+ ActiveRoom? get activeRoom;/// What this account wears, by slot (`dice`, `board`, `frame`): the
+/// asset key the app draws, or null for an empty slot.
+ Map<String, String?> get cosmetics;
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -36,16 +38,16 @@ $AccountCopyWith<Account> get copyWith => _$AccountCopyWithImpl<Account>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other.languages, languages)&&const DeepCollectionEquality().equals(other.linked, linked)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other.languages, languages)&&const DeepCollectionEquality().equals(other.linked, linked)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom)&&const DeepCollectionEquality().equals(other.cosmetics, cosmetics));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(languages),const DeepCollectionEquality().hash(linked),level,xp,levelXp,nextLevelXp,activeRoom);
+int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(languages),const DeepCollectionEquality().hash(linked),level,xp,levelXp,nextLevelXp,activeRoom,const DeepCollectionEquality().hash(cosmetics));
 
 @override
 String toString() {
-  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, linked: $linked, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom)';
+  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, linked: $linked, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom, cosmetics: $cosmetics)';
 }
 
 
@@ -56,7 +58,7 @@ abstract mixin class $AccountCopyWith<$Res>  {
   factory $AccountCopyWith(Account value, $Res Function(Account) _then) = _$AccountCopyWithImpl;
 @useResult
 $Res call({
- int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, List<String> linked, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom
+ int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, List<String> linked, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom, Map<String, String?> cosmetics
 });
 
 
@@ -73,7 +75,7 @@ class _$AccountCopyWithImpl<$Res>
 
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? linked = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? linked = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,Object? cosmetics = null,}) {
   return _then(_self.copyWith(
 playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -88,7 +90,8 @@ as int,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
 as int,levelXp: null == levelXp ? _self.levelXp : levelXp // ignore: cast_nullable_to_non_nullable
 as int,nextLevelXp: null == nextLevelXp ? _self.nextLevelXp : nextLevelXp // ignore: cast_nullable_to_non_nullable
 as int,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
-as ActiveRoom?,
+as ActiveRoom?,cosmetics: null == cosmetics ? _self.cosmetics : cosmetics // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 /// Create a copy of Account
@@ -185,10 +188,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom,  Map<String, String?> cosmetics)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Account() when $default != null:
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom,_that.cosmetics);case _:
   return orElse();
 
 }
@@ -206,10 +209,10 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom,  Map<String, String?> cosmetics)  $default,) {final _that = this;
 switch (_that) {
 case _Account():
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom,_that.cosmetics);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -226,10 +229,10 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int playerId,  String displayName,  bool isGuest,  String? email,  String avatar,  String? country,  List<String> languages,  List<String> linked,  int level,  int xp,  int levelXp,  int nextLevelXp,  ActiveRoom? activeRoom,  Map<String, String?> cosmetics)?  $default,) {final _that = this;
 switch (_that) {
 case _Account() when $default != null:
-return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom);case _:
+return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that.avatar,_that.country,_that.languages,_that.linked,_that.level,_that.xp,_that.levelXp,_that.nextLevelXp,_that.activeRoom,_that.cosmetics);case _:
   return null;
 
 }
@@ -241,7 +244,7 @@ return $default(_that.playerId,_that.displayName,_that.isGuest,_that.email,_that
 @JsonSerializable()
 
 class _Account extends Account {
-  const _Account({required this.playerId, required this.displayName, this.isGuest = false, this.email, this.avatar = '', this.country, final  List<String> languages = const <String>[], final  List<String> linked = const <String>[], this.level = 1, this.xp = 0, this.levelXp = 0, this.nextLevelXp = 0, this.activeRoom}): _languages = languages,_linked = linked,super._();
+  const _Account({required this.playerId, required this.displayName, this.isGuest = false, this.email, this.avatar = '', this.country, final  List<String> languages = const <String>[], final  List<String> linked = const <String>[], this.level = 1, this.xp = 0, this.levelXp = 0, this.nextLevelXp = 0, this.activeRoom, final  Map<String, String?> cosmetics = const <String, String?>{}}): _languages = languages,_linked = linked,_cosmetics = cosmetics,super._();
   factory _Account.fromJson(Map<String, dynamic> json) => _$AccountFromJson(json);
 
 /// Permanent public 9-digit Player ID. Never changes.
@@ -279,6 +282,17 @@ class _Account extends Account {
 @override@JsonKey() final  int nextLevelXp;
 /// The room this account is in right now (to go straight back to it).
 @override final  ActiveRoom? activeRoom;
+/// What this account wears, by slot (`dice`, `board`, `frame`): the
+/// asset key the app draws, or null for an empty slot.
+ final  Map<String, String?> _cosmetics;
+/// What this account wears, by slot (`dice`, `board`, `frame`): the
+/// asset key the app draws, or null for an empty slot.
+@override@JsonKey() Map<String, String?> get cosmetics {
+  if (_cosmetics is EqualUnmodifiableMapView) return _cosmetics;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_cosmetics);
+}
+
 
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
@@ -293,16 +307,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other._languages, _languages)&&const DeepCollectionEquality().equals(other._linked, _linked)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Account&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.email, email) || other.email == email)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.country, country) || other.country == country)&&const DeepCollectionEquality().equals(other._languages, _languages)&&const DeepCollectionEquality().equals(other._linked, _linked)&&(identical(other.level, level) || other.level == level)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.levelXp, levelXp) || other.levelXp == levelXp)&&(identical(other.nextLevelXp, nextLevelXp) || other.nextLevelXp == nextLevelXp)&&(identical(other.activeRoom, activeRoom) || other.activeRoom == activeRoom)&&const DeepCollectionEquality().equals(other._cosmetics, _cosmetics));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(_languages),const DeepCollectionEquality().hash(_linked),level,xp,levelXp,nextLevelXp,activeRoom);
+int get hashCode => Object.hash(runtimeType,playerId,displayName,isGuest,email,avatar,country,const DeepCollectionEquality().hash(_languages),const DeepCollectionEquality().hash(_linked),level,xp,levelXp,nextLevelXp,activeRoom,const DeepCollectionEquality().hash(_cosmetics));
 
 @override
 String toString() {
-  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, linked: $linked, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom)';
+  return 'Account(playerId: $playerId, displayName: $displayName, isGuest: $isGuest, email: $email, avatar: $avatar, country: $country, languages: $languages, linked: $linked, level: $level, xp: $xp, levelXp: $levelXp, nextLevelXp: $nextLevelXp, activeRoom: $activeRoom, cosmetics: $cosmetics)';
 }
 
 
@@ -313,7 +327,7 @@ abstract mixin class _$AccountCopyWith<$Res> implements $AccountCopyWith<$Res> {
   factory _$AccountCopyWith(_Account value, $Res Function(_Account) _then) = __$AccountCopyWithImpl;
 @override @useResult
 $Res call({
- int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, List<String> linked, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom
+ int playerId, String displayName, bool isGuest, String? email, String avatar, String? country, List<String> languages, List<String> linked, int level, int xp, int levelXp, int nextLevelXp, ActiveRoom? activeRoom, Map<String, String?> cosmetics
 });
 
 
@@ -330,7 +344,7 @@ class __$AccountCopyWithImpl<$Res>
 
 /// Create a copy of Account
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? linked = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? playerId = null,Object? displayName = null,Object? isGuest = null,Object? email = freezed,Object? avatar = null,Object? country = freezed,Object? languages = null,Object? linked = null,Object? level = null,Object? xp = null,Object? levelXp = null,Object? nextLevelXp = null,Object? activeRoom = freezed,Object? cosmetics = null,}) {
   return _then(_Account(
 playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as int,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -345,7 +359,8 @@ as int,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
 as int,levelXp: null == levelXp ? _self.levelXp : levelXp // ignore: cast_nullable_to_non_nullable
 as int,nextLevelXp: null == nextLevelXp ? _self.nextLevelXp : nextLevelXp // ignore: cast_nullable_to_non_nullable
 as int,activeRoom: freezed == activeRoom ? _self.activeRoom : activeRoom // ignore: cast_nullable_to_non_nullable
-as ActiveRoom?,
+as ActiveRoom?,cosmetics: null == cosmetics ? _self._cosmetics : cosmetics // ignore: cast_nullable_to_non_nullable
+as Map<String, String?>,
   ));
 }
 

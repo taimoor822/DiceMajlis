@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
@@ -195,6 +196,12 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final l10n = _l10n;
+    // Your own dice and board skins, when signed in (offline: the plain ones).
+    final skins = ref.watch(
+      accountProvider.select(
+        (account) => (dice: account?.diceSkin, board: account?.boardSkin),
+      ),
+    );
 
     return ListenableBuilder(
       listenable: game,
@@ -281,6 +288,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen> {
                                     child: LudoBoardView(
                                       tokens: tokens,
                                       stepDuration: game.timing.step,
+                                      boardSkin: skins.board,
                                     ),
                                   ),
                                 ),
@@ -331,6 +339,7 @@ class _LocalGameScreenState extends ConsumerState<LocalGameScreen> {
                                 value: game.diceValue,
                                 enabled: game.canRoll,
                                 onTap: game.roll,
+                                skin: skins.dice,
                               ),
                             ],
                           ),

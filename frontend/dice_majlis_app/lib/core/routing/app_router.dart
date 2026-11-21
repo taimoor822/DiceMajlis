@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/email_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
+import '../../features/cosmetics/presentation/customise_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
 import '../../features/local_play/presentation/local_game_screen.dart';
@@ -158,6 +159,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'profile',
               builder: (context, state) => const ProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: 'customise',
+                  builder: (context, state) => const CustomiseScreen(),
+                ),
+              ],
             ),
             GoRoute(
               path: 'wallet',

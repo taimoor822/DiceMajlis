@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'events',
     'accounts',
     'profiles',
+    'items',
     'wallet',
     'rewards',
     'game',

@@ -2,12 +2,14 @@ import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/account.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_card.dart';
@@ -164,6 +166,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _LevelCard(account: account),
                   const SizedBox(height: 16),
                   MajlisCard(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      key: const Key('profile-customise'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
+                      leading: Icon(Icons.palette_outlined, color: majlis.gold),
+                      title: Text(l10n.profileCustomise),
+                      subtitle: Text(l10n.profileCustomiseHint),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(AppRoutes.customise),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  MajlisCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -287,7 +305,11 @@ class _Header extends StatelessWidget {
     return MajlisCard(
       child: Column(
         children: [
-          PlayerAvatar(avatar: account.avatar, radius: 40),
+          PlayerAvatar(
+            avatar: account.avatar,
+            radius: 40,
+            frame: account.frame,
+          ),
           const SizedBox(height: 12),
           Text(
             account.displayName,

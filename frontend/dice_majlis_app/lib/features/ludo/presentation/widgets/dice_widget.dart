@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/cosmetic_looks.dart';
 import '../../../../core/theme/majlis_colors.dart';
 import '../../../../shared/widgets/glow_container.dart';
 
@@ -9,12 +10,16 @@ class DiceWidget extends StatefulWidget {
   final VoidCallback? onTap; // trigger API roll
   final bool rolling;
 
+  /// The dice skin's asset key (a cosmetic); null = the plain die.
+  final String? skin;
+
   const DiceWidget({
     super.key,
     this.value,
     this.enabled = true,
     this.onTap,
     this.rolling = false,
+    this.skin,
   });
 
   @override
@@ -60,7 +65,7 @@ class _DiceWidgetState extends State<DiceWidget>
   Widget build(BuildContext context) {
     final displayValue = widget.value?.toString() ?? '?';
     final isInteractive = widget.enabled && !widget.rolling;
-    final majlis = context.majlis;
+    final look = CosmeticLooks.dice(widget.skin, context.majlis);
 
     return GestureDetector(
       onTap: isInteractive ? _handleTap : null,
@@ -69,8 +74,8 @@ class _DiceWidgetState extends State<DiceWidget>
         child: Opacity(
           opacity: isInteractive ? 1 : 0.4,
           child: GlowContainer(
-            glowColor: majlis.accent,
-            color: majlis.diceFace,
+            glowColor: look.glow,
+            color: look.face,
             padding: const EdgeInsets.all(16),
             child: SizedBox(
               width: 70,
@@ -82,7 +87,7 @@ class _DiceWidgetState extends State<DiceWidget>
                         height: 26,
                         child: CircularProgressIndicator(
                           strokeWidth: 3,
-                          color: majlis.diceInk,
+                          color: look.ink,
                         ),
                       )
                     : Text(
@@ -90,7 +95,7 @@ class _DiceWidgetState extends State<DiceWidget>
                         style: TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.w800,
-                          color: majlis.diceInk,
+                          color: look.ink,
                         ),
                       ),
               ),

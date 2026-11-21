@@ -18,6 +18,7 @@ abstract final class AppRoutes {
   static const settings = '/home/settings';
   static const saveAccount = '/home/settings/save-account';
   static const profile = '/home/profile';
+  static const customise = '/home/profile/customise';
   static const wallet = '/home/wallet';
 
   // Today's room flow lives in Game Hub.

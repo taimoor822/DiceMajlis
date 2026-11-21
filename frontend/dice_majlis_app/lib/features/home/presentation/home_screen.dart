@@ -150,7 +150,11 @@ class _ProfileCard extends ConsumerWidget {
     final card = MajlisCard(
       child: Row(
         children: [
-          PlayerAvatar(avatar: account.avatar, radius: 26),
+          PlayerAvatar(
+            avatar: account.avatar,
+            radius: 26,
+            frame: account.frame,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

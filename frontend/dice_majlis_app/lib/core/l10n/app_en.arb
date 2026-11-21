@@ -147,6 +147,28 @@
     }
   },
   "profileXpHow": "Earn XP by playing online games against other people.",
+  "profileCustomise": "Customise",
+  "profileCustomiseHint": "Dice, board and profile frame",
+
+  "customiseTitle": "Customise",
+  "customiseDice": "Dice",
+  "customiseBoard": "Board",
+  "customiseFrame": "Profile frame",
+  "customiseNone": "None",
+  "customiseWearing": "Wearing",
+  "customiseMoreSoon": "More items will come from achievements and rewards (coming soon).",
+  "itemRarity": "{rarity, select, common{Common} rare{Rare} epic{Epic} legendary{Legendary} other{Special}}",
+  "@itemRarity": {
+    "placeholders": {
+      "rarity": {"type": "String"}
+    }
+  },
+  "itemExpires": "Until {date}",
+  "@itemExpires": {
+    "placeholders": {
+      "date": {"type": "DateTime", "format": "MMMd"}
+    }
+  },
   "profileOptionsFailed": "Couldn't load the profile choices.",
 
   "languageEn": "English",
@@ -426,6 +448,8 @@
   "errorRateLimited": "Too many tries. Please wait a moment and try again.",
   "errorInvalidCredentials": "Wrong email or password.",
   "errorEmailTaken": "That email already has an account. Sign in instead.",
+  "errorItemNotOwned": "You don't own that item.",
+  "errorItemUnavailable": "That item isn't available.",
   "errorSocialAccountTaken": "That account is already linked to another player.",
   "errorAlreadyLinked": "A different account of this kind is already linked.",
   "errorLastSignInMethod": "This is your only way to sign in, so it can't be unlinked.",
