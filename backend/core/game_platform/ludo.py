@@ -12,7 +12,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import ludo_engine as le
 from ludo_engine import GameState, PlayerStatus, Rules, TurnPhase
 
-from .contract import RandomSource, TurnInfo, Variant
+from .contract import RandomSource, RoomOption, TurnInfo, Variant
 
 LUDO = "ludo"
 CLASSIC = "classic"
@@ -29,6 +29,15 @@ class LudoGame:
             max_players=le.MAX_PLAYERS,
             default_players=le.MAX_PLAYERS,
             ranked=True,
+            # Custom rules a private room's host may pick (keys are Rules fields;
+            # the app shows them by key). Any change makes the room unranked.
+            options=(
+                RoomOption("turn_timeout_seconds", 30, (15, 30, 60)),
+                RoomOption("capture_enabled", True, (True, False)),
+                RoomOption("extra_turn_on_six", True, (True, False)),
+                # False: play on after the first winner, until every place is decided.
+                RoomOption("end_when_first_player_finishes", True, (True, False)),
+            ),
         ),
     }
     rule_error = le.EngineError
@@ -36,9 +45,9 @@ class LudoGame:
 
     # ---- setup -------------------------------------------------------------
 
-    def rules(self, variant: str) -> Rules:
+    def rules(self, variant: str, options: Mapping[str, Any] | None = None) -> Rules:
         preset = self.variants[variant].rules
-        return Rules.from_dict({**Rules().to_dict(), **preset})
+        return Rules.from_dict({**Rules().to_dict(), **preset, **(options or {})})
 
     def rules_for(self, variant: str) -> dict[str, Any]:
         return self.rules(variant).to_dict()
@@ -51,6 +60,7 @@ class LudoGame:
         variant: str,
         seats: Sequence[int] | None = None,
         first_player_id: str | None = None,
+        options: Mapping[str, Any] | None = None,
     ) -> GameState:
         if not self.variants[variant].allows(len(player_ids)):
             raise le.InvalidSetup(f"{variant} needs a different number of players")
@@ -58,7 +68,7 @@ class LudoGame:
             game_id,
             player_ids,
             seats=seats,
-            rules=self.rules(variant),
+            rules=self.rules(variant, options),
             first_player_id=first_player_id,
         )
 

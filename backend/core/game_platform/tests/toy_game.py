@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Iterable, Mapping, Sequence
 
-from game_platform import RandomSource, TurnInfo, Variant
+from game_platform import RandomSource, RoomOption, TurnInfo, Variant
 
 RACE = "race"
 
@@ -60,7 +60,10 @@ class RaceGame:
     game_type = RACE
     default_variant = "short"
     variants = {
-        "short": Variant(code="short", rules={"target": 5}, min_players=2, max_players=3, default_players=2),
+        "short": Variant(
+            code="short", rules={"target": 5}, min_players=2, max_players=3, default_players=2,
+            options=(RoomOption("target", 5, (5, 9)),),
+        ),
         "long": Variant(code="long", rules={"target": 20}, min_players=2, max_players=3, default_players=3),
     }
     rule_error = RaceError
@@ -69,10 +72,11 @@ class RaceGame:
     def rules_for(self, variant: str) -> dict[str, Any]:
         return dict(self.variants[variant].rules)
 
-    def new_game(self, game_id, player_ids: Sequence[str], *, variant, seats=None, first_player_id=None):
+    def new_game(self, game_id, player_ids: Sequence[str], *, variant, seats=None, first_player_id=None, options=None):
         players = tuple(str(p) for p in player_ids)
         first = players.index(first_player_id) if first_player_id else 0
-        return RaceState(game_id, players, tuple(0 for _ in players), self.rules_for(variant)["target"], current=first)
+        target = {**self.rules_for(variant), **(options or {})}["target"]
+        return RaceState(game_id, players, tuple(0 for _ in players), target, current=first)
 
     def load(self, data: Mapping[str, Any]) -> RaceState:
         return RaceState(

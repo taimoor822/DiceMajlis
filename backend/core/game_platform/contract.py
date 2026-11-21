@@ -33,6 +33,34 @@ class UnknownVariant(PlatformError):
     code = "unknown_variant"
 
 
+class InvalidOption(PlatformError):
+    code = "invalid_option"
+
+
+@dataclass(frozen=True)
+class RoomOption:
+    """
+    A rule a private room's host may change (custom rules), with the values
+    allowed. For Ludo the key is the engine's rule name, e.g.
+    ``RoomOption("capture_enabled", True, (True, False))``.
+    """
+
+    key: str
+    default: Any
+    choices: tuple[Any, ...]
+
+    def __post_init__(self) -> None:
+        if self.default not in self.choices:
+            raise ValueError(f"option {self.key!r}: the default must be one of the choices")
+
+    def allows(self, value: Any) -> bool:
+        # True == 1 in Python: a number option must not accept a bool, and back.
+        return any(value == c and type(value) is type(c) for c in self.choices)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"key": self.key, "default": self.default, "choices": list(self.choices)}
+
+
 @dataclass(frozen=True)
 class Variant:
     """
@@ -47,6 +75,8 @@ class Variant:
     default_players: int = 4
     # May be played in ranked queues (Phase 6). Never set by anything bought.
     ranked: bool = False
+    # Rules a private room's host may change, and to what.
+    options: tuple[RoomOption, ...] = ()
 
     def __post_init__(self) -> None:
         if not 1 <= self.min_players <= self.default_players <= self.max_players:
@@ -62,7 +92,24 @@ class Variant:
             "max_players": self.max_players,
             "default_players": self.default_players,
             "ranked": self.ranked,
+            "options": [option.to_dict() for option in self.options],
         }
+
+    def check_options(self, chosen: Mapping[str, Any] | None) -> dict[str, Any]:
+        """
+        The host's choices, checked: every option with its value (the default
+        where none was chosen). Unknown keys and values not offered raise
+        :class:`InvalidOption`.
+        """
+        chosen = dict(chosen or {})
+        known = {option.key: option for option in self.options}
+        for key, value in chosen.items():
+            option = known.get(key)
+            if option is None:
+                raise InvalidOption(f"{self.code} has no option {key!r}")
+            if not option.allows(value):
+                raise InvalidOption(f"{key} can't be {value!r}")
+        return {key: chosen.get(key, option.default) for key, option in known.items()}
 
 
 @dataclass(frozen=True)
@@ -141,8 +188,12 @@ class GameEngine(Protocol):
         variant: str,
         seats: Sequence[int] | None = None,
         first_player_id: str | None = None,
+        options: Mapping[str, Any] | None = None,
     ) -> Any:
-        """A game at version 0 for ``variant``."""
+        """
+        A game at version 0 for ``variant``, with the room's custom rules
+        (``options``, already checked by :meth:`Variant.check_options`).
+        """
 
     def rules_for(self, variant: str) -> dict[str, Any]:
         """The full rules a variant plays with (defaults + its changes)."""

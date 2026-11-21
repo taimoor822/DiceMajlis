@@ -136,6 +136,17 @@ void main() {
     });
     await tester.pump();
     expect((h.got.last['players'] as List), hasLength(1));
+
+    // Room news passes through as it is (status, kicks, the rematch).
+    h.push(roomChannel, 'room_updated', {'status': 'ready', 'host_id': 'p1'});
+    h.push(roomChannel, 'player_kicked', {'player_id': 'p2'});
+    await tester.pump();
+    expect(h.got[h.got.length - 2], {
+      'type': 'room_updated',
+      'status': 'ready',
+      'host_id': 'p1',
+    });
+    expect(h.got.last, {'type': 'player_kicked', 'player_id': 'p2'});
     await h.finish(tester);
   });
 

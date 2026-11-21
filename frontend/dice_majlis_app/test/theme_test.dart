@@ -3,6 +3,7 @@ import 'package:dice_majlis_app/core/l10n/generated/app_localizations.dart';
 import 'package:dice_majlis_app/core/theme/app_theme.dart';
 import 'package:dice_majlis_app/core/theme/majlis_colors.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
+import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,8 @@ void main() {
           overrides: [
             accountProvider.overrideWithValue(testAccount),
             ...fakeEconomy(),
+            // Home also loads room invites.
+            roomRepositoryProvider.overrideWithValue(FakeRoomRepository()),
           ],
           child: MaterialApp(
             theme: theme,

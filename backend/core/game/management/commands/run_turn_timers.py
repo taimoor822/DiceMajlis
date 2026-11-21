@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 
+from game.rooms import start_due_rooms
 from game.timers import process_due_turns, run_forever
 
 
@@ -13,7 +14,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["once"]:
             handled = process_due_turns()
-            self.stdout.write(f"Handled {handled} overdue turn(s).")
+            started = start_due_rooms()
+            self.stdout.write(f"Handled {handled} overdue turn(s), started {started} room(s).")
             return
         self.stdout.write(f"Turn timer running every {options['interval']}s. Ctrl+C to stop.")
         try:

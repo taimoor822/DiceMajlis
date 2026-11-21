@@ -14,6 +14,7 @@ import 'package:dice_majlis_app/core/websocket/socket_service.dart';
 import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
 import 'package:dice_majlis_app/features/games/domain/game_catalog.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
+import 'package:dice_majlis_app/features/multiplayer/domain/room_info.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
 import 'package:dice_majlis_app/features/profile/domain/profile_options.dart';
@@ -118,6 +119,74 @@ class FakeRoomRepository implements RoomRepository {
   Future<void> leaveRoom(String roomCode) async {
     calls.add('leave:$roomCode');
     _maybeFail();
+  }
+
+  /// What `invites()` returns.
+  List<RoomInvite> pendingInvites = [];
+
+  /// What `rematch()` returns.
+  RematchAnswer rematchAnswer = const RematchAnswer();
+
+  @override
+  Future<void> setReady(String roomCode, {required bool ready}) async {
+    calls.add('ready:$roomCode:$ready');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> kickPlayer(String roomCode, String playerId) async {
+    calls.add('kick:$roomCode:$playerId');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> lockRoom(String roomCode, {required bool locked}) async {
+    calls.add('lock:$roomCode:$locked');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> transferHost(String roomCode, String playerId) async {
+    calls.add('host:$roomCode:$playerId');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> changeRules(
+    String roomCode,
+    Map<String, Object?> options,
+  ) async {
+    calls.add('rules:$roomCode:$options');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> invitePlayer(String roomCode, int playerId) async {
+    calls.add('invite:$roomCode:$playerId');
+    _maybeFail();
+  }
+
+  @override
+  Future<void> declineInvite(String roomCode) async {
+    calls.add('decline:$roomCode');
+    _maybeFail();
+  }
+
+  /// How many times Home loaded the invites (not in [calls]: Home loads
+  /// them whenever it opens).
+  int inviteLoads = 0;
+
+  @override
+  Future<List<RoomInvite>> invites() async {
+    inviteLoads++;
+    return pendingInvites;
+  }
+
+  @override
+  Future<RematchAnswer> rematch(String roomCode, {required bool want}) async {
+    calls.add('rematch:$roomCode:$want');
+    _maybeFail();
+    return rematchAnswer;
   }
 }
 

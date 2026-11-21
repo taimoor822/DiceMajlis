@@ -15,6 +15,15 @@ abstract class RoomPlayer with _$RoomPlayer {
     required String color,
     @Default(false) bool isHost,
     @Default(false) bool isBot,
+
+    /// Before the start: ready to play (the host always is).
+    @Default(false) bool isReady,
+
+    /// After the game: asked to play again.
+    @Default(false) bool wantsRematch,
+
+    /// Left the room after the start.
+    @Default(false) bool hasLeft,
   }) = _RoomPlayer;
 
   factory RoomPlayer.fromJson(Map<String, dynamic> json) =>

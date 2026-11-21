@@ -32,6 +32,19 @@ abstract class GameModule {
 
   /// Route of its offline game on this phone, if it has one.
   String? get offlineRoute => null;
+
+  /// The name of a custom rule a private room's host may change (the server
+  /// sends its key and choices), or null to leave a rule the app doesn't
+  /// know out of the waiting room.
+  String? ruleName(AppLocalizations l10n, String key) => null;
+
+  /// How one of a rule's values reads, e.g. "30 s" or "On".
+  String ruleValue(AppLocalizations l10n, String key, Object? value) =>
+      switch (value) {
+        true => l10n.ruleOn,
+        false => l10n.ruleOff,
+        _ => '$value',
+      };
 }
 
 /// "Classic Ludo".

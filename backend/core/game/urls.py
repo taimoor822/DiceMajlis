@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     create_room,
     game_catalog,
+    invites,
     join_room,
     leave_room,
     move_token,
@@ -20,4 +21,5 @@ urlpatterns = [
     path('roll-dice/', roll_dice),
     path('move-token/', move_token),
     path('leave-room/', leave_room),
+    path('invites/', invites),
 ]

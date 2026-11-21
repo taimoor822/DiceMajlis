@@ -14,6 +14,7 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
 import '../../../shared/widgets/player_avatar.dart';
+import '../../multiplayer/presentation/room_invites_card.dart';
 import '../../rewards/presentation/daily_reward_card.dart';
 import '../../wallet/presentation/balance_chips.dart';
 
@@ -77,6 +78,7 @@ class HomeScreen extends StatelessWidget {
                       style: MajlisButtonStyle.secondary,
                       onPressed: () => context.go(AppRoutes.joinRoom),
                     ),
+                    const RoomInvitesCard(),
                     const SizedBox(height: 24),
                     const _ProfileCard(),
                     const SizedBox(height: 16),

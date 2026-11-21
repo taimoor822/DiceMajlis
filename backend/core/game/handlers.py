@@ -18,6 +18,18 @@ Requests (all in the "game" rate-limit bucket):
   game_action    {game_id|code, action: {type, …}, expected_version?}   → {version, …}  any game
   leave_game     {game_id|code}                                → {left: true}  (a forfeit once started)
   request_state  {game_id|code}                                → the game_started snapshot
+
+Private rooms (1.13, game/rooms.py), by room ``code``:
+
+  set_ready      {code, ready}            guests only (the host always is)
+  kick_player    {code, player_id}        host, before the start
+  lock_room      {code, locked}           host: invited people only
+  transfer_host  {code, player_id}        host
+  room_settings  {code, variant?, options?}  host: custom rules; guests get ready again
+  invite_player  {code, player_id}        a 9-digit Player ID; they hear it on user/<id>
+  decline_invite {code}
+  start_game     {code}                   host, everyone ready → {status: starting|started}
+  rematch        {code, want}             after the game → {next_room, seat_id} once all agree
 """
 
 from __future__ import annotations
@@ -29,7 +41,7 @@ from game_platform import LUDO
 from realtime.handlers import Context, handler
 from realtime.protocol import ProtocolError
 
-from . import services
+from . import rooms, services
 from .models import Game, Player, Room
 from .tables.ludo import token_ids_by_player
 
@@ -158,3 +170,97 @@ def request_state(ctx: Context, data: dict) -> dict:
     snapshot = services.game_snapshot(room)
     snapshot.pop("type", None)
     return snapshot
+
+
+# ---------------------------------------------------------------------------
+# Private rooms (1.13)
+# ---------------------------------------------------------------------------
+
+
+def _room_call(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except rooms.RoomError as exc:
+        raise ProtocolError(exc.code, exc.message)
+
+
+def _code(data: dict) -> str:
+    code = data.get("code")
+    if not isinstance(code, str) or not code.strip():
+        raise ProtocolError("invalid_request", "Send the room code")
+    return code
+
+
+def _flag(data: dict, key: str) -> bool:
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise ProtocolError("invalid_request", f"{key} must be true or false")
+    return value
+
+
+def _required(data: dict, key: str) -> Any:
+    if data.get(key) in (None, ""):
+        raise ProtocolError("invalid_request", f"Send {key}")
+    return data[key]
+
+
+@handler("set_ready", bucket="game")
+def set_ready(ctx: Context, data: dict) -> dict:
+    ready = _flag(data, "ready")
+    _room_call(rooms.set_ready, ctx.user, _code(data), ready)
+    return {"ready": ready}
+
+
+@handler("kick_player", bucket="game")
+def kick_player(ctx: Context, data: dict) -> dict:
+    _room_call(rooms.kick, ctx.user, _code(data), _required(data, "player_id"))
+    return {"kicked": True}
+
+
+@handler("lock_room", bucket="game")
+def lock_room(ctx: Context, data: dict) -> dict:
+    locked = _flag(data, "locked")
+    _room_call(rooms.set_locked, ctx.user, _code(data), locked)
+    return {"locked": locked}
+
+
+@handler("transfer_host", bucket="game")
+def transfer_host(ctx: Context, data: dict) -> dict:
+    _room_call(rooms.transfer_host, ctx.user, _code(data), _required(data, "player_id"))
+    return {"host_id": str(data["player_id"])}
+
+
+@handler("room_settings", bucket="game")
+def room_settings(ctx: Context, data: dict) -> dict:
+    variant = data.get("variant")
+    options = data.get("options")
+    if variant is not None and not isinstance(variant, str):
+        raise ProtocolError("invalid_request", "variant must be text")
+    if options is not None and not isinstance(options, dict):
+        raise ProtocolError("invalid_request", "options must be an object")
+    _room_call(rooms.change_settings, ctx.user, _code(data), variant=variant, options=options)
+    room = Room.objects.get(code=_code(data).strip().upper())
+    return {"variant": room.variant, "options": rooms.room_options(room)}
+
+
+@handler("invite_player", bucket="game")
+def invite_player(ctx: Context, data: dict) -> dict:
+    _room_call(rooms.invite, ctx.user, _code(data), _required(data, "player_id"))
+    return {"invited": True}
+
+
+@handler("decline_invite", bucket="game")
+def decline_invite(ctx: Context, data: dict) -> dict:
+    rooms.decline_invite(ctx.user, _code(data))
+    return {"declined": True}
+
+
+@handler("start_game", bucket="game")
+def start_game(ctx: Context, data: dict) -> dict:
+    return {"status": _room_call(rooms.request_start, ctx.user, _code(data))}
+
+
+@handler("rematch", bucket="game")
+def rematch(ctx: Context, data: dict) -> dict:
+    want = _flag(data, "want")
+    return _room_call(rooms.vote_rematch, ctx.user, _code(data), want)

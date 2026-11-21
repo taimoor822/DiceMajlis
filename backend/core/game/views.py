@@ -9,9 +9,6 @@ Errors always look like ``{"error": "<message>", "code": "<stable_code>"}``;
 the app switches on ``code``.
 """
 
-import secrets
-import string
-
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -23,7 +20,7 @@ from core.api_errors import invalid_input_response
 import game_platform
 from game_platform import LUDO
 
-from . import services
+from . import rooms, services
 from .models import Game, Player, Room
 from .serializers import (
     CreateRoomInput,
@@ -35,10 +32,6 @@ from .serializers import (
     RoomSerializer,
 )
 from .tables.ludo import token_ids_by_player
-
-ROOM_CODE_LENGTH = 4
-ROOM_CODE_ALPHABET = string.ascii_uppercase + string.digits
-
 
 # =========================
 # HELPERS
@@ -112,8 +105,18 @@ def _my_seat(room, user):
     return room.players.filter(user=user, is_bot=False).first()
 
 
-def generate_room_code():
-    return ''.join(secrets.choice(ROOM_CODE_ALPHABET) for _ in range(ROOM_CODE_LENGTH))
+# Room refusals (game/rooms.py) -> HTTP status.
+_ROOM_ERROR_HTTP = {
+    'room_not_found': status.HTTP_404_NOT_FOUND,
+    'not_in_room': status.HTTP_403_FORBIDDEN,
+    'not_host': status.HTTP_403_FORBIDDEN,
+    'player_kicked': status.HTTP_403_FORBIDDEN,
+    'room_locked': status.HTTP_403_FORBIDDEN,
+}
+
+
+def _room_error_response(exc):
+    return _error(exc.message, exc.code, _ROOM_ERROR_HTTP.get(exc.code, status.HTTP_400_BAD_REQUEST))
 
 
 def _seat_response(room, player, http_status):
@@ -171,11 +174,8 @@ def create_room(request):
     services.leave_waiting_rooms(user)
 
     with transaction.atomic():
-        code = generate_room_code()
-        while Room.objects.filter(code=code).exists():
-            code = generate_room_code()
         room = Room.objects.create(
-            code=code,
+            code=rooms.new_room_code(),
             game_type=data['game_type'],
             variant=data['variant'],
             max_players=data['max_players'],
@@ -186,7 +186,9 @@ def create_room(request):
             name=user.public_name,
             color=services.color_for_new_player(room, data.get('color')),
             is_host=True,
+            is_ready=True,  # the host is always ready
         )
+        rooms.settle(room)  # alone and ready: the host may start (the AI joins)
 
     return _seat_response(room, player, status.HTTP_201_CREATED)
 
@@ -222,8 +224,10 @@ def join_room(request):
         room = Room.objects.select_for_update().filter(code=data['code']).first()
         if room is None:
             return _room_not_found()
-        if room.is_started:
-            return _error('Game already started', 'game_already_started', status.HTTP_400_BAD_REQUEST)
+        try:
+            rooms.check_can_join(room, user)  # started, kicked, locked
+        except rooms.RoomError as exc:
+            return _room_error_response(exc)
         if room.players.count() >= room.max_players:
             return _error('Room is full', 'room_full', status.HTTP_400_BAD_REQUEST)
 
@@ -234,8 +238,10 @@ def join_room(request):
             color=services.color_for_new_player(room, data.get('color')),
             is_host=False,
         )
+        room.invites.filter(to_user=user).delete()  # used
+        rooms.settle(room)  # a new guest isn't ready yet
 
-    services.broadcast_players(room)
+    rooms.broadcast_room(room)
     return _seat_response(room, player, status.HTTP_200_OK)
 
 
@@ -246,51 +252,29 @@ def join_room(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_game(request):
+    """
+    The host starts when everyone is ready: a short countdown (STARTING), then
+    the game (``game_started`` on the sockets). A host alone gets the Majlis AI.
+    """
     form = RoomInput(data=request.data)
     if not form.is_valid():
         return _invalid(form)
-    data = form.validated_data
+    try:
+        result = rooms.request_start(request.user, form.validated_data['code'])
+    except rooms.RoomError as exc:
+        return _room_error_response(exc)
+    return Response({'status': 'game_started' if result == 'started' else 'starting'})
 
-    with transaction.atomic():
-        room = Room.objects.select_for_update().filter(code=data['code']).first()
-        if room is None:
-            return _room_not_found()
-        host = _my_seat(room, request.user)
-        if host is None:
-            return _not_in_room()
-        if not host.is_host:
-            return _error('Only the host can start the game', 'not_host', status.HTTP_403_FORBIDDEN)
-        if room.is_started:
-            return _error('Game already started', 'game_already_started', status.HTTP_400_BAD_REQUEST)
 
-        # Spawn an AI if the host is alone (v1), sitting opposite the host.
-        if (
-            room.players.filter(is_bot=False).count() == 1
-            and not room.players.filter(is_bot=True).exists()
-        ):
-            seats = services.assign_seats(list(room.players.order_by('joined_at')))
-            ai_seat = services.bot_seat_for(set(seats.values()), seats[str(host.id)])
-            Player.objects.create(
-                room=room,
-                name="Majlis AI",
-                color=services.COLOR_BY_SEAT[ai_seat],
-                is_host=False,
-                is_bot=True,
-            )
+# =========================
+# INVITES
+# =========================
 
-        room.is_started = True
-        room.save(update_fields=['is_started'])
-        try:
-            services.start_game(room, host)
-        except services.rule_errors() as exc:
-            transaction.set_rollback(True)
-            return _game_error_response(exc)
-        snapshot = services.game_snapshot(room)
-
-    # Sockets: game started (after the transaction committed)
-    services.broadcast(room.code, [snapshot])
-
-    return Response({'status': 'game_started'}, status=status.HTTP_200_OK)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def invites(request):
+    """Invites to rooms you can still join (by Player ID, game/rooms.py)."""
+    return Response({'invites': rooms.pending_invites(request.user)})
 
 
 # =========================
