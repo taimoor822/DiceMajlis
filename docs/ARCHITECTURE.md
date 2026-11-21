@@ -1,6 +1,6 @@
 # Dice Majlis — Technical Foundation
 
-> Status: living document. Last updated 2026-11-15.
+> Status: living document. Last updated 2026-11-21.
 > Covers the 10 foundation items from the master build prompt, adapted to the code
 > that already exists in this repository. Profiles, Majlis rooms and the gift economy
 > are designed in [SOCIAL_MAJLIS.md](SOCIAL_MAJLIS.md); store, VIP, Royal levels and
@@ -576,6 +576,49 @@ Offline play needs the same rules on the phone. ✅ Built in step 1.9:
 Game event names and payloads come straight from `ludo_engine.EventType`, each carrying
 the state `version`.
 
+### What step 1.11 built ✅ (`backend/core/realtime/`, app `lib/core/realtime/`)
+
+The design above, with these decisions made while building it:
+
+- **Server events name their channel:**
+  `{"v":1,"type":"token_moved","channel":"game/42","version":7,"data":{…}}`, the same
+  shape for every kind of channel (not a `game_id` field).
+- **Channels** (`realtime/topics.py`; features register their own kinds):
+
+  | Channel | Who | A new subscriber first gets | Then |
+  |---|---|---|---|
+  | `user/<player id>` | you only | `balances_changed {balances}` | `balances_changed` after every wallet change (on commit) |
+  | `notifications/<player id>` | you only | — | nothing until Phase 5 |
+  | `room/<room id>` (UUID) | seated members | `players_updated` (+ `game_started` once started) | `players_updated`, `game_started` |
+  | `game/<game id>` (a number) | seated players | `state_snapshot` (with `version`) | the game's events, each with `version` |
+
+  `chat/…` and anything else answer `unknown_channel` until built. The room and game
+  messages are the lobby socket's, mirrored by `game.services.broadcast()` (still the
+  one place that sends game messages); `game_started` and the snapshot now carry
+  `game_id`, and `/api/me` → `active_room` carries `room_id`.
+- **Sign-in:** the auth `ack` carries `{player_id, heartbeat_seconds: 20}`. Anything else
+  first, or a bad message, closes 4401. Messages over 8 KB close 1009. The device
+  session is checked again (on a ping) at most every 60 s, so a signed-out phone loses
+  its socket.
+- **Requests** other than `auth`, `ping`, `subscribe`, `unsubscribe` are handlers that
+  features register (`realtime/handlers.py`; game actions in 1.12). Only handlers that
+  change something use remembered replies: they need a `req_id`, and a retry within
+  60 s (from any of the account's sockets) gets the first answer without running again.
+  Refusals are remembered too; a server error is not, so a retry runs.
+- **Rate limits** per account (all its sockets together), `REALTIME_RATE_LIMITS`:
+  control (ping, unsubscribe) 10/s, subscribe 5/s, game 10/s, chat 5 per 5 s. Over the
+  limit: `rate_limited`; three times over: close 4429.
+- **Presence:** `presence:<user id>` lives 60 s, refreshed by every ping; a socket
+  counter lets the last closing socket mark the account offline at once
+  (`realtime/presence.py`: `is_online`, `online`).
+- **App:** `RealtimeClient` (one per signed-in account, `realtimeClientProvider`) gets
+  a fresh access token after a 4401, reconnects 1 s, 2 s, 4 s … 30 s (±20 %), drops a
+  connection after two unanswered pings, and subscribes again to every channel still
+  listened to. Features use `client.channel(name)` and `client.request(type)`. Home's
+  balances follow `user/`.
+- **Pushing from server code:** `realtime.publish(channel, type, data, version=…)`, after
+  the change is committed (it never raises).
+
 ### Reconnection
 
 ```
@@ -613,14 +656,16 @@ All errors are `{"error": "...", "code": "<stable_code>"}` (DRF's own errors too
 gives the allowed player counts (from the engine), and the roll response and the
 reconnect snapshot carry `movable_token_ids`, so the app never re-implements a rule.
 The lobby socket (`/ws/lobby/<code>/`) is still read-only and unauthenticated (it only
-broadcasts); first-message auth arrives with `/ws/v1/` in step 1.11.
+broadcasts); `/ws/v1/` (step 1.11) has first-message auth and carries the same room and
+game messages, and the app's game screens move to it in 1.12.
 
 ### Migration from today
 
 Today: actions go through REST (`/api/game/roll-dice/`, `move-token/`) and the socket
 (`/ws/lobby/<code>/`) only broadcasts. Step 1.1 keeps those endpoints (so the app keeps
-working) but runs them on the new engine and adds `version` to events. Phase 2 adds
-`/ws/v1/`, moves actions onto the socket, then removes the old endpoints.
+working) but runs them on the new engine and adds `version` to events. Step 1.11 added
+`/ws/v1/` next to them; 1.12 moves the game screens and actions onto it, then removes
+the old endpoints and the lobby socket.
 
 ---
 

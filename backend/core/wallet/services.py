@@ -88,6 +88,9 @@ def post(
         WalletAccount.objects.filter(pk=account.pk).update(
             balance=after, last_sequence=entry.sequence
         )
+        # The user's phones see the new balance live (user/ socket channel),
+        # once the whole transaction has been saved.
+        transaction.on_commit(lambda: _push_balances(user))
         return entry
 
 
@@ -104,6 +107,12 @@ def reverse(entry: WalletTransaction, reason: str, idempotency_key: str) -> Wall
         reference_id=str(entry.id),
         metadata={"reason": reason},
     )
+
+
+def _push_balances(user) -> None:
+    from realtime.publish import publish
+
+    publish(f"user/{user.player_id}", "balances_changed", {"balances": balances(user)})
 
 
 def balances(user) -> dict[str, int]:

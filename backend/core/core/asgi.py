@@ -10,6 +10,7 @@ django_asgi_app = get_asgi_application()
 
 # ✅ ONLY NOW import routing
 import game.routing
+import realtime.routing
 from django.conf import settings
 
 # Server-side turn timer (auto-play idle players). Only ASGI servers import this
@@ -22,7 +23,8 @@ application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            game.routing.websocket_urlpatterns
+            # /ws/v1/ (the app's one socket) and the legacy read-only /ws/lobby/<code>/
+            realtime.routing.websocket_urlpatterns + game.routing.websocket_urlpatterns
         )
     ),
 })

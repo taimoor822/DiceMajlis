@@ -2,6 +2,7 @@
 
 import 'package:dice_majlis_app/app.dart';
 import 'package:dice_majlis_app/core/auth/auth_controller.dart';
+import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/routing/app_router.dart';
 import 'package:dice_majlis_app/core/routing/app_routes.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
@@ -51,10 +52,16 @@ Future<FakeSockets> openBoard(
 }) async {
   final sockets = FakeSockets();
   final container = ProviderContainer(
-    overrides: fakeNetwork(
-      repository: repository ?? FakeRoomRepository(),
-      sockets: sockets,
-    ),
+    overrides: [
+      ...fakeNetwork(
+        repository: repository ?? FakeRoomRepository(),
+        sockets: sockets,
+      ),
+      // No /ws/v1/ connection here: this container outlives the widget tree,
+      // so the connection's ping timer would still be running when the test
+      // ends. The board still uses the lobby socket until 1.12.
+      realtimeClientProvider.overrideWithValue(null),
+    ],
   );
   addTearDown(container.dispose);
   await container.read(authControllerProvider.notifier).restore();

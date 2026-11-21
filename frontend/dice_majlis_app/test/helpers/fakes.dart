@@ -6,6 +6,8 @@ import 'package:dice_majlis_app/core/auth/account.dart';
 import 'package:dice_majlis_app/core/auth/auth_api.dart';
 import 'package:dice_majlis_app/core/auth/token_store.dart';
 import 'package:dice_majlis_app/core/network/api_exception.dart';
+import 'package:dice_majlis_app/core/realtime/realtime_connection.dart';
+import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
 import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
@@ -465,6 +467,168 @@ class FakeSockets {
   }
 }
 
+/// One fake `/ws/v1/` socket (see [FakeRealtimeServer]).
+class FakeRealtimeConnection implements RealtimeConnection {
+  FakeRealtimeConnection(this._server);
+
+  final FakeRealtimeServer _server;
+  final _incoming = StreamController<String>();
+
+  /// Everything the app sent, decoded.
+  final sent = <Map<String, dynamic>>[];
+
+  /// Channels this socket subscribed to (and didn't leave).
+  final channels = <String>{};
+
+  bool signedIn = false;
+  bool closed = false;
+
+  @override
+  int? closeCode;
+
+  @override
+  Stream<String> get messages => _incoming.stream;
+
+  @override
+  void send(String text) {
+    final message = Map<String, dynamic>.from(jsonDecode(text) as Map);
+    sent.add(message);
+    _server._answer(this, message);
+  }
+
+  @override
+  Future<void> close() async => serverClose(1000);
+
+  /// The server ends this socket with [code] (e.g. 4401 bad token).
+  void serverClose(int code) {
+    if (closed) return;
+    closed = true;
+    closeCode = code;
+    _incoming.close();
+  }
+
+  /// The server sends [message] to this socket.
+  void push(Map<String, dynamic> message) {
+    if (!closed) _incoming.add(jsonEncode(message));
+  }
+
+  /// Requests of [type] the app sent on this socket.
+  List<Map<String, dynamic>> sentOfType(String type) =>
+      [for (final m in sent) if (m['type'] == type) m];
+}
+
+/// A fake `/ws/v1/` server: signs in any token (unless [refuseTokens]),
+/// answers pings and subscriptions, and lets the test [push] channel events.
+class FakeRealtimeServer {
+  final connections = <FakeRealtimeConnection>[];
+
+  /// The server can't be reached (connecting throws).
+  bool reachable = true;
+
+  /// Tokens the server refuses (closes 4401), e.g. an expired one.
+  final refuseTokens = <String>{};
+
+  /// Leave pings unanswered (a dead connection).
+  bool answerPings = true;
+
+  /// Events a new subscriber of a channel gets right after the ack.
+  final initialEvents = <String, List<Map<String, dynamic>>>{};
+
+  /// The access tokens the app signed in with, in order.
+  final tokens = <String>[];
+
+  FakeRealtimeConnection get last => connections.last;
+
+  /// Every connection attempt, reachable or not.
+  int attempts = 0;
+
+  Future<RealtimeConnection> connect(Uri uri) async {
+    attempts++;
+    if (!reachable) throw StateError('server unreachable');
+    final connection = FakeRealtimeConnection(this);
+    connections.add(connection);
+    return connection;
+  }
+
+  /// An event on [channel], to every open socket subscribed to it.
+  void push(
+    String channel,
+    String type,
+    Map<String, dynamic> data, {
+    int? version,
+  }) {
+    for (final connection in connections) {
+      if (!connection.closed && connection.channels.contains(channel)) {
+        connection.push(_event(channel, type, data, version));
+      }
+    }
+  }
+
+  static Map<String, dynamic> _event(
+    String channel,
+    String type,
+    Map<String, dynamic> data,
+    int? version,
+  ) => {
+    'v': 1,
+    'type': type,
+    'channel': channel,
+    'data': data,
+    if (version != null) 'version': version,
+  };
+
+  void _answer(FakeRealtimeConnection connection, Map<String, dynamic> m) {
+    final reqId = m['req_id'];
+    final data = Map<String, dynamic>.from((m['data'] ?? const {}) as Map);
+    Map<String, dynamic> ack([Map<String, dynamic> body = const {}]) => {
+      'v': 1,
+      'type': 'ack',
+      'req_id': reqId,
+      'data': body,
+    };
+    switch (m['type']) {
+      case 'auth':
+        final token = data['access_token'] as String;
+        tokens.add(token);
+        if (refuseTokens.contains(token)) {
+          connection.push({
+            'v': 1,
+            'type': 'error',
+            'req_id': reqId,
+            'code': 'token_expired',
+            'message': 'Access token expired',
+          });
+          connection.serverClose(4401);
+          return;
+        }
+        connection.signedIn = true;
+        connection.push(ack({'player_id': 123456789, 'heartbeat_seconds': 20}));
+      case 'ping':
+        if (answerPings) {
+          connection.push({'v': 1, 'type': 'pong', 'req_id': reqId});
+        }
+      case 'subscribe':
+        final channel = data['channel'] as String;
+        connection.channels.add(channel);
+        connection.push(ack({'channel': channel}));
+        for (final event in initialEvents[channel] ?? const []) {
+          connection.push(event);
+        }
+      case 'unsubscribe':
+        connection.channels.remove(data['channel']);
+        connection.push(ack({'channel': data['channel']}));
+      default:
+        connection.push({
+          'v': 1,
+          'type': 'error',
+          'req_id': reqId,
+          'code': 'unknown_type',
+          'message': 'Unknown request',
+        });
+    }
+  }
+}
+
 /// Provider overrides that swap the network for fakes. Without [auth] and
 /// [tokens] the player has a saved sign-in, so the app opens signed in.
 List<Override> fakeNetwork({
@@ -476,8 +640,12 @@ List<Override> fakeNetwork({
   FakeWalletRepository? wallet,
   FakeRewardsRepository? rewards,
   FakeGameCatalogRepository? catalog,
+  FakeRealtimeServer? realtime,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
+  realtimeConnectorProvider.overrideWithValue(
+    (realtime ?? FakeRealtimeServer()).connect,
+  ),
   roomRepositoryProvider.overrideWithValue(repository),
   gameCatalogRepositoryProvider.overrideWithValue(
     catalog ?? FakeGameCatalogRepository(),
@@ -517,6 +685,7 @@ Widget testApp({
   FakeWalletRepository? wallet,
   FakeRewardsRepository? rewards,
   FakeGameCatalogRepository? catalog,
+  FakeRealtimeServer? realtime,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -529,6 +698,7 @@ Widget testApp({
       wallet: wallet,
       rewards: rewards,
       catalog: catalog,
+      realtime: realtime,
     ),
     ...overrides,
   ],
