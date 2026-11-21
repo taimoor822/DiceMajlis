@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import DeviceSession, User
+from .models import DeviceSession, SocialAccount, User
 
 
 @admin.register(User)
@@ -31,3 +31,11 @@ class DeviceSessionAdmin(admin.ModelAdmin):
     def sign_out(self, request, queryset):
         for session in queryset:
             session.revoke("admin")
+
+
+@admin.register(SocialAccount)
+class SocialAccountAdmin(admin.ModelAdmin):
+    list_display = ("user", "provider", "email", "created_at", "last_used_at")
+    list_filter = ("provider",)
+    search_fields = ("=user__player_id", "email")
+    readonly_fields = ("user", "provider", "subject", "email", "created_at", "last_used_at")

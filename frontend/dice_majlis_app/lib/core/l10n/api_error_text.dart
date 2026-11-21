@@ -51,6 +51,16 @@ extension ApiErrorText on AppLocalizations {
       'rate_limited' => errorRateLimited,
       'invalid_credentials' => errorInvalidCredentials,
       'email_taken' => errorEmailTaken,
+      'social_account_taken' => errorSocialAccountTaken,
+      'already_linked' => errorAlreadyLinked,
+      'last_sign_in_method' => errorLastSignInMethod,
+      'provider_not_configured' ||
+      'provider_unreachable' ||
+      'unknown_provider' => errorSignInNotSetUp,
+      'invalid_token' ||
+      'wrong_audience' ||
+      'wrong_issuer' ||
+      'invalid_nonce' => socialSignInFailed,
       'already_saved' => errorAlreadySaved,
       'invalid_code' => errorInvalidCode,
       'code_expired' => errorCodeExpired,

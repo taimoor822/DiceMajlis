@@ -59,6 +59,10 @@ class UserManager(BaseUserManager):
         """A player who signed up with email + password."""
         return self._create(email=email, password=password, is_guest=False)
 
+    def create_social_user(self, email: str | None = None) -> "User":
+        """A player who signed up with Google or Apple (no password)."""
+        return self._create(email=email, is_guest=False)
+
     def create_user(self, username, password=None, **fields) -> "User":
         return self._create(username=username, password=password, **fields)
 
@@ -175,3 +179,32 @@ class PasswordResetCode(models.Model):
 
     def __str__(self) -> str:
         return f"Reset code for {self.user}"
+
+
+class SocialAccount(models.Model):
+    """
+    A Google or Apple sign-in attached to an account (accounts/social.py).
+    Found by the provider's stable user id (``subject``), never by email.
+    """
+
+    class Provider(models.TextChoices):
+        GOOGLE = "google", "Google"
+        APPLE = "apple", "Apple"
+
+    user = models.ForeignKey(User, related_name="social_accounts", on_delete=models.CASCADE)
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    subject = models.CharField(max_length=255)
+    # What the provider said when it was linked (for support; may be a relay address).
+    email = models.EmailField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["provider", "subject"], name="unique_social_subject"),
+            # One Google and one Apple per account.
+            models.UniqueConstraint(fields=["user", "provider"], name="unique_social_provider_per_user"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.provider} for {self.user_id}"

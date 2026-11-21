@@ -785,7 +785,7 @@ earning XP arrives in Phase 2.
 1. main(): theme, settings; app opens on the splash screen (logo ≥ 1.2 s)
 2. Read refresh token from secure storage
 3. None → Welcome ("Play as guest", email sign-in/up + forgotten password;
-   Google / Apple: coming soon)
+   Google / Apple when set up, else "coming soon")
 4. Present → POST /api/auth/refresh → new tokens + account (with active_room)
 5. active_room? → its waiting room, or the board if started. Else → Home
    Refused (invalid / expired / revoked) → clear tokens → Welcome
@@ -796,6 +796,52 @@ The router sends signed-out players to Welcome, never shows Welcome to a signed-
 player, and keeps everything on the splash screen while the sign-in is checked.
 Signing in any way (splash, email, reset) goes straight back to the account's
 active room.
+
+### Google and Apple sign-in (built in 1.15)
+
+The phone asks Google or Apple; the server trusts only what it checks itself
+(`accounts/social.py`): the ID token's RS256 signature against the provider's
+published keys (cached an hour, fetched again for a new key id), `aud` = one of our
+client IDs, `iss` = the provider, `exp` (one minute of leeway) and, for Apple, the
+SHA-256 of the nonce the app made. Accounts are found by the provider's user id
+(`SocialAccount.subject`), never by email.
+
+| Endpoint | Body | Notes |
+|---|---|---|
+| `GET /api/auth/providers/` | – | `{google: bool, apple: bool}`: set up on this server |
+| `POST /api/auth/social/<google\|apple>/` | `{id_token, nonce?, device_id, platform}` | 200 (known) / 201 (new account) tokens + account. A verified email that already has an account → 409 `email_taken` (sign in with it, then link) |
+| `POST /api/me/link/<provider>/` | `{id_token, nonce?}` | Signed in. A guest keeps everything and is saved (`is_guest` false). `social_account_taken`, `already_linked` |
+| `POST /api/me/unlink/<provider>/` | – | Refused as `last_sign_in_method` when nothing else signs in |
+
+Refusals: `provider_not_configured` / `provider_unreachable` (503),
+`unknown_provider` (404), `invalid_token`, `token_expired`, `wrong_audience`,
+`wrong_issuer`, `invalid_nonce` (401). `/api/me` lists `linked` providers.
+
+App: `core/auth/social_sign_in.dart` (`SocialSignIn`, plugins `google_sign_in` and
+`sign_in_with_apple`). A button shows only when the server says the provider is set
+up AND this build can use it (`socialProvidersProvider`); otherwise it stays "coming
+soon". Google: Android and iOS. Apple: iOS (Android needs Apple's web flow, later).
+Settings → Account lists linked providers (Unlink) and offers "Save with Google" to
+guests / "Link Apple" to saved accounts.
+
+**Setting it up (the owner's accounts; nothing works until this is done):**
+
+1. **Google Cloud Console** → a project → OAuth consent screen (app name, support
+   email) → Credentials → create OAuth client IDs:
+   - *Web application* (its ID is the **server client ID**);
+   - *Android*: package name (`applicationId` in `android/app/build.gradle.kts`) and
+     the SHA-1 of each signing key (`./gradlew signingReport` for debug; Play Console
+     → App integrity for release);
+   - *iOS*: the bundle ID. Add its **reversed client ID** as a URL scheme in
+     `ios/Runner/Info.plist` (`CFBundleURLTypes`).
+2. **Apple Developer** → Identifiers → the app's App ID → enable *Sign in with Apple*;
+   in Xcode → Runner → Signing & Capabilities → **+ Sign in with Apple**.
+3. **Server** `.env`: `GOOGLE_CLIENT_IDS=<web>,<android>,<ios>` and
+   `APPLE_CLIENT_IDS=<bundle id>` (comma-separated), then restart.
+4. **App** build: `--dart-define=GOOGLE_SERVER_CLIENT_ID=<web client id>` and, for iOS,
+   `--dart-define=GOOGLE_IOS_CLIENT_ID=<ios client id>`.
+
+Client IDs are not secrets (they ship inside the app); no client secret is needed.
 
 ## 9. Development environment
 

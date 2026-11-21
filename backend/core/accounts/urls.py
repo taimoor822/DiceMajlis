@@ -13,4 +13,8 @@ urlpatterns = [
     path("auth/logout/", views.logout),
     path("auth/logout-others/", views.logout_others),
     path("me/", views.me),
+    path("auth/providers/", views.providers),
+    path("auth/social/<str:provider>/", views.social_login),
+    path("me/link/<str:provider>/", views.link_social),
+    path("me/unlink/<str:provider>/", views.unlink_social),
 ]

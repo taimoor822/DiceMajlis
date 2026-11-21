@@ -18,6 +18,40 @@
   "welcomeEmailSubtitle": "Or create an account with your email",
   "welcomeGoogle": "Continue with Google",
   "welcomeApple": "Continue with Apple",
+  "providerGoogle": "Google",
+  "providerApple": "Apple",
+  "socialSignInFailed": "That sign-in didn't work. Please try again.",
+  "linkButton": "Link {provider}",
+  "@linkButton": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "saveWith": "Save with {provider}",
+  "@saveWith": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "linkedWith": "Linked with {provider}",
+  "@linkedWith": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "linkDone": "{provider} is linked. Sign in with it on any phone.",
+  "@linkDone": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "unlinkButton": "Unlink",
+  "unlinkDone": "{provider} is no longer linked.",
+  "@unlinkDone": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
 
   "emailTitle": "Email",
   "emailModeSignIn": "Sign in",
@@ -379,6 +413,10 @@
   "errorRateLimited": "Too many tries. Please wait a moment and try again.",
   "errorInvalidCredentials": "Wrong email or password.",
   "errorEmailTaken": "That email already has an account. Sign in instead.",
+  "errorSocialAccountTaken": "That account is already linked to another player.",
+  "errorAlreadyLinked": "A different account of this kind is already linked.",
+  "errorLastSignInMethod": "This is your only way to sign in, so it can't be unlinked.",
+  "errorSignInNotSetUp": "This sign-in isn't available right now.",
   "errorAlreadySaved": "This account is already saved.",
   "errorInvalidCode": "That code isn't right. Check the email and try again.",
   "errorCodeExpired": "That code has expired. Ask for a new one.",

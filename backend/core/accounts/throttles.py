@@ -28,5 +28,9 @@ class LoginThrottle(_IpThrottle):
     scope = "login"
 
 
+class SocialLoginThrottle(_IpThrottle):
+    scope = "social_login"
+
+
 class PasswordResetThrottle(_IpThrottle):
     scope = "password_reset"

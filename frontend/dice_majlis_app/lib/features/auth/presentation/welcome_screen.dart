@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_controller.dart';
+import '../../../core/auth/social_sign_in.dart';
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
@@ -13,8 +14,9 @@ import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/majlis_wordmark.dart';
 
-/// First visit (or after signing out): "Play as guest" or email. Google and
-/// Apple sign-in say "coming soon" until step 1.15.
+/// First visit (or after signing out): "Play as guest", email, Google or
+/// Apple. Google and Apple show only when the server and this build are set up
+/// for them (`socialProvidersProvider`); otherwise they say "coming soon".
 ///
 /// Signing in needs no navigation here: the router moves a signed-in player
 /// on to Home.
@@ -43,6 +45,30 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
   }
 
+  Future<void> _signInWith(SocialProvider provider) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _loading = true);
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .signInWithProvider(provider);
+    } on SocialSignInCancelled {
+      // The player closed Google's / Apple's sheet: nothing to say.
+    } on SocialSignInFailed {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.socialSignInFailed)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.apiErrorText(error))));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   void _comingSoon(String feature) {
     final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
@@ -55,9 +81,16 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final majlis = context.majlis;
-    final later = [
-      (Icons.account_circle_outlined, l10n.welcomeGoogle),
-      (Icons.phone_iphone, l10n.welcomeApple),
+    final ready =
+        ref.watch(socialProvidersProvider).valueOrNull ??
+        const <SocialProvider>[];
+    final social = [
+      (
+        SocialProvider.google,
+        Icons.account_circle_outlined,
+        l10n.welcomeGoogle,
+      ),
+      (SocialProvider.apple, Icons.phone_iphone, l10n.welcomeApple),
     ];
 
     return Scaffold(
@@ -115,13 +148,23 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                 ? null
                                 : () => context.push(AppRoutes.welcomeEmail),
                           ),
-                          for (final (icon, label) in later)
-                            ListTile(
-                              leading: Icon(icon, color: majlis.textMuted),
-                              title: Text(label),
-                              trailing: const SoonBadge(),
-                              onTap: () => _comingSoon(label),
-                            ),
+                          for (final (provider, icon, label) in social)
+                            if (ready.contains(provider))
+                              ListTile(
+                                leading: Icon(icon, color: majlis.gold),
+                                title: Text(label),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: _loading
+                                    ? null
+                                    : () => _signInWith(provider),
+                              )
+                            else
+                              ListTile(
+                                leading: Icon(icon, color: majlis.textMuted),
+                                title: Text(label),
+                                trailing: const SoonBadge(),
+                                onTap: () => _comingSoon(label),
+                              ),
                         ],
                       ),
                     ),

@@ -144,6 +144,30 @@ class AuthApi {
     await _send('POST', 'auth/refresh/', data: {'refresh': refreshToken}),
   );
 
+  /// Which of Google / Apple sign-in the server is set up for.
+  Future<Map<String, dynamic>> providers() => _send('GET', 'auth/providers/');
+
+  /// Sign in with Google or Apple's ID token ([provider] is `google` or
+  /// `apple`). The same Google/Apple user always gets the same account.
+  Future<AuthTokens> socialSignIn({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    required String deviceId,
+    required String platform,
+  }) async => AuthTokens.fromJson(
+    await _send(
+      'POST',
+      'auth/social/$provider/',
+      data: {
+        'id_token': idToken,
+        'nonce': ?nonce,
+        'device_id': deviceId,
+        'platform': platform,
+      },
+    ),
+  );
+
   Future<Account> me(String access) async =>
       Account.fromJson(await _send('GET', 'me/', access: access));
 

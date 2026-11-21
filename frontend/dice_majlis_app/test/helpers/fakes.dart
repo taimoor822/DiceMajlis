@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dice_majlis_app/app.dart';
 import 'package:dice_majlis_app/core/auth/account.dart';
 import 'package:dice_majlis_app/core/auth/auth_api.dart';
+import 'package:dice_majlis_app/core/auth/social_sign_in.dart';
 import 'package:dice_majlis_app/core/auth/token_store.dart';
 import 'package:dice_majlis_app/core/network/api_exception.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_connection.dart';
@@ -326,6 +327,56 @@ class FakeAuthApi implements AuthApi {
 
   @override
   Future<void> signOut(String access) async => calls.add('signOut:$access');
+
+  /// What `GET /api/auth/providers/` says is set up on the server.
+  Map<String, dynamic> serverProviders = {'google': false, 'apple': false};
+
+  @override
+  Future<Map<String, dynamic>> providers() async => serverProviders;
+
+  @override
+  Future<AuthTokens> socialSignIn({
+    required String provider,
+    required String idToken,
+    String? nonce,
+    required String deviceId,
+    required String platform,
+  }) async {
+    calls.add('social:$provider:$idToken${nonce == null ? '' : ':$nonce'}');
+    final tokens = _tokens();
+    account = account.copyWith(isGuest: false, linked: [provider]);
+    return AuthTokens(
+      access: tokens.access,
+      refresh: tokens.refresh,
+      accessExpiresIn: tokens.accessExpiresIn,
+      account: account,
+    );
+  }
+}
+
+/// Google / Apple on the phone without the plugins: [usable] providers work,
+/// returning `<provider>-token` ([cancel] = the player closes the sheet).
+class FakeSocialSignIn implements SocialSignIn {
+  FakeSocialSignIn({Set<SocialProvider>? usable})
+    : usable = usable ?? {SocialProvider.google, SocialProvider.apple};
+
+  Set<SocialProvider> usable;
+  bool cancel = false;
+  final asked = <SocialProvider>[];
+
+  @override
+  Future<bool> canUse(SocialProvider provider) async =>
+      usable.contains(provider);
+
+  @override
+  Future<SocialCredential> credential(SocialProvider provider) async {
+    asked.add(provider);
+    if (cancel) throw const SocialSignInCancelled();
+    return SocialCredential(
+      idToken: '${provider.key}-token',
+      nonce: provider == SocialProvider.apple ? 'apple-nonce' : null,
+    );
+  }
 }
 
 /// Profile and account changes without a server: applies them to the
@@ -387,6 +438,31 @@ class FakeAccountRepository implements AccountRepository {
     calls.add('save:$email');
     _maybeFail();
     return account = account.copyWith(email: email, isGuest: false);
+  }
+
+  @override
+  Future<Account> linkSocial(
+    SocialProvider provider,
+    SocialCredential credential,
+  ) async {
+    calls.add('link:${provider.key}:${credential.idToken}');
+    _maybeFail();
+    return account = account.copyWith(
+      isGuest: false,
+      linked: [...account.linked, provider.key]..sort(),
+    );
+  }
+
+  @override
+  Future<Account> unlinkSocial(SocialProvider provider) async {
+    calls.add('unlink:${provider.key}');
+    _maybeFail();
+    return account = account.copyWith(
+      linked: [
+        for (final key in account.linked)
+          if (key != provider.key) key,
+      ],
+    );
   }
 }
 
@@ -744,8 +820,10 @@ List<Override> fakeNetwork({
   FakeRewardsRepository? rewards,
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
+  FakeSocialSignIn? social,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
+  socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
     (realtime ?? FakeRealtimeServer()).connect,
   ),
@@ -789,6 +867,7 @@ Widget testApp({
   FakeRewardsRepository? rewards,
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
+  FakeSocialSignIn? social,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -802,6 +881,7 @@ Widget testApp({
       rewards: rewards,
       catalog: catalog,
       realtime: realtime,
+      social: social,
     ),
     ...overrides,
   ],

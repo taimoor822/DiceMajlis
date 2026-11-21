@@ -54,6 +54,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeApple => 'Continue with Apple';
 
   @override
+  String get providerGoogle => 'Google';
+
+  @override
+  String get providerApple => 'Apple';
+
+  @override
+  String get socialSignInFailed =>
+      'That sign-in didn\'t work. Please try again.';
+
+  @override
+  String linkButton(String provider) {
+    return 'Link $provider';
+  }
+
+  @override
+  String saveWith(String provider) {
+    return 'Save with $provider';
+  }
+
+  @override
+  String linkedWith(String provider) {
+    return 'Linked with $provider';
+  }
+
+  @override
+  String linkDone(String provider) {
+    return '$provider is linked. Sign in with it on any phone.';
+  }
+
+  @override
+  String get unlinkButton => 'Unlink';
+
+  @override
+  String unlinkDone(String provider) {
+    return '$provider is no longer linked.';
+  }
+
+  @override
   String get emailTitle => 'Email';
 
   @override
@@ -818,6 +856,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorEmailTaken =>
       'That email already has an account. Sign in instead.';
+
+  @override
+  String get errorSocialAccountTaken =>
+      'That account is already linked to another player.';
+
+  @override
+  String get errorAlreadyLinked =>
+      'A different account of this kind is already linked.';
+
+  @override
+  String get errorLastSignInMethod =>
+      'This is your only way to sign in, so it can\'t be unlinked.';
+
+  @override
+  String get errorSignInNotSetUp => 'This sign-in isn\'t available right now.';
 
   @override
   String get errorAlreadySaved => 'This account is already saved.';
