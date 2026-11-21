@@ -586,6 +586,78 @@ abstract class AppLocalizations {
   /// **'Dice, board and profile frame'**
   String get profileCustomiseHint;
 
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get statsTitle;
+
+  /// No description provided for @statsGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get statsGames;
+
+  /// No description provided for @statsWins.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins'**
+  String get statsWins;
+
+  /// No description provided for @statsWinRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Win rate'**
+  String get statsWinRate;
+
+  /// No description provided for @statsBestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get statsBestStreak;
+
+  /// No description provided for @statsPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}%'**
+  String statsPercent(int value);
+
+  /// No description provided for @statsCurrentStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins in a row now: {count}'**
+  String statsCurrentStreak(int count);
+
+  /// No description provided for @statsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest games'**
+  String get statsRecent;
+
+  /// No description provided for @statsResultPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} of {players}'**
+  String statsResultPlace(int place, int players);
+
+  /// No description provided for @statsResultLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get statsResultLeft;
+
+  /// No description provided for @statsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No games yet. Play an online game against other people to start your statistics.'**
+  String get statsEmpty;
+
+  /// No description provided for @statsOnlyRealGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Only online games against other people count (not games with the AI or offline games).'**
+  String get statsOnlyRealGames;
+
   /// No description provided for @customiseTitle.
   ///
   /// In en, this message translates to:

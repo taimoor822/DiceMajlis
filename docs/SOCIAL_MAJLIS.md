@@ -169,6 +169,10 @@ engine's final standings — never typed in by hand.
 **Bot games don't count** towards statistics, achievements or rewards. Otherwise anyone
 could farm wins and coins against the bot.
 
+*Built in step 2.3* (`backend/core/stats/`): games, wins, losses, games left, win rate,
+win streak and best win streak per game type and in total, plus the latest results.
+A game counts when 2+ accounts played it with no bots; leaving early is a loss.
+
 ### Languages
 
 Spoken-language badges chosen by the player: English, Arabic, Urdu, Punjabi (list is

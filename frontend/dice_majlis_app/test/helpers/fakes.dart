@@ -14,6 +14,8 @@ import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
 import 'package:dice_majlis_app/features/cosmetics/data/items_repository.dart';
 import 'package:dice_majlis_app/features/cosmetics/domain/inventory.dart';
+import 'package:dice_majlis_app/features/stats/data/stats_repository.dart';
+import 'package:dice_majlis_app/features/stats/domain/player_stats.dart';
 import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
 import 'package:dice_majlis_app/features/games/domain/game_catalog.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
@@ -572,6 +574,23 @@ class FakeItemsRepository implements ItemsRepository {
   }
 }
 
+/// Statistics without a server: none until a test sets [stats].
+class FakeStatsRepository implements StatsRepository {
+  FakeStatsRepository({this.stats = const StatsOverview()});
+
+  StatsOverview stats;
+  String? failWith;
+  int loads = 0;
+
+  @override
+  Future<StatsOverview> myStats() async {
+    loads++;
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return stats;
+  }
+}
+
 class FakeWalletRepository implements WalletRepository {
   FakeWalletRepository({
     this.balance = const Balances(gold: 1250, diamond: 5),
@@ -926,9 +945,11 @@ List<Override> fakeNetwork({
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
   FakeItemsRepository? items,
+  FakeStatsRepository? stats,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
   itemsRepositoryProvider.overrideWithValue(items ?? FakeItemsRepository()),
+  statsRepositoryProvider.overrideWithValue(stats ?? FakeStatsRepository()),
   socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
     (realtime ?? FakeRealtimeServer()).connect,
@@ -975,6 +996,7 @@ Widget testApp({
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
   FakeItemsRepository? items,
+  FakeStatsRepository? stats,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -990,6 +1012,7 @@ Widget testApp({
       realtime: realtime,
       social: social,
       items: items,
+      stats: stats,
     ),
     ...overrides,
   ],

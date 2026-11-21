@@ -41,6 +41,7 @@ backend/core/              Django project (run manage.py from here)
                            on(kind, handler); handlers run after commit, sweep retries
   items/                   one item system: catalog, inventory, append-only item
                            ledger, equip cosmetics (dice, board, frame), expiry
+  stats/                   statistics from real online games (results + totals)
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
   game_platform/           PURE game registry: GameEngine contract, register/get_game,
@@ -108,7 +109,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~390 tests)
+python manage.py test                                  # everything (~400 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -291,6 +292,14 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `BoardSkinRim` (first child of a board `Stack`; the board keeps its size). The die
   shows the skin of whoever's turn it is; the board skin is your own. Tests:
   `items/tests/`, app `test/cosmetics_test.dart` with `FakeItemsRepository`.
+- Statistics (2.3): `stats/` listens to `game_finished` (real games only) and writes
+  one `PlayerGameResult` per account per game (unique, so a game counts once) and
+  updates `PlayerStats` per game type in the same transaction (1st place = win; every
+  other place and leaving = loss; streaks). Then it emits `player_stats_changed`
+  (`user_id`, `stats`, `total`) for achievements and pushes `stats_changed`.
+  `GET /api/me/stats/` (totals, per game type, last 10 results; the win rate is worked
+  out on the server). App: `features/stats/` (`statsProvider`, `StatsCard` on the
+  Profile); tests use `FakeStatsRepository` (`testApp(stats: …)`).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -309,7 +318,8 @@ private rooms v2: ready, host controls, invites, custom rules, countdown, rematc
 reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
 Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1), item
-system + cosmetics (2.2). Next: statistics (2.3), see `docs/planning.md`.
+system + cosmetics (2.2), statistics (2.3). Next: achievements (2.4), see
+`docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.
