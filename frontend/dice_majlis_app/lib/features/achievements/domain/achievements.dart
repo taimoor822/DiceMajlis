@@ -1,15 +1,17 @@
+import '../../rewards/domain/reward_bundle.dart';
+
 /// One step of an achievement: reach [threshold] (and get [reward]).
 class AchievementTierInfo {
   const AchievementTierInfo({
     required this.threshold,
-    this.reward = const {},
+    this.reward = const RewardBundle(),
     this.unlockedAt,
   });
 
   factory AchievementTierInfo.fromJson(Map<String, dynamic> json) =>
       AchievementTierInfo(
         threshold: json['threshold'] as int? ?? 0,
-        reward: _bundle(json['reward']),
+        reward: RewardBundle.fromJson(json['reward']),
         unlockedAt: json['unlocked_at'] == null
             ? null
             : DateTime.tryParse(json['unlocked_at'] as String),
@@ -17,8 +19,8 @@ class AchievementTierInfo {
 
   final int threshold;
 
-  /// What it gives, by currency (`gold`, `diamond`).
-  final Map<String, int> reward;
+  /// What it gives: currencies, XP, items.
+  final RewardBundle reward;
   final DateTime? unlockedAt;
 
   bool get unlocked => unlockedAt != null;
@@ -111,7 +113,7 @@ class AchievementUnlocked {
     required this.code,
     required this.name,
     required this.tier,
-    this.reward = const {},
+    this.reward = const RewardBundle(),
     this.roomCode,
   });
 
@@ -122,7 +124,7 @@ class AchievementUnlocked {
       code: code,
       name: json['name'] as String? ?? code,
       tier: json['tier'] as int? ?? 1,
-      reward: _bundle(json['reward']),
+      reward: RewardBundle.fromJson(json['reward']),
       roomCode: json['room_code'] as String?,
     );
   }
@@ -130,15 +132,8 @@ class AchievementUnlocked {
   final String code;
   final String name;
   final int tier;
-  final Map<String, int> reward;
+  final RewardBundle reward;
 
   /// The room of the game that unlocked it, if a game did.
   final String? roomCode;
 }
-
-Map<String, int> _bundle(Object? value) => value is Map
-    ? {
-        for (final entry in value.entries)
-          if (entry.value is int) entry.key.toString(): entry.value as int,
-      }
-    : const {};

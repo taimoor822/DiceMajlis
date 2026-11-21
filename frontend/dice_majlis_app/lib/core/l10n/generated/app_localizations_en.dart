@@ -373,6 +373,42 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String rewardXp(int amount) {
+    return '+$amount XP';
+  }
+
+  @override
+  String rewardItemDays(String name, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$name ($_temp0)';
+  }
+
+  @override
+  String get rewardHistoryTitle => 'Reward history';
+
+  @override
+  String get rewardHistoryEmpty =>
+      'No rewards yet. Claim your daily reward or unlock an achievement.';
+
+  @override
+  String rewardHistoryDaily(int day) {
+    return 'Daily reward, day $day';
+  }
+
+  @override
+  String rewardHistoryAchievement(String name) {
+    return 'Achievement: $name';
+  }
+
+  @override
+  String get rewardHistoryOther => 'Reward';
+
+  @override
   String rewardAmount(String amount, String currency) {
     return '+$amount $currency';
   }
@@ -492,8 +528,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get dailyHint =>
-      'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.';
+  String dailyHint(int days) {
+    return 'Come back every day: rewards grow for $days days in a row. Miss a day and it starts again.';
+  }
+
+  @override
+  String dailyHintCarryOn(int days) {
+    return 'Come back every day: rewards grow for $days days. Miss a day and you carry on where you left off.';
+  }
+
+  @override
+  String get dailyUnavailable => 'No daily reward right now.';
 
   @override
   String dailyGot(String amount) {

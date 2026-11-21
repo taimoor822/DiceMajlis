@@ -170,6 +170,13 @@ One DB transaction writes every part (wallet, item and EXP ledgers) or none.
 `RewardBundle` is admin-configured data; `RewardClaim` records every claim (who,
 what, when, key). Reward history screens read `RewardClaim`.
 
+*Built in step 2.5* (`backend/core/rewards/`): bundles are one dict,
+`{"gold", "diamond", "xp", "items": [{"code", "quantity", "days"}]}`; `grant()` writes
+every part in one transaction. The daily login cycle is admin data (`DailyRewardDay` →
+`RewardBundle`) with `DailyRewardSettings` (a missed day restarts or carries on; after
+the last day the cycle loops or stays). `GET /api/rewards/history/` pages the claims.
+Royal EXP joins the bundle with the Royal system.
+
 ### Daily resets and device time
 
 - The **server's clock** decides. The phone's time is never used.

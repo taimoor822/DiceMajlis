@@ -102,7 +102,7 @@ void main() {
       'room_code': 'QX7P2M',
     })!;
     expect(unlocked.name, 'Victories');
-    expect(unlocked.reward, {'gold': 100});
+    expect(unlocked.reward.gold, 100);
     expect(unlocked.roomCode, 'QX7P2M');
     expect(AchievementUnlocked.fromJson({'name': 'x'}), isNull);
     expect(overview.achievements.first.progress, 0.2);

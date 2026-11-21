@@ -50,6 +50,10 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   streaks and your level, each in tiers that give Gold or Diamonds (some are hidden
   until you find them). A note pops up when one unlocks, and the game result lists
   what that game unlocked
+- **Rewards** — rewards can give Gold, Diamonds, XP and items (some for a few days).
+  Achievements now also give dice, boards and frames, and day 7 of the daily reward
+  lends the Pearl dice for a week. The team sets up the daily cycle in the admin.
+  Wallet → Reward history lists everything you got
 - **Gold and Diamonds** — balances at the top of Home and a **Wallet** with the full
   history of every change. A **daily reward** grows for 7 days in a row (day 7 adds
   diamonds); miss a day and it starts again. The day changes at midnight Bahrain
@@ -215,7 +219,7 @@ code is printed in the terminal where the server runs (look for "Your code is").
 # rate limits, retries answered once, presence), game actions over it, private
 # rooms (ready, host controls, invites, rules, countdown, rematch), reconnection,
 # Google/Apple token checks, domain events, XP from games, items and equip,
-# statistics, achievements (~410 tests)
+# statistics, achievements, reward bundles (~420 tests)
 cd backend/core
 python manage.py test
 
@@ -235,7 +239,7 @@ python -m ludo_engine.vectors
 # (Game Hub from the server catalog, variants, board picked by game type), the live
 # connection (sign-in, reconnects with back-off, token refresh, pings, channels,
 # Home balances following the server, XP and level ups after a game, Customise,
-# dice and board skins, statistics, achievements)
+# dice and board skins, statistics, achievements, reward history)
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -264,7 +268,7 @@ vectors.
 | Phase | What |
 |---|---|
 | **1 — Playable foundation** | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · ✅ reconnection · ✅ Google/Apple sign-in (needs your setup) |
-| **2 — Player system** (now) | ✅ XP and levels from games · ✅ items and customisation · ✅ statistics · ✅ achievements · reward bundles · entitlements |
+| **2 — Player system** (now) | ✅ XP and levels from games · ✅ items and customisation · ✅ statistics · ✅ achievements · ✅ reward bundles · entitlements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |
 | 5 — Social | Friends, chat, feed, notifications, Majlis rooms, communities |
