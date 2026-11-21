@@ -36,6 +36,7 @@ from ludo_engine.board import SEAT_COLORS
 
 from realtime.publish import publish
 
+from . import results
 from .models import Game, GameAction, Player, Room
 from .tables import table_for
 
@@ -411,6 +412,9 @@ def perform(
             not info.finished
             and Player.objects.filter(id=info.current_player_id, is_bot=True).exists()
         )
+        if info.finished and not old_info.finished:
+            # Saved with the game: XP, statistics ... react to it after the commit.
+            results.emit_game_finished(game, room, game_def.standings(new_state), now)
 
     broadcast(room_code, messages)
     if info.finished and not old_info.finished:

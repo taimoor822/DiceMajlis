@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
 
+from events.outbox import dispatch_pending
+
 from game.rooms import start_due_rooms
 from game.timers import process_due_turns, run_forever
 
@@ -15,7 +17,11 @@ class Command(BaseCommand):
         if options["once"]:
             handled = process_due_turns()
             started = start_due_rooms()
-            self.stdout.write(f"Handled {handled} overdue turn(s), started {started} room(s).")
+            events = dispatch_pending(min_age_seconds=0)
+            self.stdout.write(
+                f"Handled {handled} overdue turn(s), started {started} room(s), "
+                f"finished {events} domain event(s)."
+            )
             return
         self.stdout.write(f"Turn timer running every {options['interval']}s. Ctrl+C to stop.")
         try:

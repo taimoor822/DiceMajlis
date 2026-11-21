@@ -276,7 +276,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profileXpSoon => 'Earning XP from games is coming soon.';
+  String get profileXpHow =>
+      'Earn XP by playing online games against other people.';
 
   @override
   String get profileOptionsFailed => 'Couldn\'t load the profile choices.';
@@ -776,6 +777,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameOverWaitingForOthers => 'Waiting for the others to say yes…';
+
+  @override
+  String gameOverXpGained(int amount) {
+    return '+$amount XP';
+  }
+
+  @override
+  String gameOverLevelUp(int level) {
+    return 'Level up! You\'re now level $level';
+  }
+
+  @override
+  String get gameOverNoXpWithAi => 'Games with the AI don\'t give XP.';
 
   @override
   String get gameTimeoutSelf => 'Time ran out, so we played for you.';

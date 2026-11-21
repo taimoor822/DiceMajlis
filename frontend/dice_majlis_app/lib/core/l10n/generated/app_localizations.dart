@@ -568,11 +568,11 @@ abstract class AppLocalizations {
   /// **'{xp} / {next} XP'**
   String profileLevelXp(int xp, int next);
 
-  /// No description provided for @profileXpSoon.
+  /// No description provided for @profileXpHow.
   ///
   /// In en, this message translates to:
-  /// **'Earning XP from games is coming soon.'**
-  String get profileXpSoon;
+  /// **'Earn XP by playing online games against other people.'**
+  String get profileXpHow;
 
   /// No description provided for @profileOptionsFailed.
   ///
@@ -1479,6 +1479,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Waiting for the others to say yes…'**
   String get gameOverWaitingForOthers;
+
+  /// No description provided for @gameOverXpGained.
+  ///
+  /// In en, this message translates to:
+  /// **'+{amount} XP'**
+  String gameOverXpGained(int amount);
+
+  /// No description provided for @gameOverLevelUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Level up! You\'re now level {level}'**
+  String gameOverLevelUp(int level);
+
+  /// No description provided for @gameOverNoXpWithAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Games with the AI don\'t give XP.'**
+  String get gameOverNoXpWithAi;
 
   /// No description provided for @gameTimeoutSelf.
   ///

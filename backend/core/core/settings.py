@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'channels',
 
+    'events',
     'accounts',
     'profiles',
     'wallet',

@@ -31,6 +31,7 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 import game_platform
+from events.outbox import dispatch_pending
 
 from . import connections, rooms, services
 from .models import Game, Player
@@ -117,6 +118,7 @@ def run_forever(interval: float = 1.0, stop: threading.Event | None = None) -> N
             if time.monotonic() - last_stale_check >= STALE_CHECK_SECONDS:
                 last_stale_check = time.monotonic()
                 connections.mark_stale()
+                dispatch_pending()  # domain events missed after a crash, or failed before
         except Exception:
             logger.exception("turn timer sweep failed")
         finally:

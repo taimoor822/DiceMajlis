@@ -6,6 +6,7 @@ import 'core/l10n/generated/app_localizations.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_controller.dart';
+import 'features/profile/domain/xp_gain.dart';
 
 /// Root widget: Majlis themes, router and translations.
 class DiceMajlisApp extends ConsumerWidget {
@@ -13,6 +14,7 @@ class DiceMajlisApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(xpLiveProvider); // keeps the account's level live (never rebuilds)
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
