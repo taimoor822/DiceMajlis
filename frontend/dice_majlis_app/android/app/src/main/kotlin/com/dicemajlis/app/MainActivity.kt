@@ -1,4 +1,4 @@
-package com.example.dice_majlis_app
+package com.dicemajlis.app
 
 import io.flutter.embedding.android.FlutterActivity
 

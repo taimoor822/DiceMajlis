@@ -24,7 +24,7 @@ from wallet.services import balances
 from .test_auth import DEVICE, AuthTestCase
 
 GOOGLE_APP = "1234-android.apps.googleusercontent.com"
-APPLE_APP = "com.example.dicemajlis"
+APPLE_APP = "com.dicemajlis.app"
 
 
 def _key_pair():

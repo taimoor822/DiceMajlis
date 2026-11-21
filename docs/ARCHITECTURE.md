@@ -829,15 +829,16 @@ guests / "Link Apple" to saved accounts.
 1. **Google Cloud Console** → a project → OAuth consent screen (app name, support
    email) → Credentials → create OAuth client IDs:
    - *Web application* (its ID is the **server client ID**);
-   - *Android*: package name (`applicationId` in `android/app/build.gradle.kts`) and
-     the SHA-1 of each signing key (`./gradlew signingReport` for debug; Play Console
-     → App integrity for release);
-   - *iOS*: the bundle ID. Add its **reversed client ID** as a URL scheme in
-     `ios/Runner/Info.plist` (`CFBundleURLTypes`).
-2. **Apple Developer** → Identifiers → the app's App ID → enable *Sign in with Apple*;
+   - *Android*: package name **`com.dicemajlis.app`** (`applicationId` in
+     `android/app/build.gradle.kts`) and the SHA-1 of each signing key
+     (`./gradlew signingReport` for debug; Play Console → App integrity for release);
+   - *iOS*: bundle ID **`com.dicemajlis.app`**. Add its **reversed client ID** as a
+     URL scheme in `ios/Runner/Info.plist` (`CFBundleURLTypes`).
+2. **Apple Developer** → Identifiers → **+** → App ID `com.dicemajlis.app` (explicit) →
+   enable *Sign in with Apple*;
    in Xcode → Runner → Signing & Capabilities → **+ Sign in with Apple**.
 3. **Server** `.env`: `GOOGLE_CLIENT_IDS=<web>,<android>,<ios>` and
-   `APPLE_CLIENT_IDS=<bundle id>` (comma-separated), then restart.
+   `APPLE_CLIENT_IDS=com.dicemajlis.app` (comma-separated), then restart.
 4. **App** build: `--dart-define=GOOGLE_SERVER_CLIENT_ID=<web client id>` and, for iOS,
    `--dart-define=GOOGLE_IOS_CLIENT_ID=<ios client id>`.
 
