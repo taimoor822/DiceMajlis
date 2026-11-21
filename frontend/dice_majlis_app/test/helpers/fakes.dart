@@ -608,6 +608,12 @@ class FakeRealtimeServer {
   /// Events a new subscriber of a channel gets right after the ack.
   final initialEvents = <String, List<Map<String, dynamic>>>{};
 
+  /// For a subscribe with `since` (coming back): the events to send instead
+  /// of [initialEvents], or null for those. Every subscribe's data is kept in
+  /// [subscribes].
+  List<Map<String, dynamic>>? Function(String channel, int since)? catchUp;
+  final subscribes = <Map<String, dynamic>>[];
+
   /// Answers to other requests (`roll_dice`, `request_state`, …): return the
   /// ack's data, or throw a [RealtimeException] to refuse with its code.
   final handlers =
@@ -688,9 +694,12 @@ class FakeRealtimeServer {
         }
       case 'subscribe':
         final channel = data['channel'] as String;
+        subscribes.add(data);
         connection.channels.add(channel);
         connection.push(ack({'channel': channel}));
-        for (final event in initialEvents[channel] ?? const []) {
+        final since = data['since'];
+        final missed = since is int ? catchUp?.call(channel, since) : null;
+        for (final event in missed ?? initialEvents[channel] ?? const []) {
           connection.push(event);
         }
       case 'unsubscribe':

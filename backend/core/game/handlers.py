@@ -30,6 +30,9 @@ Private rooms (1.13, game/rooms.py), by room ``code``:
   decline_invite {code}
   start_game     {code}                   host, everyone ready → {status: starting|started}
   rematch        {code, want}             after the game → {next_room, seat_id} once all agree
+
+Coming back (1.14): ``sync {game_id|code, version}`` → what you missed (a delta)
+or the whole state.
 """
 
 from __future__ import annotations
@@ -264,3 +267,27 @@ def start_game(ctx: Context, data: dict) -> dict:
 def rematch(ctx: Context, data: dict) -> dict:
     want = _flag(data, "want")
     return _room_call(rooms.vote_rematch, ctx.user, _code(data), want)
+
+
+# ---------------------------------------------------------------------------
+# Coming back (1.14)
+# ---------------------------------------------------------------------------
+
+
+@handler("sync", bucket="game", changes_state=False)
+def sync(ctx: Context, data: dict) -> dict:
+    """
+    ``{game_id|code, version}``: what you missed since ``version`` as
+    ``{"kind": "delta", events: […], …}``, or ``{"kind": "snapshot", …}`` (the
+    whole state) when a delta can't be made.
+    """
+    _seat_, room = _seat(ctx, data)
+    since = data.get("version")
+    game = Game.objects.filter(room=room).first()
+    if game is not None and since is not None:
+        delta = services.game_delta(game, _whole_number(since, "version"))
+        if delta is not None:
+            return {"kind": "delta", **delta}
+    snapshot = services.game_snapshot(room)
+    snapshot.pop("type", None)
+    return {"kind": "snapshot", **snapshot}

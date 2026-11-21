@@ -58,6 +58,13 @@ class Topic:
         """Events a new subscriber gets right after the ack (the current state)."""
         return []
 
+    def catch_up(self, user, key: str, since: int) -> list[dict[str, Any]] | None:
+        """
+        For a subscriber coming back with ``since`` (the last version it saw):
+        only what it missed, or None to send :meth:`initial_events` instead.
+        """
+        return None
+
 
 def uuid_key(key: str) -> str:
     key = key.lower()

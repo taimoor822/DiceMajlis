@@ -15,7 +15,8 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 > on the phone with the same rules. The platform is ready for more games (a game
 > registry on server and app). Online games run over one live connection, in
 > private rooms with ready checks, host controls, invites, custom rules and
-> rematches. Reconnection comes next (see [roadmap](#roadmap)).
+> rematches, and a dropped player keeps their seat and catches up. Google and Apple
+> sign-in come next (see [roadmap](#roadmap)).
 
 ---
 
@@ -43,6 +44,11 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   game's version, so the board never shows a step twice and loads the whole game
   again if it missed one. A move made on an old picture of the board is refused
   (the board catches up, then you play)
+- **Reconnection** — lose the network or close the app mid-game and your seat is
+  kept: the others see you as "Away" (and "back" when you return), your turn timer
+  keeps running, and when you come back the board gets only the moves you missed.
+  A server restart loses nothing (games, moves and rooms are in the database; AI
+  turns start again)
 - **Private rooms** — create a room, share the 4-letter code or invite friends by
   their Player ID (the invite shows on their Home at once), 2–4 players. Guests tap
   "I'm ready"; the host starts when everyone is (a 3-second countdown), can lock the
@@ -183,7 +189,7 @@ code is printed in the terminal where the server runs (look for "Your code is").
 # tokens, reset), profiles, wallet ledger, rewards, API, input checks, seats,
 # leaving, sockets, turn timer, the live connection /ws/v1/ (sign-in, channels,
 # rate limits, retries answered once, presence), game actions over it, private
-# rooms (ready, host controls, invites, rules, countdown, rematch) (~334 tests)
+# rooms (ready, host controls, invites, rules, countdown, rematch), reconnection (~346 tests)
 cd backend/core
 python manage.py test
 
@@ -230,7 +236,7 @@ vectors.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · ✅ reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

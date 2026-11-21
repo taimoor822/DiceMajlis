@@ -43,7 +43,8 @@ backend/core/              Django project (run manage.py from here)
                            tables/ = per-game extras (Ludo: Token rows, socket messages);
                            topics.py = the room/ and game/ socket channels;
                            handlers.py = game + room requests on /ws/v1/ (roll_dice, …);
-                           rooms.py = private rooms (status, ready, host, invites, rematch)
+                           rooms.py = private rooms (status, ready, host, invites, rematch);
+                           connections.py = dropped players, catch-up, restart safety
   realtime/                /ws/v1/ (the app's one socket): protocol, topics (channels),
                            publish(), handlers (requests), limits, presence, consumer
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, realtime, websocket, theme,
@@ -101,7 +102,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~334 tests)
+python manage.py test                                  # everything (~346 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -240,6 +241,15 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `GameModule.ruleName/ruleValue`. Test guests: `GameApiTestCase.join()` marks them
   ready (`ready=False` to skip). Tests: `game/test_rooms.py`, app
   `test/private_rooms_test.dart`.
+- Reconnection (1.14): `realtime.presence.listen(fn)` hears an account go offline /
+  come back (presence counts sockets by id with a last-seen time); `game/connections.py`
+  marks `Player.disconnected_at` and broadcasts `player_disconnected/_reconnected`.
+  Every `GameAction` keeps its broadcast `messages`: `services.game_delta(game, since)`
+  builds `state_delta`; topics may implement `catch_up(user, key, since)` (used when a
+  subscribe has `since`). App: `RealtimeClient` re-subscribes with `since`;
+  `RealtimeRoomSocket` applies `state_delta` / `sync` deltas through the same version
+  checks. Fake server: `FakeRealtimeServer.catchUp` and `.subscribes`. Tests:
+  `game/test_reconnect.py`, app `test/online_game_test.dart`.
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -254,8 +264,9 @@ engine checked by shared test vectors, vs AI and pass-and-play (1.9), game platf
 layer: registry + game_type/variant on server and app (1.10), WebSocket v1: one
 authenticated socket, channels, rate limits, remembered replies, presence, live
 balances (1.11), online games on v1: actions over the socket, versioned sync (1.12),
-private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13).
-Next: 1.14 reconnection, 1.15 Google + Apple sign-in.
+private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13),
+reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14).
+Next: 1.15 Google + Apple sign-in.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

@@ -77,7 +77,25 @@ class Harness {
       stateRequests.add(data);
       return state;
     };
+    // `sync`: the missed events when the test set [missed], else the state.
+    server.handlers['sync'] = (data) {
+      syncs.add(data);
+      final events = missed;
+      if (events == null) return {'kind': 'snapshot', ...state};
+      return {
+        'kind': 'delta',
+        'game_id': '7',
+        'from_version': data['version'],
+        'version': state['version'],
+        'seconds_left': 12,
+        'events': events,
+      };
+    };
   }
+
+  /// What `sync` answers as missed events (`{type, version, data}`).
+  List<Map<String, dynamic>>? missed;
+  final syncs = <Map<String, dynamic>>[];
 
   final server = FakeRealtimeServer();
   final sync = GameSync();
@@ -193,7 +211,45 @@ void main() {
     await h.finish(tester);
   });
 
-  testWidgets('a missed event: the whole state is loaded again', (
+  testWidgets('a missed event: the server sends what was missed', (
+    tester,
+  ) async {
+    final h = Harness()..state = snapshot(version: 3);
+    await h.open(tester);
+    h.state = snapshot(version: 6);
+    h.missed = [
+      {
+        'type': 'dice_rolled',
+        'version': 4,
+        'data': {'player_id': 'p1', 'dice': 3},
+      },
+      {
+        'type': 'turn_changed',
+        'version': 5,
+        'data': {'player_id': 'p2', 'seconds_left': 30},
+      },
+      {
+        'type': 'token_moved',
+        'version': 6,
+        'data': {'token_id': 't9'},
+      },
+    ];
+    h.push(gameChannel, 'token_moved', {'token_id': 't9'}, v: 6); // 4, 5 missed
+    await tester.pump();
+
+    expect(h.syncs.single, {'code': code, 'version': 3});
+    expect(h.types, [
+      'game_started',
+      'dice_rolled',
+      'turn_changed',
+      'token_moved',
+    ]);
+    expect(h.got[2]['seconds_left'], 12); // the clock now, not then
+    expect(h.sync.version(code), 6);
+    await h.finish(tester);
+  });
+
+  testWidgets('a missed event the server can no longer list: the whole state', (
     tester,
   ) async {
     final h = Harness()..state = snapshot(version: 3);
@@ -205,7 +261,7 @@ void main() {
     h.push(gameChannel, 'token_moved', {'token_id': 't1'}, v: 6); // 4, 5 missed
     await tester.pump();
 
-    expect(h.stateRequests, hasLength(2));
+    expect(h.syncs, hasLength(1));
     expect(h.types, ['game_started', 'game_started']);
     expect(h.got.last['version'], 6);
     expect(h.sync.version(code), 6);
@@ -213,6 +269,43 @@ void main() {
     h.push(gameChannel, 'turn_changed', {'player_id': 'p2'}, v: 7);
     await tester.pump();
     expect(h.types.last, 'turn_changed');
+    await h.finish(tester);
+  });
+
+  testWidgets('after a dropped connection: only what was missed', (
+    tester,
+  ) async {
+    final h = Harness()..state = snapshot(version: 3);
+    await h.open(tester);
+    h.push(gameChannel, 'dice_rolled', {'player_id': 'p1', 'dice': 5}, v: 4);
+    await tester.pump();
+    expect(h.types, ['game_started', 'dice_rolled']);
+
+    h.server.catchUp = (channel, since) => channel == gameChannel
+        ? [
+            event(gameChannel, 'state_delta', {
+              'game_id': '7',
+              'from_version': since,
+              'version': 5,
+              'seconds_left': 20,
+              'events': [
+                {
+                  'type': 'turn_changed',
+                  'version': 5,
+                  'data': {'player_id': 'p2', 'seconds_left': 30},
+                },
+              ],
+            }, version: 5),
+          ]
+        : const []; // the room channel leaves the game to the game channel
+    h.server.last.serverClose(1006); // the network went
+    await tester.pump(const Duration(seconds: 2)); // the client reconnects
+
+    final again = h.server.subscribes.where((s) => s['channel'] == gameChannel);
+    expect(again.last['since'], 4);
+    expect(h.types, ['game_started', 'dice_rolled', 'turn_changed']);
+    expect(h.got.last['seconds_left'], 20);
+    expect(h.sync.version(code), 5);
     await h.finish(tester);
   });
 
@@ -297,7 +390,7 @@ void main() {
     await failed;
     await tester.pump();
 
-    expect(h.stateRequests, hasLength(2));
+    expect(h.syncs.single, {'code': code, 'version': 4});
     expect(h.got.last['type'], 'game_started');
     expect(h.got.last['version'], 9);
     expect(h.sync.version(code), 9);

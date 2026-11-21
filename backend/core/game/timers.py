@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from datetime import datetime
 
 from django.db import close_old_connections
@@ -31,7 +32,7 @@ from django.utils import timezone
 
 import game_platform
 
-from . import rooms, services
+from . import connections, rooms, services
 from .models import Game, Player
 
 logger = logging.getLogger(__name__)
@@ -96,14 +97,26 @@ def _handle_overdue(room_code: str, now: datetime) -> bool:
     return True
 
 
+# How often the sweep looks for seats whose sockets died with an old server.
+STALE_CHECK_SECONDS = 15.0
+
+
 def run_forever(interval: float = 1.0, stop: threading.Event | None = None) -> None:
     stop = stop or threading.Event()
     logger.info("turn timer running every %.1fs", interval)
+    try:
+        connections.resume_after_restart()  # bot turns lived in the old server's threads
+    except Exception:
+        logger.exception("resuming bot turns failed")
+    last_stale_check = time.monotonic()
     while not stop.is_set():
         close_old_connections()
         try:
             process_due_turns()
             rooms.start_due_rooms()  # start countdowns that ran out
+            if time.monotonic() - last_stale_check >= STALE_CHECK_SECONDS:
+                last_stale_check = time.monotonic()
+                connections.mark_stale()
         except Exception:
             logger.exception("turn timer sweep failed")
         finally:

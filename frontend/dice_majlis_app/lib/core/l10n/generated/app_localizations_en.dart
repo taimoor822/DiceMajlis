@@ -554,6 +554,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerTagBot => 'AI';
 
   @override
+  String get playerTagAway => 'Away';
+
+  @override
+  String gamePlayerDisconnected(String name) {
+    return '$name lost connection. Their seat is kept.';
+  }
+
+  @override
+  String gamePlayerReconnected(String name) {
+    return '$name is back.';
+  }
+
+  @override
   String get waitingRoomStatusWaiting => 'Waiting for everyone to be ready…';
 
   @override

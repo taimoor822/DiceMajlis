@@ -1084,6 +1084,24 @@ abstract class AppLocalizations {
   /// **'AI'**
   String get playerTagBot;
 
+  /// No description provided for @playerTagAway.
+  ///
+  /// In en, this message translates to:
+  /// **'Away'**
+  String get playerTagAway;
+
+  /// No description provided for @gamePlayerDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} lost connection. Their seat is kept.'**
+  String gamePlayerDisconnected(String name);
+
+  /// No description provided for @gamePlayerReconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is back.'**
+  String gamePlayerReconnected(String name);
+
   /// No description provided for @waitingRoomStatusWaiting.
   ///
   /// In en, this message translates to:

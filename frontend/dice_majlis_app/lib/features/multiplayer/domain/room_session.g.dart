@@ -15,6 +15,7 @@ _RoomPlayer _$RoomPlayerFromJson(Map<String, dynamic> json) => _RoomPlayer(
   isReady: json['is_ready'] as bool? ?? false,
   wantsRematch: json['wants_rematch'] as bool? ?? false,
   hasLeft: json['has_left'] as bool? ?? false,
+  connected: json['connected'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$RoomPlayerToJson(_RoomPlayer instance) =>
@@ -27,4 +28,5 @@ Map<String, dynamic> _$RoomPlayerToJson(_RoomPlayer instance) =>
       'is_ready': instance.isReady,
       'wants_rematch': instance.wantsRematch,
       'has_left': instance.hasLeft,
+      'connected': instance.connected,
     };

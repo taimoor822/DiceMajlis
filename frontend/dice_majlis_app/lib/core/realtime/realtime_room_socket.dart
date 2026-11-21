@@ -15,9 +15,11 @@ import 'realtime_providers.dart';
 /// - `game/<game id>`: the game's events, each with its state `version`.
 ///
 /// Versions keep the board right: an event the board already has is dropped,
-/// and a gap (a missed event) loads the whole state again (`request_state`),
-/// which reaches the screen as `game_started`. Snapshots of the same version
-/// as the board's are not sent twice.
+/// and a gap (a missed event) asks the server what was missed (`sync`): the
+/// missed events (`state_delta`), or the whole state, which reaches the screen
+/// as `game_started`. After a dropped connection the client re-subscribes with
+/// the last version it saw, so the game channel sends `state_delta` too.
+/// Snapshots of the same version as the board's are not sent twice.
 class RealtimeRoomSocket implements SocketService {
   RealtimeRoomSocket(this._client, {required GameSync sync}) : _sync = sync;
 
@@ -95,30 +97,56 @@ class RealtimeRoomSocket implements SocketService {
   }
 
   void _onGame(RealtimeMessage message) {
-    if (message.type == 'state_snapshot') {
-      _onSnapshot(message.data);
-      return;
+    switch (message.type) {
+      case 'state_snapshot':
+        _onSnapshot(message.data);
+      case 'state_delta':
+        _onDelta(message.data);
+      default:
+        _onEvent(message.type, message.version, message.data);
     }
-    final version = message.version;
+  }
+
+  /// One game event. Returns false when it couldn't be applied (a gap).
+  bool _onEvent(String type, int? version, Map<String, dynamic> data) {
     if (version != null && version > _newestSeen) _newestSeen = version;
     final drawn = _version;
     // Nothing drawn yet, or a full state is on its way: that state covers it.
-    if (drawn == null || _resyncing) return;
+    if (drawn == null || _resyncing) return true;
     if (version != null) {
-      if (version < drawn) return; // already on the board
+      if (version < drawn) return true; // already on the board
       if (version > drawn + 1) {
         _resync(force: true); // missed at least one action
-        return;
+        return false;
       }
       _version = version;
       _sync.saw(_roomCode!, version);
     }
     _fromSnapshot = false;
-    _emit({
-      'type': message.type,
-      ...message.data,
-      if (version != null) 'version': version,
-    });
+    _emit({'type': type, ...data, 'version': ?version});
+    return true;
+  }
+
+  /// What was missed while away: the events, in order, as if they came live.
+  void _onDelta(Map<String, dynamic> data) {
+    final gameId = data['game_id']?.toString();
+    if (gameId != null && gameId != _gameId) return; // another game
+    // The missed turn messages carry their own time's clock; this is now's.
+    final secondsLeft = data['seconds_left'];
+    for (final raw in data['events'] as List? ?? const []) {
+      if (raw is! Map) continue;
+      final event = Map<String, dynamic>.from(raw);
+      final eventData = Map<String, dynamic>.from(event['data'] as Map? ?? {});
+      if (event['type'] == 'turn_changed' && secondsLeft != null) {
+        eventData['seconds_left'] = secondsLeft;
+      }
+      final applied = _onEvent(
+        event['type'].toString(),
+        (event['version'] as num?)?.toInt(),
+        eventData,
+      );
+      if (!applied) return;
+    }
   }
 
   /// A whole state (`game_started` / `state_snapshot` / `request_state`).
@@ -150,16 +178,26 @@ class RealtimeRoomSocket implements SocketService {
     if (version != null && version < _newestSeen) _resync(force: true);
   }
 
+  /// Load the state again: what was missed since the board's version when
+  /// there is one (`sync`), else the whole state (`request_state`).
   Future<void> _resync({bool force = false}) async {
     if (_resyncing || _closed) return;
     _resyncing = true;
+    final drawn = _version;
     try {
-      final data = await _client.request(
-        'request_state',
-        data: {'code': _roomCode},
-      );
+      final data = drawn == null
+          ? await _client.request('request_state', data: {'code': _roomCode})
+          : await _client.request(
+              'sync',
+              data: {'code': _roomCode, 'version': drawn},
+            );
       _resyncing = false;
-      if (!_closed) _onSnapshot(data, force: force);
+      if (_closed) return;
+      if (data['kind'] == 'delta') {
+        _onDelta(data);
+      } else {
+        _onSnapshot(data, force: force);
+      }
     } on RealtimeException {
       // Offline or refused: the next event or reconnection brings the state.
       _resyncing = false;

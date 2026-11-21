@@ -245,6 +245,19 @@
   "playerTagHost": "Host",
   "playerTagYou": "You",
   "playerTagBot": "AI",
+  "playerTagAway": "Away",
+  "gamePlayerDisconnected": "{name} lost connection. Their seat is kept.",
+  "@gamePlayerDisconnected": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "gamePlayerReconnected": "{name} is back.",
+  "@gamePlayerReconnected": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "waitingRoomStatusWaiting": "Waiting for everyone to be ready…",
   "waitingRoomStatusReady": "Everyone is ready.",
   "waitingRoomStatusAlone": "Start now and the Majlis AI plays with you, or invite friends first.",

@@ -68,6 +68,8 @@ class Player(models.Model):
     wants_rematch = models.BooleanField(default=False)
     # Left the room after the start (forfeited, or went home after the game).
     has_left = models.BooleanField(default=False)
+    # Set while the account has no live socket (the seat is kept; 1.14).
+    disconnected_at = models.DateTimeField(null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
     # The account sitting here. NULL for bots (and if an account is ever deleted,
     # so the game history stays intact).
@@ -144,6 +146,9 @@ class GameAction(models.Model):
     game = models.ForeignKey(Game, related_name='actions', on_delete=models.CASCADE)
     version = models.PositiveIntegerField()
     action = models.JSONField()
+    # The messages broadcast for it: a player who comes back gets the ones they
+    # missed (``state_delta``), even after a server restart.
+    messages = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -680,6 +680,13 @@ socket drops → exponential backoff (1s, 2s, 4s … max 30s, with jitter)
 
 The client never "fixes" state itself. If anything looks wrong it sends `request_state`.
 
+As built (1.14): the app's client remembers the newest version per channel and
+re-subscribes with `{"channel": …, "since": <version>}`; a topic that can catch up
+(`Topic.catch_up`; games) answers `state_delta` instead of its full first events, from
+the messages kept on each `GameAction` (so it works after a server restart too).
+After a gap the room socket sends `sync {code, version}` → `{kind: "delta", events…}`
+or `{kind: "snapshot", …}`. Disconnects: PLATFORM §5 "What step 1.14 built".
+
 ### Seats belong to accounts (1.6)
 
 Every room endpoint except `room-options` needs `Authorization: Bearer <access token>`

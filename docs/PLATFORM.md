@@ -292,6 +292,19 @@ Decisions made while building the lifecycle above:
 4. A server restart loses nothing: the game state is in the database (and is rebuilt
    from the action log if needed).
 
+**What step 1.14 built ✅ (`game/connections.py`):** presence keeps each socket with
+when it was last heard from (sockets of a server that died stop counting after 60 s)
+and tells listeners when an account goes offline or comes back. The game marks the
+account's seats in rooms that are on (`Player.disconnected_at`; `connected` in the
+players list) and broadcasts `player_disconnected` / `player_reconnected` on the room
+channel. Each `GameAction` keeps the messages it broadcast, so a player who comes back
+re-subscribes `game/<id>` with `since` (its last version) and gets `state_delta`
+`{from_version, version, seconds_left, events:[{type, version, data}]}`: at most 200
+actions, else the whole state. `room/<id>` then sends players and room news but not
+the game. `sync {code, version}` does the same on request (after a gap). After a
+restart the timer sweep restarts bot turns and, every 15 s, marks seats shown as
+connected whose account has no live socket.
+
 ---
 
 ## 6. Matchmaking

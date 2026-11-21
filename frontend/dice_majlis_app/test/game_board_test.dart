@@ -144,6 +144,32 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
+  testWidgets('a player drops: the seat stays, shown as away until back', (
+    tester,
+  ) async {
+    final sockets = await openBoard(tester);
+    final players = [
+      {'id': me, 'name': 'Player 1', 'color': 'red', 'is_host': true},
+      {'id': 'p-sara', 'name': 'Sara', 'color': 'green'},
+    ];
+    sockets.last.emit({...snapshot(), 'players': players});
+    await tester.pump();
+    expect(find.textContaining('Away'), findsNothing);
+
+    sockets.last.emit({'type': 'player_disconnected', 'player_id': 'p-sara'});
+    await tester.pump();
+    expect(find.text('Sara • Away'), findsOneWidget);
+    expect(
+      find.text('Sara lost connection. Their seat is kept.'),
+      findsOneWidget,
+    );
+
+    sockets.last.emit({'type': 'player_reconnected', 'player_id': 'p-sara'});
+    await tester.pump();
+    expect(find.text('Sara'), findsOneWidget);
+    expect(find.text('Sara is back.'), findsOneWidget);
+  });
+
   testWidgets('after the game: play again, then the rematch room opens', (
     tester,
   ) async {
