@@ -289,7 +289,9 @@ as bool,
 /// @nodoc
 mixin _$RoomSession {
 
- String get roomCode;/// This account's seat (player) id in the room.
+ String get roomCode;/// The room's server id (names its live `room/` channel). Null when the
+/// server didn't send it.
+ String? get roomId;/// This account's seat (player) id in the room.
  String get playerId; bool get isHost;/// True once the game has started.
  bool get isStarted;/// Seats in the room, as the server set them. Null when unknown.
  int? get maxPlayers;/// This account's own player entry, when the server sent it.
@@ -305,16 +307,16 @@ $RoomSessionCopyWith<RoomSession> get copyWith => _$RoomSessionCopyWithImpl<Room
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RoomSession&&(identical(other.roomCode, roomCode) || other.roomCode == roomCode)&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isStarted, isStarted) || other.isStarted == isStarted)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.self, self) || other.self == self)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RoomSession&&(identical(other.roomCode, roomCode) || other.roomCode == roomCode)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isStarted, isStarted) || other.isStarted == isStarted)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.self, self) || other.self == self)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,roomCode,playerId,isHost,isStarted,maxPlayers,self,gameType,variant);
+int get hashCode => Object.hash(runtimeType,roomCode,roomId,playerId,isHost,isStarted,maxPlayers,self,gameType,variant);
 
 @override
 String toString() {
-  return 'RoomSession(roomCode: $roomCode, playerId: $playerId, isHost: $isHost, isStarted: $isStarted, maxPlayers: $maxPlayers, self: $self, gameType: $gameType, variant: $variant)';
+  return 'RoomSession(roomCode: $roomCode, roomId: $roomId, playerId: $playerId, isHost: $isHost, isStarted: $isStarted, maxPlayers: $maxPlayers, self: $self, gameType: $gameType, variant: $variant)';
 }
 
 
@@ -325,7 +327,7 @@ abstract mixin class $RoomSessionCopyWith<$Res>  {
   factory $RoomSessionCopyWith(RoomSession value, $Res Function(RoomSession) _then) = _$RoomSessionCopyWithImpl;
 @useResult
 $Res call({
- String roomCode, String playerId, bool isHost, bool isStarted, int? maxPlayers, RoomPlayer? self, String gameType, String variant
+ String roomCode, String? roomId, String playerId, bool isHost, bool isStarted, int? maxPlayers, RoomPlayer? self, String gameType, String variant
 });
 
 
@@ -342,10 +344,11 @@ class _$RoomSessionCopyWithImpl<$Res>
 
 /// Create a copy of RoomSession
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? roomCode = null,Object? playerId = null,Object? isHost = null,Object? isStarted = null,Object? maxPlayers = freezed,Object? self = freezed,Object? gameType = null,Object? variant = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? roomCode = null,Object? roomId = freezed,Object? playerId = null,Object? isHost = null,Object? isStarted = null,Object? maxPlayers = freezed,Object? self = freezed,Object? gameType = null,Object? variant = null,}) {
   return _then(_self.copyWith(
 roomCode: null == roomCode ? _self.roomCode : roomCode // ignore: cast_nullable_to_non_nullable
-as String,playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
+as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
+as String?,playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,isStarted: null == isStarted ? _self.isStarted : isStarted // ignore: cast_nullable_to_non_nullable
 as bool,maxPlayers: freezed == maxPlayers ? _self.maxPlayers : maxPlayers // ignore: cast_nullable_to_non_nullable
@@ -449,10 +452,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String roomCode,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String roomCode,  String? roomId,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RoomSession() when $default != null:
-return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
+return $default(_that.roomCode,_that.roomId,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
   return orElse();
 
 }
@@ -470,10 +473,10 @@ return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String roomCode,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String roomCode,  String? roomId,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)  $default,) {final _that = this;
 switch (_that) {
 case _RoomSession():
-return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
+return $default(_that.roomCode,_that.roomId,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -490,10 +493,10 @@ return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String roomCode,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String roomCode,  String? roomId,  String playerId,  bool isHost,  bool isStarted,  int? maxPlayers,  RoomPlayer? self,  String gameType,  String variant)?  $default,) {final _that = this;
 switch (_that) {
 case _RoomSession() when $default != null:
-return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
+return $default(_that.roomCode,_that.roomId,_that.playerId,_that.isHost,_that.isStarted,_that.maxPlayers,_that.self,_that.gameType,_that.variant);case _:
   return null;
 
 }
@@ -505,10 +508,13 @@ return $default(_that.roomCode,_that.playerId,_that.isHost,_that.isStarted,_that
 
 
 class _RoomSession implements RoomSession {
-  const _RoomSession({required this.roomCode, required this.playerId, this.isHost = false, this.isStarted = false, this.maxPlayers, this.self, this.gameType = GameChoice.ludo, this.variant = GameChoice.classic});
+  const _RoomSession({required this.roomCode, this.roomId, required this.playerId, this.isHost = false, this.isStarted = false, this.maxPlayers, this.self, this.gameType = GameChoice.ludo, this.variant = GameChoice.classic});
   
 
 @override final  String roomCode;
+/// The room's server id (names its live `room/` channel). Null when the
+/// server didn't send it.
+@override final  String? roomId;
 /// This account's seat (player) id in the room.
 @override final  String playerId;
 @override@JsonKey() final  bool isHost;
@@ -532,16 +538,16 @@ _$RoomSessionCopyWith<_RoomSession> get copyWith => __$RoomSessionCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RoomSession&&(identical(other.roomCode, roomCode) || other.roomCode == roomCode)&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isStarted, isStarted) || other.isStarted == isStarted)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.self, self) || other.self == self)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RoomSession&&(identical(other.roomCode, roomCode) || other.roomCode == roomCode)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.playerId, playerId) || other.playerId == playerId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isStarted, isStarted) || other.isStarted == isStarted)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.self, self) || other.self == self)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,roomCode,playerId,isHost,isStarted,maxPlayers,self,gameType,variant);
+int get hashCode => Object.hash(runtimeType,roomCode,roomId,playerId,isHost,isStarted,maxPlayers,self,gameType,variant);
 
 @override
 String toString() {
-  return 'RoomSession(roomCode: $roomCode, playerId: $playerId, isHost: $isHost, isStarted: $isStarted, maxPlayers: $maxPlayers, self: $self, gameType: $gameType, variant: $variant)';
+  return 'RoomSession(roomCode: $roomCode, roomId: $roomId, playerId: $playerId, isHost: $isHost, isStarted: $isStarted, maxPlayers: $maxPlayers, self: $self, gameType: $gameType, variant: $variant)';
 }
 
 
@@ -552,7 +558,7 @@ abstract mixin class _$RoomSessionCopyWith<$Res> implements $RoomSessionCopyWith
   factory _$RoomSessionCopyWith(_RoomSession value, $Res Function(_RoomSession) _then) = __$RoomSessionCopyWithImpl;
 @override @useResult
 $Res call({
- String roomCode, String playerId, bool isHost, bool isStarted, int? maxPlayers, RoomPlayer? self, String gameType, String variant
+ String roomCode, String? roomId, String playerId, bool isHost, bool isStarted, int? maxPlayers, RoomPlayer? self, String gameType, String variant
 });
 
 
@@ -569,10 +575,11 @@ class __$RoomSessionCopyWithImpl<$Res>
 
 /// Create a copy of RoomSession
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? roomCode = null,Object? playerId = null,Object? isHost = null,Object? isStarted = null,Object? maxPlayers = freezed,Object? self = freezed,Object? gameType = null,Object? variant = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? roomCode = null,Object? roomId = freezed,Object? playerId = null,Object? isHost = null,Object? isStarted = null,Object? maxPlayers = freezed,Object? self = freezed,Object? gameType = null,Object? variant = null,}) {
   return _then(_RoomSession(
 roomCode: null == roomCode ? _self.roomCode : roomCode // ignore: cast_nullable_to_non_nullable
-as String,playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
+as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
+as String?,playerId: null == playerId ? _self.playerId : playerId // ignore: cast_nullable_to_non_nullable
 as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,isStarted: null == isStarted ? _self.isStarted : isStarted // ignore: cast_nullable_to_non_nullable
 as bool,maxPlayers: freezed == maxPlayers ? _self.maxPlayers : maxPlayers // ignore: cast_nullable_to_non_nullable

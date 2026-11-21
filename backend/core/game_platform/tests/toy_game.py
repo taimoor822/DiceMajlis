@@ -64,6 +64,7 @@ class RaceGame:
         "long": Variant(code="long", rules={"target": 20}, min_players=2, max_players=3, default_players=3),
     }
     rule_error = RaceError
+    player_action_types = frozenset({"draw"})
 
     def rules_for(self, variant: str) -> dict[str, Any]:
         return dict(self.variants[variant].rules)

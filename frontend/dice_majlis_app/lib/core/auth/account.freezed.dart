@@ -356,7 +356,8 @@ $ActiveRoomCopyWith<$Res>? get activeRoom {
 /// @nodoc
 mixin _$ActiveRoom {
 
- String get code; String get seatId; bool get isHost; int? get maxPlayers;/// True once the game has started (go to the board, not the waiting room).
+ String get code; String get seatId;/// The room's server id (names its live `room/` channel).
+ String? get roomId; bool get isHost; int? get maxPlayers;/// True once the game has started (go to the board, not the waiting room).
  bool get started;/// Which game the room plays (server game registry); older servers send
 /// nothing, and every room was Classic Ludo then.
  String get gameType; String get variant;
@@ -372,16 +373,16 @@ $ActiveRoomCopyWith<ActiveRoom> get copyWith => _$ActiveRoomCopyWithImpl<ActiveR
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveRoom&&(identical(other.code, code) || other.code == code)&&(identical(other.seatId, seatId) || other.seatId == seatId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.started, started) || other.started == started)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveRoom&&(identical(other.code, code) || other.code == code)&&(identical(other.seatId, seatId) || other.seatId == seatId)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.started, started) || other.started == started)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,code,seatId,isHost,maxPlayers,started,gameType,variant);
+int get hashCode => Object.hash(runtimeType,code,seatId,roomId,isHost,maxPlayers,started,gameType,variant);
 
 @override
 String toString() {
-  return 'ActiveRoom(code: $code, seatId: $seatId, isHost: $isHost, maxPlayers: $maxPlayers, started: $started, gameType: $gameType, variant: $variant)';
+  return 'ActiveRoom(code: $code, seatId: $seatId, roomId: $roomId, isHost: $isHost, maxPlayers: $maxPlayers, started: $started, gameType: $gameType, variant: $variant)';
 }
 
 
@@ -392,7 +393,7 @@ abstract mixin class $ActiveRoomCopyWith<$Res>  {
   factory $ActiveRoomCopyWith(ActiveRoom value, $Res Function(ActiveRoom) _then) = _$ActiveRoomCopyWithImpl;
 @useResult
 $Res call({
- String code, String seatId, bool isHost, int? maxPlayers, bool started, String gameType, String variant
+ String code, String seatId, String? roomId, bool isHost, int? maxPlayers, bool started, String gameType, String variant
 });
 
 
@@ -409,11 +410,12 @@ class _$ActiveRoomCopyWithImpl<$Res>
 
 /// Create a copy of ActiveRoom
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? code = null,Object? seatId = null,Object? isHost = null,Object? maxPlayers = freezed,Object? started = null,Object? gameType = null,Object? variant = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? code = null,Object? seatId = null,Object? roomId = freezed,Object? isHost = null,Object? maxPlayers = freezed,Object? started = null,Object? gameType = null,Object? variant = null,}) {
   return _then(_self.copyWith(
 code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,seatId: null == seatId ? _self.seatId : seatId // ignore: cast_nullable_to_non_nullable
-as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
+as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
+as String?,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,maxPlayers: freezed == maxPlayers ? _self.maxPlayers : maxPlayers // ignore: cast_nullable_to_non_nullable
 as int?,started: null == started ? _self.started : started // ignore: cast_nullable_to_non_nullable
 as bool,gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable
@@ -503,10 +505,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String code,  String seatId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String code,  String seatId,  String? roomId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ActiveRoom() when $default != null:
-return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
+return $default(_that.code,_that.seatId,_that.roomId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
   return orElse();
 
 }
@@ -524,10 +526,10 @@ return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.star
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String code,  String seatId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String code,  String seatId,  String? roomId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)  $default,) {final _that = this;
 switch (_that) {
 case _ActiveRoom():
-return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
+return $default(_that.code,_that.seatId,_that.roomId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -544,10 +546,10 @@ return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.star
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String code,  String seatId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String code,  String seatId,  String? roomId,  bool isHost,  int? maxPlayers,  bool started,  String gameType,  String variant)?  $default,) {final _that = this;
 switch (_that) {
 case _ActiveRoom() when $default != null:
-return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
+return $default(_that.code,_that.seatId,_that.roomId,_that.isHost,_that.maxPlayers,_that.started,_that.gameType,_that.variant);case _:
   return null;
 
 }
@@ -559,11 +561,13 @@ return $default(_that.code,_that.seatId,_that.isHost,_that.maxPlayers,_that.star
 @JsonSerializable()
 
 class _ActiveRoom implements ActiveRoom {
-  const _ActiveRoom({required this.code, required this.seatId, this.isHost = false, this.maxPlayers, this.started = false, this.gameType = 'ludo', this.variant = 'classic'});
+  const _ActiveRoom({required this.code, required this.seatId, this.roomId, this.isHost = false, this.maxPlayers, this.started = false, this.gameType = 'ludo', this.variant = 'classic'});
   factory _ActiveRoom.fromJson(Map<String, dynamic> json) => _$ActiveRoomFromJson(json);
 
 @override final  String code;
 @override final  String seatId;
+/// The room's server id (names its live `room/` channel).
+@override final  String? roomId;
 @override@JsonKey() final  bool isHost;
 @override final  int? maxPlayers;
 /// True once the game has started (go to the board, not the waiting room).
@@ -586,16 +590,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveRoom&&(identical(other.code, code) || other.code == code)&&(identical(other.seatId, seatId) || other.seatId == seatId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.started, started) || other.started == started)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveRoom&&(identical(other.code, code) || other.code == code)&&(identical(other.seatId, seatId) || other.seatId == seatId)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.maxPlayers, maxPlayers) || other.maxPlayers == maxPlayers)&&(identical(other.started, started) || other.started == started)&&(identical(other.gameType, gameType) || other.gameType == gameType)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,code,seatId,isHost,maxPlayers,started,gameType,variant);
+int get hashCode => Object.hash(runtimeType,code,seatId,roomId,isHost,maxPlayers,started,gameType,variant);
 
 @override
 String toString() {
-  return 'ActiveRoom(code: $code, seatId: $seatId, isHost: $isHost, maxPlayers: $maxPlayers, started: $started, gameType: $gameType, variant: $variant)';
+  return 'ActiveRoom(code: $code, seatId: $seatId, roomId: $roomId, isHost: $isHost, maxPlayers: $maxPlayers, started: $started, gameType: $gameType, variant: $variant)';
 }
 
 
@@ -606,7 +610,7 @@ abstract mixin class _$ActiveRoomCopyWith<$Res> implements $ActiveRoomCopyWith<$
   factory _$ActiveRoomCopyWith(_ActiveRoom value, $Res Function(_ActiveRoom) _then) = __$ActiveRoomCopyWithImpl;
 @override @useResult
 $Res call({
- String code, String seatId, bool isHost, int? maxPlayers, bool started, String gameType, String variant
+ String code, String seatId, String? roomId, bool isHost, int? maxPlayers, bool started, String gameType, String variant
 });
 
 
@@ -623,11 +627,12 @@ class __$ActiveRoomCopyWithImpl<$Res>
 
 /// Create a copy of ActiveRoom
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? code = null,Object? seatId = null,Object? isHost = null,Object? maxPlayers = freezed,Object? started = null,Object? gameType = null,Object? variant = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? code = null,Object? seatId = null,Object? roomId = freezed,Object? isHost = null,Object? maxPlayers = freezed,Object? started = null,Object? gameType = null,Object? variant = null,}) {
   return _then(_ActiveRoom(
 code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,seatId: null == seatId ? _self.seatId : seatId // ignore: cast_nullable_to_non_nullable
-as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
+as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
+as String?,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,maxPlayers: freezed == maxPlayers ? _self.maxPlayers : maxPlayers // ignore: cast_nullable_to_non_nullable
 as int?,started: null == started ? _self.started : started // ignore: cast_nullable_to_non_nullable
 as bool,gameType: null == gameType ? _self.gameType : gameType // ignore: cast_nullable_to_non_nullable

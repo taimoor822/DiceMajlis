@@ -54,6 +54,9 @@ abstract class ActiveRoom with _$ActiveRoom {
   const factory ActiveRoom({
     required String code,
     required String seatId,
+
+    /// The room's server id (names its live `room/` channel).
+    String? roomId,
     @Default(false) bool isHost,
     int? maxPlayers,
 

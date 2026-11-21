@@ -102,6 +102,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   StreamSubscription<dynamic>? _socketSubscription;
 
   String? roomCode;
+  String? roomId;
   String? myPlayerId;
   bool _winnerShown = false;
 
@@ -150,6 +151,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     }
 
     roomCode = session.roomCode;
+    roomId = session.roomId;
     myPlayerId = session.playerId;
 
     _connectSocket();
@@ -168,7 +170,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     }
 
     socket = ref.read(socketServiceFactoryProvider)();
-    socket.connect(room);
+    socket.connect(room, roomId: roomId);
     _socketConnected = true;
 
     _socketSubscription = socket.stream.listen(

@@ -16,6 +16,7 @@ void main() {
     });
 
     expect(session.roomCode, 'AB12');
+    expect(session.roomId, '7');
     expect(session.isStarted, isFalse);
     expect(session.playerId, '7d1c2b54-0000-4000-8000-000000000001');
     expect(session.isHost, isTrue);
@@ -31,6 +32,7 @@ void main() {
     });
 
     expect(session.playerId, '42');
+    expect(session.roomId, isNull);
     expect(session.isHost, isFalse);
     expect(session.maxPlayers, isNull);
     expect(session.self?.isBot, isFalse);
@@ -49,6 +51,7 @@ void main() {
       const ActiveRoom(
         code: 'AB12',
         seatId: 'seat-1',
+        roomId: 'room-uuid',
         isHost: true,
         maxPlayers: 3,
         started: true,
@@ -56,6 +59,7 @@ void main() {
     );
     expect(session.roomCode, 'AB12');
     expect(session.playerId, 'seat-1');
+    expect(session.roomId, 'room-uuid');
     expect(session.isHost, isTrue);
     expect(session.maxPlayers, 3);
     expect(session.isStarted, isTrue);

@@ -41,7 +41,8 @@ backend/core/              Django project (run manage.py from here)
                            Ludo adapter (variant classic), catalog(); toy game in tests
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots;
                            tables/ = per-game extras (Ludo: Token rows, socket messages);
-                           topics.py = the room/ and game/ socket channels
+                           topics.py = the room/ and game/ socket channels;
+                           handlers.py = game requests on /ws/v1/ (roll_dice, …)
   realtime/                /ws/v1/ (the app's one socket): protocol, topics (channels),
                            publish(), handlers (requests), limits, presence, consumer
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, realtime, websocket, theme,
@@ -99,7 +100,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~295 tests)
+python manage.py test                                  # everything (~311 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -199,7 +200,7 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - Board picture (`assets/board/majlis_board.svg`): its colours must follow the seat
   order (red enters at the bottom, then blue left, green top, yellow right, as in
   `LudoPath`). `LudoBoardView` draws board + tokens for offline games; the online
-  `GameBoardScreen` still has its own drawing until 1.12.
+  `GameBoardScreen` still has its own drawing (to move onto `LudoBoardView` later).
 
 - Realtime (1.11): `/ws/v1/` lives in `realtime/` (ARCHITECTURE §7 "What step 1.11
   built"). Push from server code with `realtime.publish.publish(channel, type, data,
@@ -216,6 +217,19 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   the test hangs), and stop the client inside the test, not in `addTearDown` (its ping
   timer must be gone before Flutter's pending-timer check). A `ProviderContainer`
   that outlives the widget tree overrides `realtimeClientProvider` with null.
+- Online games (1.12): game requests are `game/handlers.py` (`roll_dice`, `move_token`,
+  `game_action`, `leave_game`, `request_state`; ARCHITECTURE §7 "What step 1.12
+  built"). A new game's player actions go through `game_action`, limited to its
+  engine's `player_action_types`. The app's room screens get a `RealtimeRoomSocket`
+  (same message shapes as the old lobby socket) and `ApiRoomRepository` sends roll/move
+  over the socket with `expected_version` from `GameSync`. All events of one engine
+  action share ONE version. Backend handler tests: `game/test_handlers.py` (call
+  `realtime_handlers.get(type).fn(Context(user, "s"), data)`); app tests:
+  `test/online_game_test.dart` (`FakeRealtimeServer.handlers[type]` answers requests;
+  throw `RealtimeException(code)` to refuse). The REST roll/move endpoints and the
+  lobby socket remain as a fallback until removed.
+- Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
+  DJANGO_DEBUG=true python manage.py test` (as CI does).
 
 ## Status
 
@@ -227,8 +241,8 @@ gold + diamonds wallet ledger, grant() and daily reward (1.8), local play on a D
 engine checked by shared test vectors, vs AI and pass-and-play (1.9), game platform
 layer: registry + game_type/variant on server and app (1.10), WebSocket v1: one
 authenticated socket, channels, rate limits, remembered replies, presence, live
-balances (1.11).
-Next: 1.12 online multiplayer on v1, 1.13 private rooms v2, 1.14 reconnection.
+balances (1.11), online games on v1: actions over the socket, versioned sync (1.12).
+Next: 1.13 private rooms v2, 1.14 reconnection, 1.15 Google + Apple sign-in.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.
