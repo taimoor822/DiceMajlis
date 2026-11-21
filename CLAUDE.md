@@ -111,7 +111,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~410 tests)
+python manage.py test                                  # everything (~420 tests)
 python manage.py check_achievements                    # unlock achievements players already qualify for
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
@@ -188,7 +188,7 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `wallet.services.post()` (or `reverse()`); ledger rows can't be saved twice or
   deleted (`LedgerIsAppendOnly`). Rewards go through `rewards.engine.grant()` with an
   idempotency key; add a new reward kind to `LEDGER_TYPES` and a new ledger type to
-  `TransactionType`. Daily reward amounts are placeholders in `rewards/daily.py`.
+  `TransactionType`. Daily reward days are admin data (2.5, see below).
   Tests pin the clock by passing `now=` (reward-day = Bahrain time).
 - App economy state: `balancesProvider` (set it from any answer that brings new
   balances), `dailyRewardProvider`. Widget tests get wallet/reward fakes from
@@ -320,6 +320,17 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `rootMessengerKeyProvider` (`core/ui/messenger.dart`); the game result lists the
   game's unlocks. Tests: `progress/tests/`, app `test/achievements_test.dart`
   (`FakeAchievementsRepository`).
+- Reward bundles (2.5): a bundle is `{"gold", "diamond", "xp", "items": [{"code",
+  "quantity", "days"}]}` (every part optional, never empty); `rewards.engine.check_bundle`
+  validates it, `grant()` writes the claim, wallet posts, `add_xp(reason="reward")` and
+  `items.grant` in ONE transaction (keys derived from the claim's key), and
+  `bundle_payload()` shows it with item names. Admin-made `RewardBundle`s; the daily
+  cycle is `DailyRewardDay` → bundle, with `DailyRewardSettings` (`on_miss`
+  restart/continue, `after_last_day` loop/stay) — seeded by `rewards/0003`. Daily
+  status sends `next_day`, `available`, `on_miss` (the app never works the cycle out).
+  `RewardClaim.source` names what it was for; `GET /api/rewards/history/?before=` pages
+  claims. App: `features/rewards/` (`RewardBundle`, `RewardChips`, `describeReward`,
+  `RewardHistoryScreen` at `/home/wallet/rewards` from the Wallet's app bar).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -338,8 +349,9 @@ private rooms v2: ready, host controls, invites, custom rules, countdown, rematc
 reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
 Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1), item
-system + cosmetics (2.2), statistics (2.3), achievements (2.4). Next: reward
-bundles with items and XP (2.5), see `docs/planning.md`.
+system + cosmetics (2.2), statistics (2.3), achievements (2.4), reward bundles with
+items and XP, admin daily cycle, reward history (2.5). Next: entitlement engine (2.6),
+see `docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

@@ -22,6 +22,7 @@ import '../../features/navigation/presentation/main_shell.dart';
 import '../../features/navigation/presentation/tab_placeholders.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/save_account_screen.dart';
+import '../../features/rewards/presentation/reward_history_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
@@ -174,6 +175,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'wallet',
               builder: (context, state) => const WalletScreen(),
+              routes: [
+                GoRoute(
+                  path: 'rewards',
+                  builder: (context, state) => const RewardHistoryScreen(),
+                ),
+              ],
             ),
           ]),
           _tab(AppRoutes.chat, const ChatScreen()),

@@ -21,6 +21,7 @@ abstract final class AppRoutes {
   static const customise = '/home/profile/customise';
   static const achievements = '/home/profile/achievements';
   static const wallet = '/home/wallet';
+  static const rewardHistory = '/home/wallet/rewards';
 
   // Today's room flow lives in Game Hub.
   static const createRoom = '/hub/create-room';

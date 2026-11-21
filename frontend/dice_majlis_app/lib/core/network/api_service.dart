@@ -155,6 +155,12 @@ class ApiService {
   Future<Map<String, dynamic>> claimDailyReward() =>
       _send('POST', 'rewards/daily/claim/');
 
+  /// Every reward you got, newest first; [before] is the last id of a page.
+  Future<Map<String, dynamic>> rewardHistory({String? before}) => _send(
+    'GET',
+    before == null ? 'rewards/history/' : 'rewards/history/?before=$before',
+  );
+
   /// A guest adds email + password; returns the account (same Player ID).
   Future<Map<String, dynamic>> saveAccount({
     required String email,

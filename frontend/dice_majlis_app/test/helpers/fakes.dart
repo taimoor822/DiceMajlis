@@ -27,6 +27,7 @@ import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
 import 'package:dice_majlis_app/features/profile/domain/profile_options.dart';
 import 'package:dice_majlis_app/features/rewards/data/rewards_repository.dart';
 import 'package:dice_majlis_app/features/rewards/domain/daily_reward.dart';
+import 'package:dice_majlis_app/features/rewards/domain/reward_bundle.dart';
 import 'package:dice_majlis_app/features/wallet/data/wallet_repository.dart';
 import 'package:dice_majlis_app/features/wallet/domain/wallet_models.dart';
 import 'package:flutter/widgets.dart';
@@ -670,6 +671,17 @@ class FakeRewardsRepository implements RewardsRepository {
   final FakeWalletRepository wallet;
   String? failWith;
   final calls = <String>[];
+
+  /// Rewards already given, newest first.
+  List<RewardHistoryEntry> given = [];
+
+  @override
+  Future<RewardHistoryPage> history({String? before}) async {
+    calls.add('history:${before ?? 'first'}');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return RewardHistoryPage(entries: given);
+  }
 
   DailyRewardStatus get _status => DailyRewardStatus(
     day: day,

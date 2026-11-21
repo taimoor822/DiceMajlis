@@ -12,7 +12,7 @@ from typing import Any, Iterable
 from django.db import IntegrityError, transaction
 
 from events.outbox import emit
-from rewards.engine import grant
+from rewards.engine import bundle_payload, grant
 
 from . import metrics
 from .models import Achievement, AchievementTier, AchievementUnlock
@@ -68,7 +68,7 @@ def _unlock(user, tier: AchievementTier, value: int, context: dict) -> Achieveme
             "rarity": achievement.rarity,
             "tier": tier_number(tier),
             "threshold": tier.threshold,
-            "reward": dict(tier.reward),
+            "reward": bundle_payload(tier.reward),
             "room_code": context.get("room_code"),
         }
         # For moments and notifications (Phase 5); the account hears now.
@@ -120,7 +120,7 @@ def achievements_payload(user) -> dict[str, Any]:
                 "tiers": [
                     {
                         "threshold": t.threshold,
-                        "reward": dict(t.reward),
+                        "reward": bundle_payload(t.reward),
                         "unlocked_at": unlocked[t.pk].isoformat() if t.pk in unlocked else None,
                     }
                     for t in tiers

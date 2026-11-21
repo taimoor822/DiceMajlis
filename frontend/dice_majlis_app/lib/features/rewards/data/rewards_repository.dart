@@ -4,11 +4,15 @@ import '../../../core/auth/auth_controller.dart';
 import '../../../core/network/api_service.dart';
 import '../../wallet/data/wallet_repository.dart';
 import '../domain/daily_reward.dart';
+import '../domain/reward_bundle.dart';
 
-/// Daily rewards. The app only asks to claim; the server decides what is given.
+/// Rewards. The app only asks to claim; the server decides what is given.
 abstract class RewardsRepository {
   Future<DailyRewardStatus> dailyStatus();
   Future<DailyClaimResult> claimDaily();
+
+  /// Rewards you got, newest first, a page at a time.
+  Future<RewardHistoryPage> history({String? before});
 }
 
 class ApiRewardsRepository implements RewardsRepository {
@@ -23,6 +27,10 @@ class ApiRewardsRepository implements RewardsRepository {
   @override
   Future<DailyClaimResult> claimDaily() async =>
       DailyClaimResult.fromJson(await _api.claimDailyReward());
+
+  @override
+  Future<RewardHistoryPage> history({String? before}) async =>
+      RewardHistoryPage.fromJson(await _api.rewardHistory(before: before));
 }
 
 final rewardsRepositoryProvider = Provider<RewardsRepository>(

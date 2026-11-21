@@ -712,6 +712,48 @@ abstract class AppLocalizations {
   /// **'Achievement unlocked: {name}'**
   String achievementUnlockedToast(String name);
 
+  /// No description provided for @rewardXp.
+  ///
+  /// In en, this message translates to:
+  /// **'+{amount} XP'**
+  String rewardXp(int amount);
+
+  /// No description provided for @rewardItemDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({days, plural, =1{1 day} other{{days} days}})'**
+  String rewardItemDays(String name, int days);
+
+  /// No description provided for @rewardHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward history'**
+  String get rewardHistoryTitle;
+
+  /// No description provided for @rewardHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No rewards yet. Claim your daily reward or unlock an achievement.'**
+  String get rewardHistoryEmpty;
+
+  /// No description provided for @rewardHistoryDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward, day {day}'**
+  String rewardHistoryDaily(int day);
+
+  /// No description provided for @rewardHistoryAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement: {name}'**
+  String rewardHistoryAchievement(String name);
+
+  /// No description provided for @rewardHistoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward'**
+  String get rewardHistoryOther;
+
   /// No description provided for @rewardAmount.
   ///
   /// In en, this message translates to:
@@ -883,8 +925,20 @@ abstract class AppLocalizations {
   /// No description provided for @dailyHint.
   ///
   /// In en, this message translates to:
-  /// **'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.'**
-  String get dailyHint;
+  /// **'Come back every day: rewards grow for {days} days in a row. Miss a day and it starts again.'**
+  String dailyHint(int days);
+
+  /// No description provided for @dailyHintCarryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back every day: rewards grow for {days} days. Miss a day and you carry on where you left off.'**
+  String dailyHintCarryOn(int days);
+
+  /// No description provided for @dailyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No daily reward right now.'**
+  String get dailyUnavailable;
 
   /// No description provided for @dailyGot.
   ///

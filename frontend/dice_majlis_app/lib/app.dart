@@ -8,8 +8,8 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'core/ui/messenger.dart';
 import 'features/achievements/data/achievements_repository.dart';
-import 'features/achievements/presentation/achievements_screen.dart';
 import 'features/profile/domain/account_live.dart';
+import 'features/rewards/presentation/reward_view.dart';
 
 /// Root widget: Majlis themes, router and translations.
 class DiceMajlisApp extends ConsumerWidget {
@@ -28,7 +28,7 @@ class DiceMajlisApp extends ConsumerWidget {
       if (state == null || context == null || !grew) return;
       final unlocked = now.last;
       final l10n = AppLocalizations.of(context);
-      final reward = rewardText(context, unlocked.reward);
+      final reward = describeReward(context, unlocked.reward);
       state.showSnackBar(
         SnackBar(
           key: ValueKey('achievement-toast-${unlocked.code}-${unlocked.tier}'),

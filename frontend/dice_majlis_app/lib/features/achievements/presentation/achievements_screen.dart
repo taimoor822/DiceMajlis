@@ -7,7 +7,7 @@ import '../../../core/theme/cosmetic_looks.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_card.dart';
-import '../../wallet/presentation/currency.dart';
+import '../../rewards/presentation/reward_view.dart';
 import '../data/achievements_repository.dart';
 import '../domain/achievements.dart';
 
@@ -219,30 +219,17 @@ class _TierChip extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text('${tier.threshold}', style: theme.textTheme.labelLarge),
-          for (final entry in tier.reward.entries) ...[
+          if (!tier.reward.isEmpty) ...[
             const SizedBox(width: 8),
-            CurrencyAmount(
-              currency: entry.key,
-              amount: entry.value,
-              signed: true,
-              style: theme.textTheme.labelMedium,
+            Flexible(
+              child: RewardChips(
+                reward: tier.reward,
+                style: theme.textTheme.labelMedium,
+              ),
             ),
           ],
         ],
       ),
     );
   }
-}
-
-/// "+100 Gold, +5 Diamonds" for a reward bundle.
-String rewardText(BuildContext context, Map<String, int> reward) {
-  final l10n = AppLocalizations.of(context);
-  return reward.entries
-      .map(
-        (entry) => l10n.rewardAmount(
-          formatAmount(context, entry.value),
-          currencyName(l10n, entry.key),
-        ),
-      )
-      .join(', ');
 }

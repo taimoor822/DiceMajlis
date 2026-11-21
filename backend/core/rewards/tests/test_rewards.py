@@ -100,7 +100,7 @@ class DailyLoginTests(TestCase):
         self.assertEqual(wallet.balances(self.user)["diamond"], 5)
         self.assertEqual(
             wallet.balances(self.user)["gold"],
-            sum(b["gold"] for b in daily.DAILY_LOGIN_CYCLE) + 100 + 150,
+            sum(d.bundle.contents.get("gold", 0) for d in daily.cycle()) + 100 + 150,
         )
 
     def test_missing_a_day_starts_again(self):
@@ -128,12 +128,18 @@ class DailyApiTests(TestCase):
     def test_status_then_claim_then_already_claimed(self):
         status = self.api.get("/api/rewards/daily/", **self.auth).data
         self.assertEqual((status["day"], status["claimed_today"]), (1, False))
-        self.assertEqual(status["days"][6], {"day": 7, "gold": 500, "diamond": 5})
+        day7 = status["days"][6]
+        self.assertEqual((day7["day"], day7["gold"], day7["diamond"], day7["xp"]), (7, 500, 5, 20))
+        self.assertEqual(
+            day7["items"],
+            [{"code": "dice_pearl", "name": "Pearl", "asset": "dice_pearl", "slot": "dice",
+              "rarity": "epic", "quantity": 1, "days": 7}],
+        )
         self.assertGreater(status["seconds_until_reset"], 0)
 
         r = self.api.post("/api/rewards/daily/claim/", **self.auth)
         self.assertEqual(r.status_code, 200, r.data)
-        self.assertEqual(r.data["claimed"], {"day": 1, "gold": 100, "diamond": 0})
+        self.assertEqual(r.data["claimed"], {"day": 1, "gold": 100, "diamond": 0, "xp": 0, "items": []})
         self.assertEqual(r.data["balances"], {"gold": 100, "diamond": 0})
         self.assertTrue(r.data["daily"]["claimed_today"])
 

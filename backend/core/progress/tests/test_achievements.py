@@ -78,7 +78,8 @@ class UnlockTests(AchievementTestCase):
             {(p["code"], p["tier"], p["threshold"], p["room_code"]) for p in pushes},
             {("games_played", 1, 1, "QX7P2M"), ("wins", 1, 1, "QX7P2M")},
         )
-        self.assertEqual(pushes[0]["reward"], {"gold": 50} if pushes[0]["code"] == "games_played" else {"gold": 100})
+        gold = {p["code"]: p["reward"]["gold"] for p in pushes}
+        self.assertEqual(gold, {"games_played": 50, "wins": 100})
         self.assertEqual(DomainEvent.objects.filter(kind="achievement_unlocked").count(), 2)
 
     def test_inactive_achievements_never_unlock(self):
@@ -111,7 +112,8 @@ class PayloadTests(AchievementTestCase):
         )
         self.assertIsNotNone(wins["tiers"][0]["unlocked_at"])
         self.assertIsNone(wins["tiers"][1]["unlocked_at"])
-        self.assertEqual(wins["tiers"][1]["reward"], {"gold": 300})
+        self.assertEqual(wins["tiers"][1]["reward"]["gold"], 300)
+        self.assertEqual([i["name"] for i in wins["tiers"][1]["reward"]["items"]], ["Night Sky"])
         self.assertEqual(payload["unlocked_tiers"], 2)
         self.assertEqual(payload["total_tiers"], 13)
 

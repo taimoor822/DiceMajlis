@@ -210,6 +210,34 @@
       "name": {"type": "String"}
     }
   },
+  "rewardXp": "+{amount} XP",
+  "@rewardXp": {
+    "placeholders": {
+      "amount": {"type": "int"}
+    }
+  },
+  "rewardItemDays": "{name} ({days, plural, =1{1 day} other{{days} days}})",
+  "@rewardItemDays": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "rewardHistoryTitle": "Reward history",
+  "rewardHistoryEmpty": "No rewards yet. Claim your daily reward or unlock an achievement.",
+  "rewardHistoryDaily": "Daily reward, day {day}",
+  "@rewardHistoryDaily": {
+    "placeholders": {
+      "day": {"type": "int"}
+    }
+  },
+  "rewardHistoryAchievement": "Achievement: {name}",
+  "@rewardHistoryAchievement": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "rewardHistoryOther": "Reward",
   "rewardAmount": "+{amount} {currency}",
   "@rewardAmount": {
     "placeholders": {
@@ -285,7 +313,19 @@
       "hours": {"type": "int"}
     }
   },
-  "dailyHint": "Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.",
+  "dailyHint": "Come back every day: rewards grow for {days} days in a row. Miss a day and it starts again.",
+  "@dailyHint": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "dailyHintCarryOn": "Come back every day: rewards grow for {days} days. Miss a day and you carry on where you left off.",
+  "@dailyHintCarryOn": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "dailyUnavailable": "No daily reward right now.",
   "dailyGot": "You got {amount}",
   "@dailyGot": {
     "placeholders": {
