@@ -376,7 +376,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hubTitle => 'Game Hub';
 
   @override
-  String get hubClassicTitle => 'Classic Ludo';
+  String get hubCatalogFailed => 'Couldn\'t load the games';
+
+  @override
+  String get hubUpdateForGames =>
+      'New games are available. Update the app to play them.';
 
   @override
   String get hubClassicBody =>
@@ -735,6 +739,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorInvalidInput =>
       'The server didn\'t accept that. Please check and try again.';
+
+  @override
+  String get gameLudo => 'Ludo';
+
+  @override
+  String get variantClassic => 'Classic';
+
+  @override
+  String gameTitle(String variant, String game) {
+    return '$variant $game';
+  }
+
+  @override
+  String get gameUnsupportedTitle => 'Update the app to play this game';
+
+  @override
+  String get gameUnsupportedBody =>
+      'This room plays a game this version of Dice Majlis can\'t show yet. Update the app, or leave the game to play something else.';
 
   @override
   String get localSetupTitle => 'Play on this phone';

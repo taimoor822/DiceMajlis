@@ -250,7 +250,10 @@ lib/
     ├── wallet/                   wallet_repository + balancesProvider, balance chips (Home),
     │                             wallet screen (balances + history)
     ├── rewards/                  rewards_repository + dailyRewardProvider, daily reward card
-    ├── hub/presentation/         Game Hub: Classic Ludo rooms, play on this phone, modes coming soon
+    ├── games/                    1.10 game registry: GameModule per game_type (names, icon,
+    │                             online board, offline route), server catalog, GameRouteScreen
+    ├── hub/presentation/         Game Hub: online games from the catalog, play on this phone,
+    │                             modes coming soon
     ├── local_play/               offline games (1.9): setup (who plays each colour),
     │                             LocalGameController (dice, AI turns, token walks), game screen
     ├── settings/presentation/    account (save, sign out), theme (saved on the device)
@@ -306,9 +309,13 @@ backend/
     ├── ludo_engine/           # ✅ BUILT — pure Python rules, no Django imports
     │   ├── board.py  rules.py  state.py  engine.py  events.py
     │   ├── dice.py   bot.py    errors.py
-    │   └── tests/             # 72 tests incl. 300 simulated full games
-    ├── game/                  # rooms + REST + WS; services.py = the only code that changes game state
-    │                          # (split into rooms/ + gameplay/ later)
+    │   ├── vectors.py         # 1.9 shared test vectors for the app's Dart engine
+    │   └── tests/             # 75 tests incl. 300 simulated full games
+    ├── game_platform/         # ✅ 1.10 — pure: the GameEngine contract, the registry
+    │                          # (game_type → engine), Ludo's adapter (variant Classic)
+    ├── game/                  # rooms + REST + WS; services.py = the only code that changes game
+    │                          # state, for any registered game; tables/ = per-game extras
+    │                          # (Ludo: Token rows + today's socket messages)
     ├── accounts/              # 1.6 users + Player ID, device sessions, JWT, guest sign-in;
     │                          #     1.7 email sign-up/in, save guest account, reset code
     │                          #     (Google/Apple 1.15, phone later)

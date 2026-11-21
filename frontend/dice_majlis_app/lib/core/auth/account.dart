@@ -59,6 +59,11 @@ abstract class ActiveRoom with _$ActiveRoom {
 
     /// True once the game has started (go to the board, not the waiting room).
     @Default(false) bool started,
+
+    /// Which game the room plays (server game registry); older servers send
+    /// nothing, and every room was Classic Ludo then.
+    @Default('ludo') String gameType,
+    @Default('classic') String variant,
   }) = _ActiveRoom;
 
   factory ActiveRoom.fromJson(Map<String, dynamic> json) =>

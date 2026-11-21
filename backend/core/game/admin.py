@@ -1,10 +1,21 @@
 from django.contrib import admin
 from .models import Room, Player, Game, GameAction, Turn
 
-admin.site.register(Room)
 admin.site.register(Player)
-admin.site.register(Game)
 admin.site.register(Turn)
+
+
+@admin.register(Room)
+class RoomAdmin(admin.ModelAdmin):
+    list_display = ('code', 'game_type', 'variant', 'max_players', 'is_started', 'created_at')
+    list_filter = ('game_type', 'variant', 'is_started')
+    search_fields = ('code',)
+
+
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    list_display = ('room', 'game_type', 'variant', 'version', 'is_finished')
+    list_filter = ('game_type', 'variant', 'is_finished')
 
 
 @admin.register(GameAction)

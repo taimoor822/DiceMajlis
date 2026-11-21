@@ -17,6 +17,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+import game_platform
 import ludo_engine as le
 from accounts import tokens as account_tokens
 from accounts.models import User
@@ -25,6 +26,7 @@ from ludo_engine import GameState, TurnPhase
 from . import services, timers
 from .consumers import LobbyConsumer
 from .models import Game, GameAction, Player, Token
+from .tables.ludo import token_ids_by_player
 
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 LOCAL_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
@@ -109,10 +111,13 @@ class GameApiTestCase(TestCase):
         return GameState.from_dict(self.game(code).state)
 
     def token_ids(self, code, player_id):
-        return services.token_ids_by_player(self.game(code).room)[player_id]
+        return token_ids_by_player(self.game(code).room)[player_id]
 
     def dice(self, *values):
-        patcher = mock.patch.object(services.SecureDice, "roll", side_effect=list(values))
+        """Script the server's dice: each roll takes the next value."""
+        patcher = mock.patch.object(
+            services, "SERVER_RANDOM", game_platform.ScriptedRandom(v - 1 for v in values)
+        )
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -125,7 +130,7 @@ class GameApiTestCase(TestCase):
         )
         game.state = replace(state, players=players).to_dict()
         game.save(update_fields=["state"])
-        ids = services.token_ids_by_player(game.room)
+        ids = token_ids_by_player(game.room)
         for player_id, tokens in positions.items():
             for index, progress in enumerate(tokens):
                 Token.objects.filter(id=ids[player_id][index]).update(
@@ -312,7 +317,7 @@ class BotGameTests(GameApiTestCase):
         self.assertEqual(rebuilt, state)
 
         # DB mirror matches the engine for every token.
-        ids = services.token_ids_by_player(game.room)
+        ids = token_ids_by_player(game.room)
         for player in state.players:
             for index, progress in enumerate(player.tokens):
                 self.assertEqual(Token.objects.get(id=ids[player.player_id][index]).position, progress)
@@ -495,7 +500,10 @@ class RoomInputTests(GameApiTestCase):
     def test_room_options_come_from_the_rules(self):
         r = self.api.get("/api/game/room-options/")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data, {"player_counts": [2, 3, 4], "default_player_count": 4})
+        self.assertEqual(
+            r.data,
+            {"game_type": "ludo", "variant": "classic", "player_counts": [2, 3, 4], "default_player_count": 4},
+        )
 
     def test_room_size_must_be_one_the_rules_allow(self):
         for size in (1, 0, 5, -2, "abc", True, None):
@@ -684,7 +692,10 @@ class SessionRestoreTests(GameApiTestCase):
         room = self.me(account)["active_room"]
         self.assertEqual(
             room,
-            {"code": code, "seat_id": host, "is_host": True, "max_players": 4, "started": False},
+            {
+                "code": code, "seat_id": host, "is_host": True, "max_players": 4, "started": False,
+                "game_type": "ludo", "variant": "classic",
+            },
         )
         guest = self.join(code)
         self.start(code, host)
@@ -743,3 +754,91 @@ class MovableTokenTests(GameApiTestCase):
         self.post("move-token", code=code, player_id=host, token_id=self.token_ids(code, host)[0])
         snapshot = services.game_snapshot(self.game(code).room)
         self.assertEqual((snapshot["winner_id"], snapshot["movable_token_ids"]), (host, []))
+
+
+class GamePlatformTests(GameApiTestCase):
+    """Rooms carry a game type and variant; the service runs any registered game."""
+
+    def setUp(self):
+        super().setUp()
+        from game_platform.tests.toy_game import RaceGame
+
+        game_platform.register(RaceGame())
+        self.addCleanup(game_platform.unregister, "race")
+
+    def test_rooms_are_ludo_classic_unless_asked_otherwise(self):
+        code, host = self.create_room()
+        r = self.post("join-room", code=code)
+        self.assertEqual((r.data["room"]["game_type"], r.data["room"]["variant"]), ("ludo", "classic"))
+        self.start(code, host)
+        game = self.game(code)
+        self.assertEqual((game.game_type, game.variant), ("ludo", "classic"))
+        snapshot = services.game_snapshot(game.room)
+        self.assertEqual((snapshot["game_type"], snapshot["variant"]), ("ludo", "classic"))
+        self.assertEqual(len(snapshot["tokens"]), 8)  # Ludo's table adds its tokens
+
+    def test_the_catalog_lists_every_game_and_variant(self):
+        r = self.api.get("/api/game/catalog/")
+        self.assertEqual(r.status_code, 200)
+        games = {g["game_type"]: g for g in r.data["games"]}
+        self.assertEqual(set(games), {"ludo", "race"})
+        classic = games["ludo"]["variants"][0]
+        self.assertEqual((classic["code"], classic["ranked"]), ("classic", True))
+        self.assertEqual(classic["rules"]["tokens_per_player"], 4)
+
+    def test_unknown_games_and_variants_are_refused_by_code(self):
+        r = self.post("create-room", game_type="chess")
+        self.assertEqual((r.status_code, r.data["fields"]), (400, {"game_type": ["unknown_game"]}))
+        r = self.post("create-room", game_type="ludo", variant="turbo")
+        self.assertEqual((r.status_code, r.data["fields"]), (400, {"variant": ["unknown_variant"]}))
+        r = self.api.get("/api/game/room-options/", {"game_type": "chess"})
+        self.assertEqual(r.data["fields"], {"game_type": ["unknown_game"]})
+
+    def test_each_variant_sets_its_own_room_sizes(self):
+        r = self.api.get("/api/game/room-options/", {"game_type": "race", "variant": "long"})
+        self.assertEqual((r.data["player_counts"], r.data["default_player_count"]), ([2, 3], 3))
+        r = self.post("create-room", game_type="race", variant="long")
+        self.assertEqual((r.data["room"]["variant"], r.data["room"]["max_players"]), ("long", 3))
+        r = self.post("create-room", game_type="race", max_players=4)
+        self.assertEqual((r.status_code, r.data["fields"]), (400, {"max_players": ["max_value"]}))
+
+    def test_another_game_runs_through_the_same_service(self):
+        account = self.new_account()
+        r = self.post("create-room", as_account=account, game_type="race")
+        code, host = r.data["room"]["code"], str(r.data["player"]["id"])
+        self.access[host] = account
+        self.start(code, host)  # alone: the AI joins
+
+        game = self.game(code)
+        self.assertEqual((game.game_type, game.variant, game.state["target"]), ("race", "short", 5))
+        self.assertFalse(Token.objects.filter(player__room__code=code).exists())  # no Ludo rows
+
+        # Ludo's endpoints refuse; the game's own actions go through perform().
+        r = self.post("roll-dice", code=code, player_id=host)
+        self.assertEqual((r.status_code, r.data["code"]), (400, "wrong_game"))
+        services.SERVER_RANDOM = game_platform.ScriptedRandom([2, 2, 2])
+        self.addCleanup(setattr, services, "SERVER_RANDOM", game_platform.SecureRandom())
+        result = services.perform(code, {"type": "draw", "player_id": host})
+        self.assertTrue(result.next_is_bot)
+        services.schedule_bots(code)  # the AI draws inline
+
+        game = self.game(code)
+        self.assertEqual(game.state["scores"], [3, 3])
+        self.assertEqual(GameAction.objects.filter(game=game).count(), 2)
+        self.assertEqual(str(game.current_turn_id), host)
+        # Messages are the engine's own events when a game has no table of its own.
+        self.assertEqual([m["type"] for m in self.sent], ["drew", "drew"])
+        self.assertEqual(self.sent[0]["version"], 1)
+
+        # The turn timer plays for an idle player through the same contract.
+        self.assertEqual(timers.process_due_turns(now=timezone.now() + timedelta(seconds=60)), 1)
+        game = self.game(code)
+        self.assertTrue(game.is_finished)
+        self.assertEqual(game.state["winner_id"], host)
+        self.assertEqual(self.sent[-1]["type"], "game_finished")
+        self.assertIsNone(services.active_seat_for(Player.objects.get(id=host).user))
+
+    def test_refused_actions_keep_their_engine_code(self):
+        code, host, guest = self.two_humans()
+        r = self.post("roll-dice", code=code, player_id=guest)
+        self.assertEqual((r.status_code, r.data["code"]), (403, "not_your_turn"))

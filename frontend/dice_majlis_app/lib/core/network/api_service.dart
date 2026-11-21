@@ -65,12 +65,31 @@ class ApiService {
     }
   }
 
-  /// What the server allows when creating a room (e.g. the player counts).
-  Future<Map<String, dynamic>> roomOptions() =>
-      _send('GET', 'game/room-options/');
+  /// Every game and variant the server can run (its game registry).
+  Future<Map<String, dynamic>> gameCatalog() => _send('GET', 'game/catalog/');
 
-  Future<Map<String, dynamic>> createRoom({required int maxPlayers}) =>
-      _send('POST', 'game/create-room/', {'max_players': maxPlayers});
+  /// What the server allows when creating a room for a game and variant
+  /// (e.g. the player counts).
+  Future<Map<String, dynamic>> roomOptions({
+    required String gameType,
+    required String variant,
+  }) => _send(
+    'GET',
+    Uri(
+      path: 'game/room-options/',
+      queryParameters: {'game_type': gameType, 'variant': variant},
+    ).toString(),
+  );
+
+  Future<Map<String, dynamic>> createRoom({
+    required int maxPlayers,
+    required String gameType,
+    required String variant,
+  }) => _send('POST', 'game/create-room/', {
+    'max_players': maxPlayers,
+    'game_type': gameType,
+    'variant': variant,
+  });
 
   Future<Map<String, dynamic>> joinRoom({required String code}) =>
       _send('POST', 'game/join-room/', {'code': code});

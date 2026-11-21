@@ -101,18 +101,32 @@ profiles.
 
 ### The game interface
 
-Every game engine is a pure module (like `ludo_engine` today) with the same shape:
+Every game engine is a pure module (like `ludo_engine` today) with an adapter of the
+same shape. ✅ Built in step 1.10 as `backend/core/game_platform/contract.py`:
 
 ```python
 class GameEngine(Protocol):
     game_type: str                                   # "ludo", "domino", "jackaroo"
-    def new_game(game_id, players, rules) -> State
+    default_variant: str
+    variants: Mapping[str, Variant]                  # presets of the rules, as data
+    rule_error: type[Exception]                      # refused actions raise it with a `code`
+    def new_game(game_id, player_ids, *, variant, seats=None, first_player_id=None) -> State
+    def rules_for(variant) -> dict                   # full rules (for the catalog)
+    def load(data) -> State / dump(state) -> dict    # stored snapshots
+    def info(state) -> TurnInfo                      # version, finished, current player, turn,
+                                                     # turn timer, winner, active players
+    def prepare_action(state, action, random) -> dict  # the server's part: dice, a bot's
+                                                     # choice, an idle player's auto-move
     def apply_action(state, action) -> Transition    # validates, never trusts the client
     def legal_actions(state, player_id) -> list
+    def bot_action(state) -> action
     def view_for(state, player_id) -> dict           # hides private info (domino hands)
     def standings(state) -> list                     # for ratings and rewards
-    def bot_action(state) -> action
+    def replay(initial, actions) -> State
 ```
+
+All randomness comes in through `random` (`SecureRandom` on the server,
+`ScriptedRandom` in tests), so every game replays exactly from its action log.
 
 `view_for` matters for hidden-information games: in Domino each player must only
 receive their own tiles, so the server never sends the whole state to everyone.
@@ -127,18 +141,30 @@ receive their own tiles, so the server never sends the whole state to everyone.
 | Game session service: locking, versioning, action log, turn timer, reconnection | Skins (board, dice, domino tiles, cards) |
 | Chat, notifications, analytics | Per-game statistics |
 
-### Changes to the existing backend (step 1.10)
+### Changes to the existing backend (step 1.10) ✅
 
-- `Game.game_type` and `Game.variant` (today implicitly `ludo` / `classic`).
+- `Room` and `Game` store `game_type` and `variant` (defaults `ludo` / `classic`);
+  create-room takes them (checked against the registry: `unknown_game`,
+  `unknown_variant`), and the variant decides the room sizes.
 - `game/services.py` keeps the same locking, version check, action log and broadcast,
-  but looks up the engine from a **registry** by `game_type` instead of importing
-  `ludo_engine` directly.
-- Ratings, leaderboards and statistics are keyed by game type (a Ludo rating is not a
-  Domino rating).
-- The Flutter side gets a matching registry: `game_type` → board widget + action UI.
+  but looks up the engine from the **registry** (`game_platform.get_game`) by
+  `game_type`. Bots send `{"type": "bot"}` and the turn timer `{"type": "timeout"}`;
+  the engine's `prepare_action` decides what that means for its game.
+- What a game needs on top lives in its **table** (`game/tables/`): Ludo's are the
+  Token rows and the socket messages today's app understands. A game without a table
+  sends its engine events as they are.
+- `GET /api/game/catalog/` lists every game, its variants and their rules.
+- Ratings, leaderboards and statistics will be keyed by game type (a Ludo rating is
+  not a Domino rating) when they are built.
+- The Flutter side has the matching registry (`features/games/`): `game_type` →
+  `GameModule` (names, icon, online board, offline route). Game Hub shows the
+  catalog's games the app has a module for; a game the app is too old for gets an
+  honest "update the app" page.
+- The roll and move REST endpoints are Ludo's (`wrong_game` for other rooms); other
+  games' actions go over the socket from step 1.12.
 
-Adding Domino later = new engine package + its UI module + registry entries + rules
-presets. Nothing else changes.
+Adding Domino later = engine package + adapter + `register(...)` + (if needed) a
+table + its app module and board. Nothing else changes.
 
 ---
 

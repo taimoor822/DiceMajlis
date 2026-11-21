@@ -9,11 +9,16 @@ import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
+import '../../games/domain/game_catalog.dart';
+import '../../games/game_registry.dart';
 import '../data/room_repository.dart';
 import '../domain/room_session_controller.dart';
 
 class CreateRoomScreen extends ConsumerStatefulWidget {
-  const CreateRoomScreen({super.key});
+  const CreateRoomScreen({super.key, this.game = const GameChoice()});
+
+  /// The game and variant picked in Game Hub.
+  final GameChoice game;
 
   @override
   ConsumerState<CreateRoomScreen> createState() => _CreateRoomScreenState();
@@ -30,7 +35,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
     try {
       final session = await ref
           .read(roomRepositoryProvider)
-          .createRoom(maxPlayers: maxPlayers);
+          .createRoom(maxPlayers: maxPlayers, game: widget.game);
       if (!mounted) return;
       ref.read(roomSessionProvider.notifier).start(session);
       context.push(AppRoutes.room(session.roomCode));
@@ -47,7 +52,8 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final options = ref.watch(roomOptionsProvider);
+    final options = ref.watch(roomOptionsProvider(widget.game));
+    final module = ref.watch(gameModulesProvider)[widget.game.gameType];
     final ready = options.asData?.value;
     final selected = ready == null
         ? null
@@ -65,6 +71,13 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (module != null) ...[
+                  Text(
+                    gameTitle(l10n, module, widget.game.variant),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 MajlisCard(
                   child: options.when(
                     data: (data) => _PlayerCountPicker(
@@ -79,7 +92,8 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                     ),
                     error: (error, _) => _OptionsError(
                       message: l10n.apiErrorText(error),
-                      onRetry: () => ref.invalidate(roomOptionsProvider),
+                      onRetry: () =>
+                          ref.invalidate(roomOptionsProvider(widget.game)),
                     ),
                   ),
                 ),

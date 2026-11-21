@@ -22,6 +22,12 @@ abstract final class AppRoutes {
 
   // Today's room flow lives in Game Hub.
   static const createRoom = '/hub/create-room';
+
+  /// Create a room for one game and variant: `/hub/create-room?game=ludo&variant=classic`.
+  static String createRoomFor(String gameType, String variant) => Uri(
+    path: createRoom,
+    queryParameters: {'game': gameType, 'variant': variant},
+  ).toString();
   static const joinRoom = '/hub/join-room';
 
   /// Offline games on this phone (vs AI, pass-and-play): pick players, then

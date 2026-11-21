@@ -8,6 +8,8 @@ import 'package:dice_majlis_app/core/auth/token_store.dart';
 import 'package:dice_majlis_app/core/network/api_exception.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
+import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
+import 'package:dice_majlis_app/features/games/domain/game_catalog.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
@@ -34,6 +36,9 @@ class FakeRoomRepository implements RoomRepository {
   String? failWith;
   RoomOptions options;
 
+  /// The game the last create-room call asked for.
+  GameChoice? createdGame;
+
   /// Joining returns a room whose game has already started (rejoining).
   bool joinStarted;
   final calls = <String>[];
@@ -59,17 +64,25 @@ class FakeRoomRepository implements RoomRepository {
       );
 
   @override
-  Future<RoomOptions> roomOptions() async {
-    calls.add('options');
+  Future<RoomOptions> roomOptions(GameChoice game) async {
+    calls.add(game == const GameChoice() ? 'options' : 'options:$game');
     _maybeFail();
     return options;
   }
 
   @override
-  Future<RoomSession> createRoom({required int maxPlayers}) async {
+  Future<RoomSession> createRoom({
+    required int maxPlayers,
+    required GameChoice game,
+  }) async {
     calls.add('create:$maxPlayers');
+    createdGame = game;
     _maybeFail();
-    return _session('AB12', host: true, maxPlayers: maxPlayers);
+    return _session(
+      'AB12',
+      host: true,
+      maxPlayers: maxPlayers,
+    ).copyWith(gameType: game.gameType, variant: game.variant);
   }
 
   @override
@@ -102,6 +115,39 @@ class FakeRoomRepository implements RoomRepository {
   Future<void> leaveRoom(String roomCode) async {
     calls.add('leave:$roomCode');
     _maybeFail();
+  }
+}
+
+/// The server's game catalog without a server: Ludo Classic unless a test
+/// gives other games. [failWith] makes loading fail with that code.
+class FakeGameCatalogRepository implements GameCatalogRepository {
+  FakeGameCatalogRepository({List<CatalogGame>? games, this.failWith})
+    : games = games ?? [ludoClassic];
+
+  static const ludoClassic = CatalogGame(
+    gameType: 'ludo',
+    defaultVariant: 'classic',
+    variants: [
+      CatalogVariant(
+        code: 'classic',
+        minPlayers: 2,
+        maxPlayers: 4,
+        defaultPlayers: 4,
+        ranked: true,
+      ),
+    ],
+  );
+
+  List<CatalogGame> games;
+  String? failWith;
+  int loads = 0;
+
+  @override
+  Future<List<CatalogGame>> catalog() async {
+    loads++;
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return games;
   }
 }
 
@@ -429,9 +475,13 @@ List<Override> fakeNetwork({
   FakeAccountRepository? accounts,
   FakeWalletRepository? wallet,
   FakeRewardsRepository? rewards,
+  FakeGameCatalogRepository? catalog,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
   roomRepositoryProvider.overrideWithValue(repository),
+  gameCatalogRepositoryProvider.overrideWithValue(
+    catalog ?? FakeGameCatalogRepository(),
+  ),
   accountRepositoryProvider.overrideWithValue(
     accounts ?? FakeAccountRepository(),
   ),
@@ -466,6 +516,7 @@ Widget testApp({
   FakeAccountRepository? accounts,
   FakeWalletRepository? wallet,
   FakeRewardsRepository? rewards,
+  FakeGameCatalogRepository? catalog,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -477,6 +528,7 @@ Widget testApp({
       accounts: accounts,
       wallet: wallet,
       rewards: rewards,
+      catalog: catalog,
     ),
     ...overrides,
   ],

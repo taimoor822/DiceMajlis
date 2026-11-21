@@ -1,8 +1,10 @@
 from rest_framework import serializers
 
-from ludo_engine import MAX_PLAYERS, MIN_PLAYERS, SEAT_COLORS
+import game_platform
+from game_platform import LUDO
+from ludo_engine import SEAT_COLORS
 
-from .models import Player, Room
+from .models import GAME_TYPE_MAX_LENGTH, VARIANT_MAX_LENGTH, Player, Room
 
 CODE_MAX_LENGTH = Room._meta.get_field('code').max_length
 
@@ -10,7 +12,7 @@ CODE_MAX_LENGTH = Room._meta.get_field('code').max_length
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ['id', 'code', 'max_players', 'is_started']
+        fields = ['id', 'code', 'game_type', 'variant', 'max_players', 'is_started']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -35,12 +37,41 @@ class RoomCodeField(serializers.CharField):
         return super().to_internal_value(data).upper()
 
 
-class CreateRoomInput(serializers.Serializer):
-    max_players = serializers.IntegerField(
-        min_value=MIN_PLAYERS, max_value=MAX_PLAYERS, default=MAX_PLAYERS
-    )
+class GameChoiceInput(serializers.Serializer):
+    """Which game and variant (from the game registry). Both optional: Ludo, its default variant."""
+
+    game_type = serializers.CharField(max_length=GAME_TYPE_MAX_LENGTH, default=LUDO)
+    variant = serializers.CharField(max_length=VARIANT_MAX_LENGTH, required=False, allow_blank=True)
+
+    def validate(self, data):
+        try:
+            game_platform.get_game(data['game_type'])
+        except game_platform.UnknownGame:
+            raise serializers.ValidationError({'game_type': 'No such game'}, code='unknown_game')
+        try:
+            variant = game_platform.get_variant(data['game_type'], data.get('variant') or None)
+        except game_platform.UnknownVariant:
+            raise serializers.ValidationError({'variant': 'No such variant'}, code='unknown_variant')
+        data['variant'] = variant.code
+        data['variant_rules'] = variant
+        return data
+
+
+class CreateRoomInput(GameChoiceInput):
+    # Seats in the room; the variant decides what is allowed (and the default).
+    max_players = serializers.IntegerField(required=False)
     # Optional: the server picks a free seat colour when it's missing or taken.
     color = serializers.ChoiceField(choices=SEAT_COLORS, required=False)
+
+    def validate(self, data):
+        data = super().validate(data)
+        variant = data.pop('variant_rules')
+        count = data.setdefault('max_players', variant.default_players)
+        if count < variant.min_players:
+            raise serializers.ValidationError({'max_players': 'Too few seats'}, code='min_value')
+        if count > variant.max_players:
+            raise serializers.ValidationError({'max_players': 'Too many seats'}, code='max_value')
+        return data
 
 
 class RoomInput(serializers.Serializer):
