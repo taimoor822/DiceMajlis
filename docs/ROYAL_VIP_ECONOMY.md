@@ -138,6 +138,12 @@ expiry, history and anti-duplication.
 - Expiry runs in the same sweep worker as the turn timer: expired items get an
   `expired` transaction and are unequipped.
 
+*Built in step 2.2* (`backend/core/items/`): `ItemDefinition`, `InventoryItem`,
+`ItemTransaction`, `EquippedCosmetic` and `ItemAdjustment` (admin grants) as above, with
+cosmetic slots `dice`, `board`, `frame` first. Starter items are owned by every account
+without inventory rows. `ItemActivation`, gifts from inventory and the other item types
+arrive with the features that use them.
+
 ### Gifts from inventory
 
 Sending a gift (SOCIAL_MAJLIS §7) can now be paid **from inventory** (owned gift,
@@ -163,6 +169,13 @@ One DB transaction writes every part (wallet, item and EXP ledgers) or none.
 
 `RewardBundle` is admin-configured data; `RewardClaim` records every claim (who,
 what, when, key). Reward history screens read `RewardClaim`.
+
+*Built in step 2.5* (`backend/core/rewards/`): bundles are one dict,
+`{"gold", "diamond", "xp", "items": [{"code", "quantity", "days"}]}`; `grant()` writes
+every part in one transaction. The daily login cycle is admin data (`DailyRewardDay` →
+`RewardBundle`) with `DailyRewardSettings` (a missed day restarts or carries on; after
+the last day the cycle loops or stays). `GET /api/rewards/history/` pages the claims.
+Royal EXP joins the bundle with the Royal system.
 
 ### Daily resets and device time
 
@@ -370,6 +383,13 @@ ref.watch(entitlementsProvider).has(Privilege.voiceMessaging)
   name, icon and description from the catalog. A new privilege that only changes
   display needs no app update; one that adds new behaviour needs code once, then
   stays configurable.
+
+*Built in step 2.6* (`backend/core/entitlements/`): `Privilege`, `PrivilegeGrant`
+(sources `base` and `item` today; Royal/VIP/event resolvers plug into
+`engine.register_source` later, using `rank` for inheritance) and
+`UserPrivilegeOverride`. The snapshot is cached for a minute in the Django cache
+(Redis in production) and pushed as `entitlements_updated` when it changes.
+`Privilege.built` marks the ones the app acts on; the catalog below is seed data.
 
 ---
 

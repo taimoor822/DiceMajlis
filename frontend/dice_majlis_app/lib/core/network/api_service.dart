@@ -126,6 +126,24 @@ class ApiService {
   /// Your balances: `{"balances": {"gold": n, "diamond": n}}`.
   Future<Map<String, dynamic>> wallet() => _send('GET', 'wallet/');
 
+  /// Your statistics from real online games, and your latest results.
+  Future<Map<String, dynamic>> myStats() => _send('GET', 'me/stats/');
+
+  /// What your account may do (privileges), as the server decided.
+  Future<Map<String, dynamic>> myEntitlements() =>
+      _send('GET', 'me/entitlements/');
+
+  /// Your achievements, with progress and rewards.
+  Future<Map<String, dynamic>> myAchievements() =>
+      _send('GET', 'me/achievements/');
+
+  /// What you own and wear (cosmetics today).
+  Future<Map<String, dynamic>> myItems() => _send('GET', 'me/items/');
+
+  /// Wear [item] in [slot]; null puts the slot back to its default.
+  Future<Map<String, dynamic>> equipItem(String slot, String? item) =>
+      _send('POST', 'me/items/equip/', {'slot': slot, 'item': item});
+
   /// Your ledger, newest first; [before] is the last id of the previous page.
   Future<Map<String, dynamic>> walletTransactions({String? before}) => _send(
     'GET',
@@ -140,6 +158,12 @@ class ApiService {
   /// Claims today's reward. The server decides what it is.
   Future<Map<String, dynamic>> claimDailyReward() =>
       _send('POST', 'rewards/daily/claim/');
+
+  /// Every reward you got, newest first; [before] is the last id of a page.
+  Future<Map<String, dynamic>> rewardHistory({String? before}) => _send(
+    'GET',
+    before == null ? 'rewards/history/' : 'rewards/history/?before=$before',
+  );
 
   /// A guest adds email + password; returns the account (same Player ID).
   Future<Map<String, dynamic>> saveAccount({

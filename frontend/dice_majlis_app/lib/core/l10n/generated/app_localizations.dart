@@ -574,6 +574,270 @@ abstract class AppLocalizations {
   /// **'Earn XP by playing online games against other people.'**
   String get profileXpHow;
 
+  /// No description provided for @profileCustomise.
+  ///
+  /// In en, this message translates to:
+  /// **'Customise'**
+  String get profileCustomise;
+
+  /// No description provided for @profileCustomiseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Dice, board and profile frame'**
+  String get profileCustomiseHint;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get statsTitle;
+
+  /// No description provided for @statsGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get statsGames;
+
+  /// No description provided for @statsWins.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins'**
+  String get statsWins;
+
+  /// No description provided for @statsWinRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Win rate'**
+  String get statsWinRate;
+
+  /// No description provided for @statsBestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get statsBestStreak;
+
+  /// No description provided for @statsPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}%'**
+  String statsPercent(int value);
+
+  /// No description provided for @statsCurrentStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins in a row now: {count}'**
+  String statsCurrentStreak(int count);
+
+  /// No description provided for @statsRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest games'**
+  String get statsRecent;
+
+  /// No description provided for @statsResultPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} of {players}'**
+  String statsResultPlace(int place, int players);
+
+  /// No description provided for @statsResultLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get statsResultLeft;
+
+  /// No description provided for @statsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No games yet. Play an online game against other people to start your statistics.'**
+  String get statsEmpty;
+
+  /// No description provided for @statsOnlyRealGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Only online games against other people count (not games with the AI or offline games).'**
+  String get statsOnlyRealGames;
+
+  /// No description provided for @profileAchievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get profileAchievements;
+
+  /// No description provided for @profileAchievementsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Milestones that give Gold and Diamonds'**
+  String get profileAchievementsHint;
+
+  /// No description provided for @achievementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get achievementsTitle;
+
+  /// No description provided for @achievementsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{unlocked} of {total} unlocked'**
+  String achievementsSummary(int unlocked, int total);
+
+  /// No description provided for @achievementsOnlyRealGames.
+  ///
+  /// In en, this message translates to:
+  /// **'They unlock from online games against other people (not games with the AI or offline games).'**
+  String get achievementsOnlyRealGames;
+
+  /// No description provided for @achievementsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} / {target}'**
+  String achievementsProgress(int value, int target);
+
+  /// No description provided for @achievementsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get achievementsCompleted;
+
+  /// No description provided for @achievementsHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hidden achievement still to find} other{{count} hidden achievements still to find}}'**
+  String achievementsHidden(int count);
+
+  /// No description provided for @achievementUnlockedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement unlocked: {name}'**
+  String achievementUnlockedToast(String name);
+
+  /// No description provided for @rewardXp.
+  ///
+  /// In en, this message translates to:
+  /// **'+{amount} XP'**
+  String rewardXp(int amount);
+
+  /// No description provided for @rewardItemDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({days, plural, =1{1 day} other{{days} days}})'**
+  String rewardItemDays(String name, int days);
+
+  /// No description provided for @rewardHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward history'**
+  String get rewardHistoryTitle;
+
+  /// No description provided for @rewardHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No rewards yet. Claim your daily reward or unlock an achievement.'**
+  String get rewardHistoryEmpty;
+
+  /// No description provided for @rewardHistoryDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reward, day {day}'**
+  String rewardHistoryDaily(int day);
+
+  /// No description provided for @rewardHistoryAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement: {name}'**
+  String rewardHistoryAchievement(String name);
+
+  /// No description provided for @rewardHistoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward'**
+  String get rewardHistoryOther;
+
+  /// No description provided for @rewardAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{amount} {currency}'**
+  String rewardAmount(String amount, String currency);
+
+  /// No description provided for @gameOverAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement: {name}'**
+  String gameOverAchievement(String name);
+
+  /// No description provided for @privilegesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your privileges'**
+  String get privilegesTitle;
+
+  /// No description provided for @privilegeWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {value}'**
+  String privilegeWithValue(String name, int value);
+
+  /// No description provided for @customiseNeedsPrivilege.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs: {privilege}'**
+  String customiseNeedsPrivilege(String privilege);
+
+  /// No description provided for @customiseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customise'**
+  String get customiseTitle;
+
+  /// No description provided for @customiseDice.
+  ///
+  /// In en, this message translates to:
+  /// **'Dice'**
+  String get customiseDice;
+
+  /// No description provided for @customiseBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'Board'**
+  String get customiseBoard;
+
+  /// No description provided for @customiseFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile frame'**
+  String get customiseFrame;
+
+  /// No description provided for @customiseNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get customiseNone;
+
+  /// No description provided for @customiseWearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Wearing'**
+  String get customiseWearing;
+
+  /// No description provided for @customiseMoreSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'More items will come from achievements and rewards (coming soon).'**
+  String get customiseMoreSoon;
+
+  /// No description provided for @itemRarity.
+  ///
+  /// In en, this message translates to:
+  /// **'{rarity, select, common{Common} rare{Rare} epic{Epic} legendary{Legendary} other{Special}}'**
+  String itemRarity(String rarity);
+
+  /// No description provided for @itemExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String itemExpires(DateTime date);
+
   /// No description provided for @profileOptionsFailed.
   ///
   /// In en, this message translates to:
@@ -679,8 +943,20 @@ abstract class AppLocalizations {
   /// No description provided for @dailyHint.
   ///
   /// In en, this message translates to:
-  /// **'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.'**
-  String get dailyHint;
+  /// **'Come back every day: rewards grow for {days} days in a row. Miss a day and it starts again.'**
+  String dailyHint(int days);
+
+  /// No description provided for @dailyHintCarryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back every day: rewards grow for {days} days. Miss a day and you carry on where you left off.'**
+  String dailyHintCarryOn(int days);
+
+  /// No description provided for @dailyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No daily reward right now.'**
+  String get dailyUnavailable;
 
   /// No description provided for @dailyGot.
   ///
@@ -735,6 +1011,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily reward'**
   String get walletTypeDaily;
+
+  /// No description provided for @walletTypeAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement reward'**
+  String get walletTypeAchievement;
 
   /// No description provided for @walletTypeAdminGrant.
   ///
@@ -1617,6 +1899,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email already has an account. Sign in instead.'**
   String get errorEmailTaken;
+
+  /// No description provided for @errorItemNotOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t own that item.'**
+  String get errorItemNotOwned;
+
+  /// No description provided for @errorItemUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'That item isn\'t available.'**
+  String get errorItemUnavailable;
+
+  /// No description provided for @errorNeedsPrivilege.
+  ///
+  /// In en, this message translates to:
+  /// **'That needs a privilege you don\'t have.'**
+  String get errorNeedsPrivilege;
 
   /// No description provided for @errorSocialAccountTaken.
   ///

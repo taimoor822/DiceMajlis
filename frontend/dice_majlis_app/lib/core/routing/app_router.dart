@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/achievements/presentation/achievements_screen.dart';
 import '../../features/auth/presentation/email_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
+import '../../features/cosmetics/presentation/customise_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
 import '../../features/local_play/presentation/local_game_screen.dart';
@@ -20,6 +22,7 @@ import '../../features/navigation/presentation/main_shell.dart';
 import '../../features/navigation/presentation/tab_placeholders.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/save_account_screen.dart';
+import '../../features/rewards/presentation/reward_history_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
@@ -158,10 +161,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'profile',
               builder: (context, state) => const ProfileScreen(),
+              routes: [
+                GoRoute(
+                  path: 'customise',
+                  builder: (context, state) => const CustomiseScreen(),
+                ),
+                GoRoute(
+                  path: 'achievements',
+                  builder: (context, state) => const AchievementsScreen(),
+                ),
+              ],
             ),
             GoRoute(
               path: 'wallet',
               builder: (context, state) => const WalletScreen(),
+              routes: [
+                GoRoute(
+                  path: 'rewards',
+                  builder: (context, state) => const RewardHistoryScreen(),
+                ),
+              ],
             ),
           ]),
           _tab(AppRoutes.chat, const ChatScreen()),

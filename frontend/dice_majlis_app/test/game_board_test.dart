@@ -5,6 +5,8 @@ import 'package:dice_majlis_app/core/auth/auth_controller.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/routing/app_router.dart';
 import 'package:dice_majlis_app/core/routing/app_routes.dart';
+import 'package:dice_majlis_app/features/achievements/data/achievements_repository.dart';
+import 'package:dice_majlis_app/features/achievements/domain/achievements.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/game_board_screen.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/widgets/dice_widget.dart';
@@ -175,9 +177,20 @@ void main() {
             'next_level_xp': 300,
           })!,
         );
+    container
+        .read(achievementUnlocksProvider.notifier)
+        .add(
+          const AchievementUnlocked(
+            code: 'wins',
+            name: 'Victories',
+            tier: 1,
+            roomCode: 'AB12',
+          ),
+        );
     sockets.last.emit({'type': 'game_finished', 'winner_id': me});
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.text('Achievement: Victories'), findsOneWidget);
     expect(find.text("Level up! You're now level 2"), findsOneWidget);
     expect(find.text("Games with the AI don't give XP."), findsNothing);
   });
@@ -191,6 +204,47 @@ void main() {
     expect(find.text('You win!'), findsOneWidget);
     expect(find.text("Games with the AI don't give XP."), findsOneWidget);
     expect(find.byKey(const Key('game-over-xp')), findsNothing);
+  });
+
+  testWidgets('the die wears the skin of whoever plays; the board wears yours', (
+    tester,
+  ) async {
+    final sockets = await openBoard(tester);
+    sockets.last.emit({
+      ...snapshot(),
+      'players': [
+        {
+          'id': me,
+          'name': 'Player 1',
+          'color': 'red',
+          'is_host': true,
+          'cosmetics': {'dice': 'dice_ruby', 'board': 'board_oasis'},
+        },
+        {'id': bot, 'name': 'Majlis AI', 'color': 'green', 'is_bot': true},
+      ],
+    });
+    await tester.pump();
+    DiceWidget dice() => tester.widget<DiceWidget>(find.byType(DiceWidget));
+    expect(dice().skin, 'dice_ruby');
+    sockets.last.emit({
+      'type': 'turn_changed',
+      'player_id': bot,
+      'current_turn_player_id': bot,
+    });
+    await tester.pump();
+    expect(dice().skin, isNull); // the AI's plain die
+
+    // The board skin is your own choice (the account), not the payload's.
+    expect(find.byKey(const Key('board-skin-rim')), findsNothing);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(GameBoardScreen)),
+    );
+    final account = container.read(accountProvider)!;
+    container
+        .read(authControllerProvider.notifier)
+        .accountChanged(account.copyWith(cosmetics: {'board': 'board_oasis'}));
+    await tester.pump();
+    expect(find.byKey(const Key('board-skin-rim')), findsOneWidget);
   });
 
   testWidgets('a player drops: the seat stays, shown as away until back', (

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/majlis_colors.dart';
+import '../../../../shared/widgets/board_skin_rim.dart';
 import '../../domain/ludo_path.dart';
 import 'board_widget.dart';
 import 'player_token.dart';
@@ -47,10 +48,14 @@ class LudoBoardView extends StatelessWidget {
     super.key,
     required this.tokens,
     this.stepDuration = const Duration(milliseconds: 140),
+    this.boardSkin,
   });
 
   final List<BoardToken> tokens;
   final Duration stepDuration;
+
+  /// The board skin's asset key (a cosmetic); null = the plain board.
+  final String? boardSkin;
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +107,7 @@ class LudoBoardView extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
+                BoardSkinRim(skin: boardSkin),
                 const Positioned.fill(child: BoardWidget()),
                 ...children,
               ],

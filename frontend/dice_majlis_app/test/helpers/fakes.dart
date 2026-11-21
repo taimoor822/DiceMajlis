@@ -12,6 +12,13 @@ import 'package:dice_majlis_app/core/realtime/realtime_message.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
+import 'package:dice_majlis_app/core/entitlements/entitlements.dart';
+import 'package:dice_majlis_app/features/achievements/data/achievements_repository.dart';
+import 'package:dice_majlis_app/features/achievements/domain/achievements.dart';
+import 'package:dice_majlis_app/features/cosmetics/data/items_repository.dart';
+import 'package:dice_majlis_app/features/cosmetics/domain/inventory.dart';
+import 'package:dice_majlis_app/features/stats/data/stats_repository.dart';
+import 'package:dice_majlis_app/features/stats/domain/player_stats.dart';
 import 'package:dice_majlis_app/features/games/data/game_catalog_repository.dart';
 import 'package:dice_majlis_app/features/games/domain/game_catalog.dart';
 import 'package:dice_majlis_app/features/multiplayer/data/room_repository.dart';
@@ -21,6 +28,7 @@ import 'package:dice_majlis_app/features/profile/data/account_repository.dart';
 import 'package:dice_majlis_app/features/profile/domain/profile_options.dart';
 import 'package:dice_majlis_app/features/rewards/data/rewards_repository.dart';
 import 'package:dice_majlis_app/features/rewards/domain/daily_reward.dart';
+import 'package:dice_majlis_app/features/rewards/domain/reward_bundle.dart';
 import 'package:dice_majlis_app/features/wallet/data/wallet_repository.dart';
 import 'package:dice_majlis_app/features/wallet/domain/wallet_models.dart';
 import 'package:flutter/widgets.dart';
@@ -468,6 +476,156 @@ class FakeAccountRepository implements AccountRepository {
 
 /// The wallet without a server: [balances] and a list of [entries] (newest
 /// first), served [pageSize] at a time.
+/// Items without a server: the starter set, and whatever a test adds. Equip
+/// checks ownership and slot like the server does.
+class FakeItemsRepository implements ItemsRepository {
+  FakeItemsRepository({List<OwnedItem>? items})
+    : items = items ?? [...starterItems];
+
+  static const starterItems = [
+    OwnedItem(
+      code: 'dice_ivory',
+      type: 'cosmetic',
+      slot: 'dice',
+      name: 'Ivory',
+      rarity: 'common',
+      asset: 'dice_ivory',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'dice_desert_gold',
+      type: 'cosmetic',
+      slot: 'dice',
+      name: 'Desert Gold',
+      rarity: 'rare',
+      asset: 'dice_desert_gold',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'board_majlis',
+      type: 'cosmetic',
+      slot: 'board',
+      name: 'Majlis',
+      rarity: 'common',
+      asset: 'board_majlis',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'board_oasis',
+      type: 'cosmetic',
+      slot: 'board',
+      name: 'Oasis',
+      rarity: 'rare',
+      asset: 'board_oasis',
+      starter: true,
+    ),
+    OwnedItem(
+      code: 'frame_brass',
+      type: 'cosmetic',
+      slot: 'frame',
+      name: 'Brass Ring',
+      rarity: 'common',
+      asset: 'frame_brass',
+      starter: true,
+    ),
+  ];
+
+  List<OwnedItem> items;
+  final equipped = <String, String?>{
+    'dice': 'dice_ivory',
+    'board': 'board_majlis',
+    'frame': null,
+  };
+  final calls = <String>[];
+  String? failWith;
+
+  Inventory get _inventory => Inventory(
+    items: items,
+    equipped: Map.of(equipped),
+    cosmetics: {
+      for (final entry in equipped.entries)
+        entry.key: entry.value == null
+            ? null
+            : items.firstWhere((item) => item.code == entry.value).asset,
+    },
+  );
+
+  @override
+  Future<Inventory> inventory() async {
+    calls.add('inventory');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return _inventory;
+  }
+
+  @override
+  Future<Inventory> equip(String slot, String? item) async {
+    calls.add('equip:$slot:$item');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    if (item != null) {
+      final owned = items.where((i) => i.code == item).firstOrNull;
+      if (owned == null) throw const ApiException('not_owned');
+      if (owned.slot != slot) throw const ApiException('wrong_slot');
+    }
+    // Nothing chosen: the slot's first starter (a frame may stay empty).
+    equipped[slot] =
+        item ??
+        (slot == 'frame'
+            ? null
+            : items.firstWhere((i) => i.slot == slot).code);
+    return _inventory;
+  }
+}
+
+/// Entitlements without a server: none until a test sets [entitlements].
+class FakeEntitlementsRepository implements EntitlementsRepository {
+  FakeEntitlementsRepository({this.entitlements = const Entitlements()});
+
+  Entitlements entitlements;
+  int loads = 0;
+
+  @override
+  Future<Entitlements> mine() async {
+    loads++;
+    return entitlements;
+  }
+}
+
+/// Achievements without a server: none until a test sets [overview].
+class FakeAchievementsRepository implements AchievementsRepository {
+  FakeAchievementsRepository({this.overview = const AchievementsOverview()});
+
+  AchievementsOverview overview;
+  String? failWith;
+  int loads = 0;
+
+  @override
+  Future<AchievementsOverview> myAchievements() async {
+    loads++;
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return overview;
+  }
+}
+
+/// Statistics without a server: none until a test sets [stats].
+class FakeStatsRepository implements StatsRepository {
+  FakeStatsRepository({this.stats = const StatsOverview()});
+
+  StatsOverview stats;
+  String? failWith;
+  int loads = 0;
+
+  @override
+  Future<StatsOverview> myStats() async {
+    loads++;
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return stats;
+  }
+}
+
 class FakeWalletRepository implements WalletRepository {
   FakeWalletRepository({
     this.balance = const Balances(gold: 1250, diamond: 5),
@@ -528,6 +686,17 @@ class FakeRewardsRepository implements RewardsRepository {
   final FakeWalletRepository wallet;
   String? failWith;
   final calls = <String>[];
+
+  /// Rewards already given, newest first.
+  List<RewardHistoryEntry> given = [];
+
+  @override
+  Future<RewardHistoryPage> history({String? before}) async {
+    calls.add('history:${before ?? 'first'}');
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return RewardHistoryPage(entries: given);
+  }
 
   DailyRewardStatus get _status => DailyRewardStatus(
     day: day,
@@ -821,8 +990,20 @@ List<Override> fakeNetwork({
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
+  FakeItemsRepository? items,
+  FakeStatsRepository? stats,
+  FakeAchievementsRepository? achievements,
+  FakeEntitlementsRepository? entitlements,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
+  itemsRepositoryProvider.overrideWithValue(items ?? FakeItemsRepository()),
+  statsRepositoryProvider.overrideWithValue(stats ?? FakeStatsRepository()),
+  achievementsRepositoryProvider.overrideWithValue(
+    achievements ?? FakeAchievementsRepository(),
+  ),
+  entitlementsRepositoryProvider.overrideWithValue(
+    entitlements ?? FakeEntitlementsRepository(),
+  ),
   socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
     (realtime ?? FakeRealtimeServer()).connect,
@@ -868,6 +1049,10 @@ Widget testApp({
   FakeGameCatalogRepository? catalog,
   FakeRealtimeServer? realtime,
   FakeSocialSignIn? social,
+  FakeItemsRepository? items,
+  FakeStatsRepository? stats,
+  FakeAchievementsRepository? achievements,
+  FakeEntitlementsRepository? entitlements,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -882,6 +1067,10 @@ Widget testApp({
       catalog: catalog,
       realtime: realtime,
       social: social,
+      items: items,
+      stats: stats,
+      achievements: achievements,
+      entitlements: entitlements,
     ),
     ...overrides,
   ],

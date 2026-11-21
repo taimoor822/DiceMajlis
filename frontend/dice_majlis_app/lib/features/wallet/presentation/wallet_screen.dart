@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_card.dart';
@@ -64,6 +66,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   String _typeLabel(AppLocalizations l10n, String type) => switch (type) {
     'reward_daily' => l10n.walletTypeDaily,
+    'reward_achievement' => l10n.walletTypeAchievement,
     'admin_grant' => l10n.walletTypeAdminGrant,
     'admin_revoke' => l10n.walletTypeAdminRevoke,
     'reversal' => l10n.walletTypeReversal,
@@ -104,7 +107,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(title: Text(l10n.walletTitle)),
+      appBar: AppBar(
+        title: Text(l10n.walletTitle),
+        actions: [
+          IconButton(
+            key: const Key('wallet-reward-history'),
+            tooltip: l10n.rewardHistoryTitle,
+            icon: const Icon(Icons.redeem),
+            onPressed: () => context.push(AppRoutes.rewardHistory),
+          ),
+        ],
+      ),
       body: MajlisBackground(
         child: SafeArea(
           child: Center(

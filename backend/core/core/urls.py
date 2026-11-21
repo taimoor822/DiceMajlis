@@ -23,5 +23,9 @@ urlpatterns = [
     path('api/', include('profiles.urls')),
     path('api/', include('wallet.urls')),
     path('api/', include('rewards.urls')),
+    path('api/', include('items.urls')),
+    path('api/', include('stats.urls')),
+    path('api/', include('progress.urls')),
+    path('api/', include('entitlements.urls')),
     path('api/game/', include('game.urls')),
 ]

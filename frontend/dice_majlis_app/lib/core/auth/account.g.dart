@@ -26,6 +26,11 @@ _Account _$AccountFromJson(Map<String, dynamic> json) => _Account(
   activeRoom: json['active_room'] == null
       ? null
       : ActiveRoom.fromJson(json['active_room'] as Map<String, dynamic>),
+  cosmetics:
+      (json['cosmetics'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String?),
+      ) ??
+      const <String, String?>{},
 );
 
 Map<String, dynamic> _$AccountToJson(_Account instance) => <String, dynamic>{
@@ -42,6 +47,7 @@ Map<String, dynamic> _$AccountToJson(_Account instance) => <String, dynamic>{
   'level_xp': instance.levelXp,
   'next_level_xp': instance.nextLevelXp,
   'active_room': instance.activeRoom?.toJson(),
+  'cosmetics': instance.cosmetics,
 };
 
 _ActiveRoom _$ActiveRoomFromJson(Map<String, dynamic> json) => _ActiveRoom(

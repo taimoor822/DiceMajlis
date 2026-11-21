@@ -430,6 +430,10 @@ def perform(
 
 
 def players_payload(room: Room) -> list[dict[str, Any]]:
+    from items.services import cosmetics_for_users
+
+    players = list(room.players.order_by("joined_at"))
+    worn = cosmetics_for_users({p.user_id for p in players if p.user_id and not p.is_bot})
     return [
         {
             "id": str(p.id),
@@ -441,8 +445,10 @@ def players_payload(room: Room) -> list[dict[str, Any]]:
             "wants_rematch": p.wants_rematch,
             "has_left": p.has_left,
             "connected": p.is_bot or p.disconnected_at is None,
+            # The player's dice, board and frame (asset keys); {} for the AI.
+            "cosmetics": worn.get(p.user_id, {}),
         }
-        for p in room.players.order_by("joined_at")
+        for p in players
     ]
 
 

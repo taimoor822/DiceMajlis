@@ -10,6 +10,7 @@ import '../../wallet/domain/wallet_models.dart';
 import '../../wallet/presentation/currency.dart';
 import '../data/rewards_repository.dart';
 import '../domain/daily_reward.dart';
+import 'reward_view.dart';
 
 /// The daily reward on Home: the 7 days of the cycle, today's highlighted,
 /// and a Claim button (or when the next one comes).
@@ -23,15 +24,7 @@ class DailyRewardCard extends ConsumerStatefulWidget {
 class _DailyRewardCardState extends ConsumerState<DailyRewardCard> {
   bool _claiming = false;
 
-  String _describe(DailyRewardDay day) {
-    final parts = [
-      if (day.gold > 0)
-        '${formatAmount(context, day.gold)} ${AppLocalizations.of(context).currencyGold}',
-      if (day.diamond > 0)
-        '${formatAmount(context, day.diamond)} ${AppLocalizations.of(context).currencyDiamond}',
-    ];
-    return parts.join(' + ');
-  }
+  String _describe(DailyRewardDay day) => describeReward(context, day.bundle);
 
   Future<void> _claim() async {
     final l10n = AppLocalizations.of(context);
@@ -75,9 +68,10 @@ class _DailyRewardCardState extends ConsumerState<DailyRewardCard> {
         ),
         data: (status) {
           final today = status.today;
-          final nextDay = status.days.isEmpty
-              ? 1
-              : status.day % status.days.length + 1;
+          final nextDay = status.nextDay;
+          if (!status.available) {
+            return Text(l10n.dailyUnavailable, key: const Key('daily-off'));
+          }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -139,7 +133,9 @@ class _DailyRewardCardState extends ConsumerState<DailyRewardCard> {
               ],
               const SizedBox(height: 8),
               Text(
-                l10n.dailyHint,
+                status.restartsOnMiss
+                    ? l10n.dailyHint(status.days.length)
+                    : l10n.dailyHintCarryOn(status.days.length),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: majlis.textMuted,
@@ -174,6 +170,7 @@ class _DayTile extends StatelessWidget {
     final theme = Theme.of(context);
     final majlis = context.majlis;
     final diamond = day.diamond > 0;
+    final gift = day.items.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -200,6 +197,13 @@ class _DayTile extends StatelessWidget {
             const SizedBox(height: 4),
             done
                 ? Icon(Icons.check_circle, size: 20, color: majlis.success)
+                : gift
+                ? Icon(
+                    Icons.card_giftcard,
+                    size: 20,
+                    color: majlis.gold,
+                    semanticLabel: describeReward(context, day.bundle),
+                  )
                 : CurrencyIcon(
                     diamond ? Currencies.diamond : Currencies.gold,
                     size: 20,

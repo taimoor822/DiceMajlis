@@ -10,6 +10,9 @@ sent, never works XP out itself):
     left or forfeited                      0 XP
     at most 500 XP from games per reward-day (00:00 Bahrain time)
 
+Privileges (entitlements engine) can add to these: ``game_exp_bonus`` (+N percent
+of a game's XP) and ``higher_exp_limit`` (+N to the daily limit). XP is never rating.
+
 Only real games count (game.results.counts_for_progress: two or more accounts, no
 bots). Offline games never reach the server.
 """
@@ -99,6 +102,21 @@ def add_xp(
         except IntegrityError:  # the same key won a race on another connection
             return XpAdded(None, False, level_before, level_before)
         Profile.objects.filter(pk=profile.pk).update(xp=entry.xp_after)
+        from events.outbox import emit
+
+        # Achievements on the level react to this (after the commit).
+        emit(
+            "xp_added",
+            {
+                "user_id": str(user.pk),
+                "amount": entry.amount,
+                "reason": entry.reason,
+                "xp": entry.xp_after,
+                "level": level_for_xp(entry.xp_after),
+                "level_up": level_for_xp(entry.xp_after) > level_before,
+                **(details or {}),
+            },
+        )
         cached = user._state.fields_cache.get("profile")  # keep user.profile current
         if cached is not None:
             cached.xp = entry.xp_after
@@ -151,6 +169,9 @@ def on_game_finished(payload: dict[str, Any], event=None) -> None:
         user = User.objects.filter(pk=seat["user_id"]).first()
         if user is None:  # account deleted since
             continue
+        from entitlements import engine
+
+        amount += amount * engine.value(user, "game_exp_bonus") // 100
         add_xp(
             user,
             amount,
@@ -158,7 +179,7 @@ def on_game_finished(payload: dict[str, Any], event=None) -> None:
             idempotency_key=f"game:{game_id}",
             reference_type="game",
             reference_id=game_id,
-            daily_cap=GAME_XP_DAILY_CAP,
+            daily_cap=GAME_XP_DAILY_CAP + engine.value(user, "higher_exp_limit"),
             details={"room_code": payload["room_code"]},
             now=_parse(payload.get("finished_at")),
         )

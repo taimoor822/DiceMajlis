@@ -169,6 +169,10 @@ engine's final standings — never typed in by hand.
 **Bot games don't count** towards statistics, achievements or rewards. Otherwise anyone
 could farm wins and coins against the bot.
 
+*Built in step 2.3* (`backend/core/stats/`): games, wins, losses, games left, win rate,
+win streak and best win streak per game type and in total, plus the latest results.
+A game counts when 2+ accounts played it with no bots; leaving early is a loss.
+
 ### Languages
 
 Spoken-language badges chosen by the player: English, Arabic, Urdu, Punjabi (list is
@@ -493,7 +497,13 @@ comes from `game/results.py` (payload documented there) and feeds account XP tod
 optional tiers (10 / 100 / 1,000), reward (coins or a cosmetic), hidden flag.
 Metrics are counters kept up to date by the handlers: `games_played`, `wins`,
 `best_win_streak`, `gift_value_sent`, `friends`, `tournaments_won`,
-`diamonds_collected`, and so on. Examples: 🏆 First Victory (wins ≥ 1) ·
+`diamonds_collected`, and so on.
+
+*Built in step 2.4* (`backend/core/progress/`): achievements with tiers
+(`AchievementTier`: threshold + reward bundle through `grant()`), hidden ones, and the
+metrics `games_played`, `wins`, `best_win_streak` and `level`, read live from
+statistics and XP. Rewards are currencies for now; items join with the reward bundles
+of step 2.5. Examples: 🏆 First Victory (wins ≥ 1) ·
 🎯 100 Games · 🔥 10 Win Streak · 🎁 Gift Giver (gift value sent ≥ 10,000) ·
 👥 Social Star (friends ≥ 50).
 

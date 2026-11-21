@@ -68,7 +68,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(rewards.calls, ['status', 'claim']);
-    expect(find.text('You got 150 Gold'), findsOneWidget);
+    expect(find.text('You got +150 Gold'), findsOneWidget);
     expect(inChips('1,400'), findsOneWidget);
     expect(find.text('Claimed! Come back tomorrow for day 3.'), findsOneWidget);
     expect(find.text('Next reward in 5 hours'), findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
     await openHome(tester, rewards: rewards);
     await tester.tap(find.widgetWithText(MajlisButton, 'CLAIM'));
     await tester.pumpAndSettle();
-    expect(find.text('You got 500 Gold + 5 Diamonds'), findsOneWidget);
+    expect(find.text('You got +500 Gold, +5 Diamonds'), findsOneWidget);
     expect(find.text('Claimed! Come back tomorrow for day 1.'), findsOneWidget);
   });
 

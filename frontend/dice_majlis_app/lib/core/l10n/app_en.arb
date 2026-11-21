@@ -147,6 +147,145 @@
     }
   },
   "profileXpHow": "Earn XP by playing online games against other people.",
+  "profileCustomise": "Customise",
+  "profileCustomiseHint": "Dice, board and profile frame",
+
+  "statsTitle": "Statistics",
+  "statsGames": "Games",
+  "statsWins": "Wins",
+  "statsWinRate": "Win rate",
+  "statsBestStreak": "Best streak",
+  "statsPercent": "{value}%",
+  "@statsPercent": {
+    "placeholders": {
+      "value": {"type": "int"}
+    }
+  },
+  "statsCurrentStreak": "Wins in a row now: {count}",
+  "@statsCurrentStreak": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "statsRecent": "Latest games",
+  "statsResultPlace": "{place} of {players}",
+  "@statsResultPlace": {
+    "placeholders": {
+      "place": {"type": "int"},
+      "players": {"type": "int"}
+    }
+  },
+  "statsResultLeft": "Left",
+  "statsEmpty": "No games yet. Play an online game against other people to start your statistics.",
+  "statsOnlyRealGames": "Only online games against other people count (not games with the AI or offline games).",
+
+  "profileAchievements": "Achievements",
+  "profileAchievementsHint": "Milestones that give Gold and Diamonds",
+  "achievementsTitle": "Achievements",
+  "achievementsSummary": "{unlocked} of {total} unlocked",
+  "@achievementsSummary": {
+    "placeholders": {
+      "unlocked": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "achievementsOnlyRealGames": "They unlock from online games against other people (not games with the AI or offline games).",
+  "achievementsProgress": "{value} / {target}",
+  "@achievementsProgress": {
+    "placeholders": {
+      "value": {"type": "int"},
+      "target": {"type": "int"}
+    }
+  },
+  "achievementsCompleted": "Completed",
+  "achievementsHidden": "{count, plural, =1{1 hidden achievement still to find} other{{count} hidden achievements still to find}}",
+  "@achievementsHidden": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "achievementUnlockedToast": "Achievement unlocked: {name}",
+  "@achievementUnlockedToast": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "rewardXp": "+{amount} XP",
+  "@rewardXp": {
+    "placeholders": {
+      "amount": {"type": "int"}
+    }
+  },
+  "rewardItemDays": "{name} ({days, plural, =1{1 day} other{{days} days}})",
+  "@rewardItemDays": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "rewardHistoryTitle": "Reward history",
+  "rewardHistoryEmpty": "No rewards yet. Claim your daily reward or unlock an achievement.",
+  "rewardHistoryDaily": "Daily reward, day {day}",
+  "@rewardHistoryDaily": {
+    "placeholders": {
+      "day": {"type": "int"}
+    }
+  },
+  "rewardHistoryAchievement": "Achievement: {name}",
+  "@rewardHistoryAchievement": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "rewardHistoryOther": "Reward",
+  "rewardAmount": "+{amount} {currency}",
+  "@rewardAmount": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "gameOverAchievement": "Achievement: {name}",
+  "@gameOverAchievement": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "privilegesTitle": "Your privileges",
+  "privilegeWithValue": "{name}: {value}",
+  "@privilegeWithValue": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "int"}
+    }
+  },
+  "customiseNeedsPrivilege": "Needs: {privilege}",
+  "@customiseNeedsPrivilege": {
+    "placeholders": {
+      "privilege": {"type": "String"}
+    }
+  },
+
+  "customiseTitle": "Customise",
+  "customiseDice": "Dice",
+  "customiseBoard": "Board",
+  "customiseFrame": "Profile frame",
+  "customiseNone": "None",
+  "customiseWearing": "Wearing",
+  "customiseMoreSoon": "More items will come from achievements and rewards (coming soon).",
+  "itemRarity": "{rarity, select, common{Common} rare{Rare} epic{Epic} legendary{Legendary} other{Special}}",
+  "@itemRarity": {
+    "placeholders": {
+      "rarity": {"type": "String"}
+    }
+  },
+  "itemExpires": "Until {date}",
+  "@itemExpires": {
+    "placeholders": {
+      "date": {"type": "DateTime", "format": "MMMd"}
+    }
+  },
   "profileOptionsFailed": "Couldn't load the profile choices.",
 
   "languageEn": "English",
@@ -189,7 +328,19 @@
       "hours": {"type": "int"}
     }
   },
-  "dailyHint": "Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.",
+  "dailyHint": "Come back every day: rewards grow for {days} days in a row. Miss a day and it starts again.",
+  "@dailyHint": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "dailyHintCarryOn": "Come back every day: rewards grow for {days} days. Miss a day and you carry on where you left off.",
+  "@dailyHintCarryOn": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "dailyUnavailable": "No daily reward right now.",
   "dailyGot": "You got {amount}",
   "@dailyGot": {
     "placeholders": {
@@ -205,6 +356,7 @@
   "walletFailed": "Couldn't load your wallet.",
   "walletEarnHint": "Earn gold every day. Buying gold and diamonds comes later.",
   "walletTypeDaily": "Daily reward",
+  "walletTypeAchievement": "Achievement reward",
   "walletTypeAdminGrant": "From the Dice Majlis team",
   "walletTypeAdminRevoke": "Taken back by the team",
   "walletTypeReversal": "Correction",
@@ -426,6 +578,9 @@
   "errorRateLimited": "Too many tries. Please wait a moment and try again.",
   "errorInvalidCredentials": "Wrong email or password.",
   "errorEmailTaken": "That email already has an account. Sign in instead.",
+  "errorItemNotOwned": "You don't own that item.",
+  "errorItemUnavailable": "That item isn't available.",
+  "errorNeedsPrivilege": "That needs a privilege you don't have.",
   "errorSocialAccountTaken": "That account is already linked to another player.",
   "errorAlreadyLinked": "A different account of this kind is already linked.",
   "errorLastSignInMethod": "This is your only way to sign in, so it can't be unlinked.",

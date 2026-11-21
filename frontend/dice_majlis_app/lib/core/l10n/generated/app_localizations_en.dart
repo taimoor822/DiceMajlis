@@ -280,6 +280,200 @@ class AppLocalizationsEn extends AppLocalizations {
       'Earn XP by playing online games against other people.';
 
   @override
+  String get profileCustomise => 'Customise';
+
+  @override
+  String get profileCustomiseHint => 'Dice, board and profile frame';
+
+  @override
+  String get statsTitle => 'Statistics';
+
+  @override
+  String get statsGames => 'Games';
+
+  @override
+  String get statsWins => 'Wins';
+
+  @override
+  String get statsWinRate => 'Win rate';
+
+  @override
+  String get statsBestStreak => 'Best streak';
+
+  @override
+  String statsPercent(int value) {
+    return '$value%';
+  }
+
+  @override
+  String statsCurrentStreak(int count) {
+    return 'Wins in a row now: $count';
+  }
+
+  @override
+  String get statsRecent => 'Latest games';
+
+  @override
+  String statsResultPlace(int place, int players) {
+    return '$place of $players';
+  }
+
+  @override
+  String get statsResultLeft => 'Left';
+
+  @override
+  String get statsEmpty =>
+      'No games yet. Play an online game against other people to start your statistics.';
+
+  @override
+  String get statsOnlyRealGames =>
+      'Only online games against other people count (not games with the AI or offline games).';
+
+  @override
+  String get profileAchievements => 'Achievements';
+
+  @override
+  String get profileAchievementsHint =>
+      'Milestones that give Gold and Diamonds';
+
+  @override
+  String get achievementsTitle => 'Achievements';
+
+  @override
+  String achievementsSummary(int unlocked, int total) {
+    return '$unlocked of $total unlocked';
+  }
+
+  @override
+  String get achievementsOnlyRealGames =>
+      'They unlock from online games against other people (not games with the AI or offline games).';
+
+  @override
+  String achievementsProgress(int value, int target) {
+    return '$value / $target';
+  }
+
+  @override
+  String get achievementsCompleted => 'Completed';
+
+  @override
+  String achievementsHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hidden achievements still to find',
+      one: '1 hidden achievement still to find',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String achievementUnlockedToast(String name) {
+    return 'Achievement unlocked: $name';
+  }
+
+  @override
+  String rewardXp(int amount) {
+    return '+$amount XP';
+  }
+
+  @override
+  String rewardItemDays(String name, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$name ($_temp0)';
+  }
+
+  @override
+  String get rewardHistoryTitle => 'Reward history';
+
+  @override
+  String get rewardHistoryEmpty =>
+      'No rewards yet. Claim your daily reward or unlock an achievement.';
+
+  @override
+  String rewardHistoryDaily(int day) {
+    return 'Daily reward, day $day';
+  }
+
+  @override
+  String rewardHistoryAchievement(String name) {
+    return 'Achievement: $name';
+  }
+
+  @override
+  String get rewardHistoryOther => 'Reward';
+
+  @override
+  String rewardAmount(String amount, String currency) {
+    return '+$amount $currency';
+  }
+
+  @override
+  String gameOverAchievement(String name) {
+    return 'Achievement: $name';
+  }
+
+  @override
+  String get privilegesTitle => 'Your privileges';
+
+  @override
+  String privilegeWithValue(String name, int value) {
+    return '$name: $value';
+  }
+
+  @override
+  String customiseNeedsPrivilege(String privilege) {
+    return 'Needs: $privilege';
+  }
+
+  @override
+  String get customiseTitle => 'Customise';
+
+  @override
+  String get customiseDice => 'Dice';
+
+  @override
+  String get customiseBoard => 'Board';
+
+  @override
+  String get customiseFrame => 'Profile frame';
+
+  @override
+  String get customiseNone => 'None';
+
+  @override
+  String get customiseWearing => 'Wearing';
+
+  @override
+  String get customiseMoreSoon =>
+      'More items will come from achievements and rewards (coming soon).';
+
+  @override
+  String itemRarity(String rarity) {
+    String _temp0 = intl.Intl.selectLogic(rarity, {
+      'common': 'Common',
+      'rare': 'Rare',
+      'epic': 'Epic',
+      'legendary': 'Legendary',
+      'other': 'Special',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String itemExpires(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.MMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Until $dateString';
+  }
+
+  @override
   String get profileOptionsFailed => 'Couldn\'t load the profile choices.';
 
   @override
@@ -347,8 +541,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get dailyHint =>
-      'Come back every day: rewards grow for 7 days in a row. Miss a day and it starts again.';
+  String dailyHint(int days) {
+    return 'Come back every day: rewards grow for $days days in a row. Miss a day and it starts again.';
+  }
+
+  @override
+  String dailyHintCarryOn(int days) {
+    return 'Come back every day: rewards grow for $days days. Miss a day and you carry on where you left off.';
+  }
+
+  @override
+  String get dailyUnavailable => 'No daily reward right now.';
 
   @override
   String dailyGot(String amount) {
@@ -380,6 +583,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletTypeDaily => 'Daily reward';
+
+  @override
+  String get walletTypeAchievement => 'Achievement reward';
 
   @override
   String get walletTypeAdminGrant => 'From the Dice Majlis team';
@@ -870,6 +1076,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorEmailTaken =>
       'That email already has an account. Sign in instead.';
+
+  @override
+  String get errorItemNotOwned => 'You don\'t own that item.';
+
+  @override
+  String get errorItemUnavailable => 'That item isn\'t available.';
+
+  @override
+  String get errorNeedsPrivilege => 'That needs a privilege you don\'t have.';
 
   @override
   String get errorSocialAccountTaken =>

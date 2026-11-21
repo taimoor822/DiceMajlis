@@ -39,6 +39,13 @@ backend/core/              Django project (run manage.py from here)
   rewards/                 grant() engine, reward-day (00:00 Bahrain), daily login
   events/                  domain-event outbox: emit() in the change's transaction,
                            on(kind, handler); handlers run after commit, sweep retries
+  items/                   one item system: catalog, inventory, append-only item
+                           ledger, equip cosmetics (dice, board, frame), expiry
+  stats/                   statistics from real online games (results + totals)
+  progress/                progress engine: achievements (metrics, tiers, unlocks,
+                           rewards through grant()); missions later
+  entitlements/            entitlement engine: privilege catalog, grants by source,
+                           admin overrides; has()/value() is the only privilege check
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
   game_platform/           PURE game registry: GameEngine contract, register/get_game,
@@ -106,7 +113,8 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~380 tests)
+python manage.py test                                  # everything (~435 tests)
+python manage.py check_achievements                    # unlock achievements players already qualify for
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -182,7 +190,7 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `wallet.services.post()` (or `reverse()`); ledger rows can't be saved twice or
   deleted (`LedgerIsAppendOnly`). Rewards go through `rewards.engine.grant()` with an
   idempotency key; add a new reward kind to `LEDGER_TYPES` and a new ledger type to
-  `TransactionType`. Daily reward amounts are placeholders in `rewards/daily.py`.
+  `TransactionType`. Daily reward days are admin data (2.5, see below).
   Tests pin the clock by passing `now=` (reward-day = Bahrain time).
 - App economy state: `balancesProvider` (set it from any answer that brings new
   balances), `dailyRewardProvider`. Widget tests get wallet/reward fakes from
@@ -271,8 +279,74 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `Profile.xp` is read-only in the admin. Amounts are placeholders at the top of
   `profiles/xp.py`. Tests: `TestCase` never runs commit hooks, so wrap the action in
   `self.captureOnCommitCallbacks(execute=True)` or call `dispatch_pending(min_age_seconds=0)`.
-  App: `xpLiveProvider` (watched by the app root) updates the account from
-  `xp_gained`; `xpGainsProvider` keeps game XP by room code for the result dialog.
+  App: `accountLiveProvider` (`features/profile/domain/account_live.dart`, watched by
+  the app root) updates the account from `xp_gained` and `cosmetics_changed`;
+  `xpGainsProvider` keeps game XP by room code for the result dialog.
+- Items (2.2): `items/` = one item system for every item kind (ROYAL_VIP_ECONOMY §4).
+  Change ownership only through `items.services` (`grant`, `change`; append-only
+  `ItemTransaction` with an idempotency key, quantity never below 0; cosmetics are
+  owned once). Starter items (`is_starter`) are owned by everyone without rows. Wear
+  with `services.equip(user, slot, code)` (checks slot + ownership); with nothing
+  chosen, dice/board fall back to the first starter, a frame may be empty. Time-limited
+  copies expire in the timer sweep (`expire_due`) and come off. The admin grants
+  through `ItemAdjustment`. `/api/me` and every room's `players` carry `cosmetics`
+  (`{slot: asset key}`). The catalog starts from migration `items/0002`. App:
+  `features/cosmetics/` (Customise screen at `/home/profile/customise`,
+  `inventoryProvider`); looks per asset key in `core/theme/cosmetic_looks.dart`
+  (unknown keys = plain look); `PlayerAvatar(frame:)`, `DiceWidget(skin:)`,
+  `BoardSkinRim` (first child of a board `Stack`; the board keeps its size). The die
+  shows the skin of whoever's turn it is; the board skin is your own. Tests:
+  `items/tests/`, app `test/cosmetics_test.dart` with `FakeItemsRepository`.
+- Statistics (2.3): `stats/` listens to `game_finished` (real games only) and writes
+  one `PlayerGameResult` per account per game (unique, so a game counts once) and
+  updates `PlayerStats` per game type in the same transaction (1st place = win; every
+  other place and leaving = loss; streaks). Then it emits `player_stats_changed`
+  (`user_id`, `stats`, `total`) for achievements and pushes `stats_changed`.
+  `GET /api/me/stats/` (totals, per game type, last 10 results; the win rate is worked
+  out on the server). App: `features/stats/` (`statsProvider`, `StatsCard` on the
+  Profile); tests use `FakeStatsRepository` (`testApp(stats: …)`).
+- Achievements (2.4): `progress/` is the progress engine (missions reuse it later).
+  `Achievement` (admin catalog: metric, icon key, rarity, hidden) with
+  `AchievementTier`s (threshold + reward bundle). Metrics are read live from where
+  the server keeps them (`progress/metrics.py`: games_played, wins, best_win_streak
+  from stats; level from XP) — never stored twice. Handlers: `player_stats_changed`
+  and `xp_added` (emitted by `add_xp`) call `services.check(user, metrics)`, which
+  unlocks reached tiers once (`AchievementUnlock` unique per user+tier), pays the
+  reward through `rewards.grant(kind="achievement")`, emits `achievement_unlocked`
+  (for moments/notifications later) and pushes it on `user/<id>` (with `room_code`
+  when a game did it). After adding achievements, run `manage.py
+  check_achievements`. Event chains (game_finished → stats → achievements) run right
+  after each commit; in tests call `dispatch_pending(min_age_seconds=0)` a few times.
+  App: `features/achievements/` (`/home/profile/achievements`, `achievementsProvider`,
+  `achievementUnlocksProvider`); the app root shows a note per unlock through
+  `rootMessengerKeyProvider` (`core/ui/messenger.dart`); the game result lists the
+  game's unlocks. Tests: `progress/tests/`, app `test/achievements_test.dart`
+  (`FakeAchievementsRepository`).
+- Reward bundles (2.5): a bundle is `{"gold", "diamond", "xp", "items": [{"code",
+  "quantity", "days"}]}` (every part optional, never empty); `rewards.engine.check_bundle`
+  validates it, `grant()` writes the claim, wallet posts, `add_xp(reason="reward")` and
+  `items.grant` in ONE transaction (keys derived from the claim's key), and
+  `bundle_payload()` shows it with item names. Admin-made `RewardBundle`s; the daily
+  cycle is `DailyRewardDay` → bundle, with `DailyRewardSettings` (`on_miss`
+  restart/continue, `after_last_day` loop/stay) — seeded by `rewards/0003`. Daily
+  status sends `next_day`, `available`, `on_miss` (the app never works the cycle out).
+  `RewardClaim.source` names what it was for; `GET /api/rewards/history/?before=` pages
+  claims. App: `features/rewards/` (`RewardBundle`, `RewardChips`, `describeReward`,
+  `RewardHistoryScreen` at `/home/wallet/rewards` from the Wallet's app bar).
+- Entitlements (2.6): `entitlements/` is the only place that decides privileges:
+  `engine.has(user, code)` / `engine.value(user, code)` (never `if user.is_vip`).
+  Sources come from resolvers (`engine.register_source`): `base` (everyone) and `item`
+  (`item:<code>` while owned) today; Royal levels / VIP tiers add theirs later with
+  `rank` (higher ranks inherit lower ones; a `revoke` grant takes back). Per privilege
+  the values merge (`any` / `max` / `sum`); `UserPrivilegeOverride` allow/deny comes
+  last and a deny wins. Answers are cached a minute; `engine.forget(user)` (items,
+  overrides) and `forget_everyone()` (catalog/grant edits, via signals) clear them, and
+  a changed answer is pushed as `entitlements_updated`. `Privilege.built` = the app acts
+  on it (today: `game_exp_bonus`, `higher_exp_limit` in `profiles/xp.py`;
+  `ItemDefinition.requires_privilege` checked by `items.services.may_use` on equip and
+  when drawing worn items). App: `core/entitlements/entitlements.dart`
+  (`entitlementsProvider`, `has`/`value`, UI only — the server re-checks), Profile
+  `PrivilegesCard`; tests use `FakeEntitlementsRepository` (`testApp(entitlements: …)`).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -290,8 +364,10 @@ balances (1.11), online games on v1: actions over the socket, versioned sync (1.
 private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13),
 reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
-Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1).
-Next: items and cosmetics (2.2), see `docs/planning.md`.
+Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1), item
+system + cosmetics (2.2), statistics (2.3), achievements (2.4), reward bundles with
+items and XP, admin daily cycle, reward history (2.5), entitlement engine (2.6).
+Phase 2 is complete; next is Phase 3 (Ludo engine complete), see `docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

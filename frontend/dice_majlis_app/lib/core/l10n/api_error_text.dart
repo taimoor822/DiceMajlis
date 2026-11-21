@@ -67,6 +67,9 @@ extension ApiErrorText on AppLocalizations {
       'too_many_attempts' => errorTooManyCodeTries,
       'already_claimed' => errorAlreadyClaimed,
       'insufficient_funds' => errorInsufficientFunds,
+      'not_owned' => errorItemNotOwned,
+      'needs_privilege' => errorNeedsPrivilege,
+      'unknown_item' || 'wrong_slot' || 'unknown_slot' => errorItemUnavailable,
       'invalid_input' => errorInvalidInput,
       _ => errorGeneric,
     };
