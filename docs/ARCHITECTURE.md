@@ -619,6 +619,42 @@ The design above, with these decisions made while building it:
 - **Pushing from server code:** `realtime.publish(channel, type, data, version=…)`, after
   the change is committed (it never raises).
 
+### What step 1.12 built ✅ (`backend/core/game/handlers.py`, app `RealtimeRoomSocket`)
+
+Game actions over `/ws/v1/`. Every request names the game (`game_id`) or its room
+(`code`); the server finds your seat from your account. All of them are in the `game`
+rate-limit bucket.
+
+| Request | Data | Ack |
+|---|---|---|
+| `roll_dice` | `{game_id\|code, expected_version?}` | `{version, dice, movable_token_ids}` |
+| `move_token` | `{game_id\|code, token_id\|token_index, expected_version?}` | `{version, finished, winner}` |
+| `game_action` | `{game_id\|code, action: {type, …}, expected_version?}` | `{version, …}` (any game) |
+| `leave_game` | `{game_id\|code}` | `{left: true}` (a forfeit once started) |
+| `request_state` | `{game_id\|code}` | the whole state (same as `game_started`, with `room_id`) |
+
+- `roll_dice` / `move_token` are Ludo's (`wrong_game` otherwise). `game_action` takes
+  only the types the game lists in `player_action_types` (Ludo: `roll`, `move`);
+  timeouts, bot turns and forfeits stay the server's own. Any `player_id` sent is
+  replaced by your seat.
+- **Versions:** an engine action makes ONE new version, and all its events carry it
+  (`dice_rolled` v5; `token_moved` + `turn_changed` v6). `expected_version` behind the
+  game → `stale_version`, nothing applied.
+- **Refusals** keep the engine's codes (`not_your_turn`, `wrong_phase`,
+  `illegal_move`, …) plus `not_in_game`, `game_not_found`, `room_not_found`,
+  `game_not_started`, `token_not_found`, `legacy_game`, `invalid_request`.
+- **App:** `RealtimeRoomSocket` (made by `socketServiceFactoryProvider` while signed in)
+  listens to `room/<room id>` and `game/<game id>` and hands the screens the lobby
+  socket's message shapes, so the screens didn't change. It asks `request_state` when
+  it opens (a channel another screen already listens to doesn't send its first
+  events again), drops events older than the board, sends the same-version snapshot
+  only once, and after a gap (a version more than one ahead) loads the whole state
+  again; that reaches the screen as `game_started`. `GameSync` (`gameSyncProvider`)
+  keeps the newest version per room; `ApiRoomRepository` sends roll and move over the
+  socket with it as `expected_version`, and a `stale_version` refusal makes the socket
+  load the state again. Socket refusals become `ApiException`s with the same code
+  (`disconnected`/`timeout` → `network_error`).
+
 ### Reconnection
 
 ```
@@ -657,15 +693,16 @@ gives the allowed player counts (from the engine), and the roll response and the
 reconnect snapshot carry `movable_token_ids`, so the app never re-implements a rule.
 The lobby socket (`/ws/lobby/<code>/`) is still read-only and unauthenticated (it only
 broadcasts); `/ws/v1/` (step 1.11) has first-message auth and carries the same room and
-game messages, and the app's game screens move to it in 1.12.
+game messages, and since 1.12 the app's game screens and actions use it.
 
 ### Migration from today
 
 Today: actions go through REST (`/api/game/roll-dice/`, `move-token/`) and the socket
 (`/ws/lobby/<code>/`) only broadcasts. Step 1.1 keeps those endpoints (so the app keeps
 working) but runs them on the new engine and adds `version` to events. Step 1.11 added
-`/ws/v1/` next to them; 1.12 moves the game screens and actions onto it, then removes
-the old endpoints and the lobby socket.
+`/ws/v1/` next to them; 1.12 moved the game screens and actions onto it. The REST
+roll/move endpoints and the lobby socket still work (the app falls back to them only
+when it has no live connection) and are removed once nothing uses them.
 
 ---
 

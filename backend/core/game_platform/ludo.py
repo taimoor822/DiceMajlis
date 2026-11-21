@@ -32,6 +32,7 @@ class LudoGame:
         ),
     }
     rule_error = le.EngineError
+    player_action_types = frozenset({"roll", "move"})
 
     # ---- setup -------------------------------------------------------------
 

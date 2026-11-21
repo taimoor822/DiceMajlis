@@ -1,6 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/api_service.dart';
+import '../../../core/realtime/game_sync.dart';
+import '../../../core/realtime/realtime_client.dart';
+import '../../../core/realtime/realtime_message.dart';
+import '../../../core/realtime/realtime_providers.dart';
 import '../../games/domain/game_catalog.dart';
 import '../domain/room_session.dart';
 
@@ -63,11 +68,17 @@ abstract class RoomRepository {
   Future<void> leaveRoom(String roomCode);
 }
 
-/// [RoomRepository] on the real server.
+/// [RoomRepository] on the real server. Game actions (roll, move) go over the
+/// live connection when there is one, with the version the board shows
+/// ([GameSync]); everything else uses the REST API.
 class ApiRoomRepository implements RoomRepository {
-  const ApiRoomRepository(this._api);
+  const ApiRoomRepository(this._api, {RealtimeClient? realtime, GameSync? sync})
+    : _realtime = realtime,
+      _sync = sync;
 
   final ApiService _api;
+  final RealtimeClient? _realtime;
+  final GameSync? _sync;
 
   @override
   Future<RoomOptions> roomOptions(GameChoice game) async =>
@@ -95,19 +106,70 @@ class ApiRoomRepository implements RoomRepository {
   Future<void> startGame(String roomCode) => _api.startGame(roomCode: roomCode);
 
   @override
-  Future<RollResult> rollDice(String roomCode) async =>
-      RollResult.fromJson(await _api.rollDice(roomCode: roomCode));
+  Future<RollResult> rollDice(String roomCode) async {
+    final client = _realtime;
+    if (client == null) {
+      return RollResult.fromJson(await _api.rollDice(roomCode: roomCode));
+    }
+    return RollResult.fromJson(await _act(client, 'roll_dice', roomCode));
+  }
 
   @override
-  Future<void> moveToken(String roomCode, String tokenId) =>
-      _api.moveToken(roomCode: roomCode, tokenId: tokenId);
+  Future<void> moveToken(String roomCode, String tokenId) async {
+    final client = _realtime;
+    if (client == null) {
+      await _api.moveToken(roomCode: roomCode, tokenId: tokenId);
+      return;
+    }
+    await _act(client, 'move_token', roomCode, {'token_id': tokenId});
+  }
+
+  /// One game action over the socket. Refusals become [ApiException]s with
+  /// the server's code, so screens show them like any other error.
+  Future<Map<String, dynamic>> _act(
+    RealtimeClient client,
+    String type,
+    String roomCode, [
+    Map<String, Object?> data = const {},
+  ]) async {
+    final expected = _sync?.version(roomCode);
+    try {
+      final answer = await client.request(
+        type,
+        data: {
+          'code': roomCode,
+          if (expected != null) 'expected_version': expected,
+          ...data,
+        },
+        reqId: client.newRequestId(),
+      );
+      final version = (answer['version'] as num?)?.toInt();
+      if (version != null) _sync?.saw(roomCode, version);
+      return answer;
+    } on RealtimeException catch (error) {
+      // The board was behind: load the whole game again, then the player
+      // can act on what is really there.
+      if (error.code == 'stale_version') _sync?.requestResync(roomCode);
+      throw ApiException(
+        switch (error.code) {
+          'disconnected' || 'timeout' => ApiException.networkError,
+          final code => code,
+        },
+        serverMessage: error.message,
+      );
+    }
+  }
 
   @override
   Future<void> leaveRoom(String roomCode) => _api.leaveRoom(roomCode: roomCode);
 }
 
 final roomRepositoryProvider = Provider<RoomRepository>(
-  (ref) => ApiRoomRepository(ref.watch(apiServiceProvider)),
+  (ref) => ApiRoomRepository(
+    ref.watch(apiServiceProvider),
+    realtime: ref.watch(realtimeClientProvider),
+    sync: ref.watch(gameSyncProvider),
+  ),
 );
 
 /// The create-room choices for a game and variant, loaded from the server once

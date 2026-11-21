@@ -28,6 +28,10 @@ abstract class RoomSession with _$RoomSession {
   const factory RoomSession({
     required String roomCode,
 
+    /// The room's server id (names its live `room/` channel). Null when the
+    /// server didn't send it.
+    String? roomId,
+
     /// This account's seat (player) id in the room.
     required String playerId,
     @Default(false) bool isHost,
@@ -47,7 +51,7 @@ abstract class RoomSession with _$RoomSession {
   }) = _RoomSession;
 
   /// From the create-room / join-room API response:
-  /// `{"room": {"code": ..., "game_type": ..., "variant": ...,
+  /// `{"room": {"id": ..., "code": ..., "game_type": ..., "variant": ...,
   ///   "max_players": ..., "is_started": ...}, "player": {"id": ..., "is_host": ...}}`.
   factory RoomSession.fromRoomResponse(Map<String, dynamic> response) {
     final room = Map<String, dynamic>.from(response['room'] as Map);
@@ -59,6 +63,7 @@ abstract class RoomSession with _$RoomSession {
     final maxPlayers = room['max_players'];
     return RoomSession(
       roomCode: room['code'].toString(),
+      roomId: room['id']?.toString(),
       playerId: self.id,
       isHost: self.isHost,
       isStarted: room['is_started'] == true,
@@ -72,6 +77,7 @@ abstract class RoomSession with _$RoomSession {
   /// The room the server says this account is in (app start).
   factory RoomSession.fromActiveRoom(ActiveRoom room) => RoomSession(
     roomCode: room.code,
+    roomId: room.roomId,
     playerId: room.seatId,
     isHost: room.isHost,
     isStarted: room.started,

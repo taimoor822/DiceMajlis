@@ -51,7 +51,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     if (session.self != null) _players = [session.self!];
 
     final socket = ref.read(socketServiceFactoryProvider)();
-    socket.connect(session.roomCode);
+    socket.connect(session.roomCode, roomId: session.roomId);
     _socket = socket;
     _subscription = socket.stream.listen(
       _onSocketEvent,

@@ -20,11 +20,12 @@ extension ApiErrorText on AppLocalizations {
       'game_already_started' => errorGameAlreadyStarted,
       'game_not_started' => errorGameNotStarted,
       'not_host' => errorNotHost,
-      'not_in_room' => errorNotInRoom,
+      'not_in_room' || 'not_in_game' => errorNotInRoom,
       'already_in_game' => errorAlreadyInGame,
       'not_your_seat' ||
       'unknown_player' ||
-      'not_your_token' => errorNotYourSeat,
+      'not_your_token' ||
+      'token_not_found' => errorNotYourSeat,
       'not_your_turn' => errorNotYourTurn,
       'wrong_phase' => errorWrongPhase,
       'illegal_move' => errorIllegalMove,

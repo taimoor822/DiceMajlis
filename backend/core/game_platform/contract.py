@@ -129,6 +129,9 @@ class GameEngine(Protocol):
     variants: Mapping[str, Variant]
     # The engine's base error class: refused actions raise it with a ``code``.
     rule_error: type[Exception]
+    # Actions a player may send for themselves (the server fills in player_id);
+    # timeouts, bot turns and forfeits are the server's own.
+    player_action_types: frozenset[str]
 
     def new_game(
         self,

@@ -43,6 +43,7 @@ Map<String, dynamic> _$AccountToJson(_Account instance) => <String, dynamic>{
 _ActiveRoom _$ActiveRoomFromJson(Map<String, dynamic> json) => _ActiveRoom(
   code: json['code'] as String,
   seatId: json['seat_id'] as String,
+  roomId: json['room_id'] as String?,
   isHost: json['is_host'] as bool? ?? false,
   maxPlayers: (json['max_players'] as num?)?.toInt(),
   started: json['started'] as bool? ?? false,
@@ -54,6 +55,7 @@ Map<String, dynamic> _$ActiveRoomToJson(_ActiveRoom instance) =>
     <String, dynamic>{
       'code': instance.code,
       'seat_id': instance.seatId,
+      'room_id': instance.roomId,
       'is_host': instance.isHost,
       'max_players': instance.maxPlayers,
       'started': instance.started,

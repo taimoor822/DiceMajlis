@@ -7,6 +7,7 @@ import 'package:dice_majlis_app/core/auth/auth_api.dart';
 import 'package:dice_majlis_app/core/auth/token_store.dart';
 import 'package:dice_majlis_app/core/network/api_exception.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_connection.dart';
+import 'package:dice_majlis_app/core/realtime/realtime_message.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
@@ -440,10 +441,14 @@ class FakeSocketService extends SocketService {
   // sync: a message reaches the screen as soon as the test emits it.
   final _controller = StreamController<dynamic>.broadcast(sync: true);
   String? connectedRoom;
+  String? connectedRoomId;
   bool disconnected = false;
 
   @override
-  void connect(String roomCode) => connectedRoom = roomCode;
+  void connect(String roomCode, {String? roomId}) {
+    connectedRoom = roomCode;
+    connectedRoomId = roomId;
+  }
 
   @override
   Stream<dynamic> get stream => _controller.stream;
@@ -534,6 +539,11 @@ class FakeRealtimeServer {
   /// Events a new subscriber of a channel gets right after the ack.
   final initialEvents = <String, List<Map<String, dynamic>>>{};
 
+  /// Answers to other requests (`roll_dice`, `request_state`, …): return the
+  /// ack's data, or throw a [RealtimeException] to refuse with its code.
+  final handlers =
+      <String, Map<String, dynamic> Function(Map<String, dynamic> data)>{};
+
   /// The access tokens the app signed in with, in order.
   final tokens = <String>[];
 
@@ -618,13 +628,28 @@ class FakeRealtimeServer {
         connection.channels.remove(data['channel']);
         connection.push(ack({'channel': data['channel']}));
       default:
-        connection.push({
-          'v': 1,
-          'type': 'error',
-          'req_id': reqId,
-          'code': 'unknown_type',
-          'message': 'Unknown request',
-        });
+        final handler = handlers[m['type']];
+        if (handler == null) {
+          connection.push({
+            'v': 1,
+            'type': 'error',
+            'req_id': reqId,
+            'code': 'unknown_type',
+            'message': 'Unknown request',
+          });
+          return;
+        }
+        try {
+          connection.push(ack(handler(data)));
+        } on RealtimeException catch (error) {
+          connection.push({
+            'v': 1,
+            'type': 'error',
+            'req_id': reqId,
+            'code': error.code,
+            'message': error.message ?? error.code,
+          });
+        }
     }
   }
 }

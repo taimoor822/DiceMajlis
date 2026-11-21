@@ -325,7 +325,13 @@ def seconds_left(deadline: datetime | None, now: datetime | None = None) -> int 
     return max(0, math.ceil(remaining))
 
 
-def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = None) -> ActionResult:
+def perform(
+    room_code: str,
+    action: dict[str, Any],
+    *,
+    now: datetime | None = None,
+    expected_version: int | None = None,
+) -> ActionResult:
     """
     Apply one action, in the engine's own action format. The engine fills in
     the server's part first (``prepare_action``): for Ludo a "roll" gets the
@@ -345,6 +351,9 @@ def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = No
         state = game_def.load(game.state)
         if game_def.info(state).version != game.version:
             raise GameConflict("stored state and version disagree")
+        if expected_version is not None and expected_version != game.version:
+            # The player acted on an older picture of the game: they resync first.
+            raise GameConflict(f"the game is at version {game.version}, not {expected_version}")
         if action.get("type") == "timeout" and (
             game.turn_deadline is None or game.turn_deadline > now
         ):
@@ -415,6 +424,7 @@ def game_snapshot(room: Room) -> dict[str, Any]:
     snapshot: dict[str, Any] = {
         "type": "game_started",
         "room_code": room.code,
+        "room_id": str(room.id),
         "game_type": room.game_type,
         "variant": room.variant,
         "game_id": None,
