@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'wallet',
     'rewards',
     'game',
+    'realtime',
 ]
 
 # Our own user model (accounts.User): UUID key + permanent 9-digit Player ID.
@@ -212,6 +213,23 @@ else:
     raise ImproperlyConfigured(f"CHANNEL_LAYER must be 'redis' or 'memory', got {CHANNEL_LAYER!r}")
 if CHANNEL_LAYER == "memory" and not DEBUG:
     raise ImproperlyConfigured("CHANNEL_LAYER=memory is for local development only.")
+
+# The app's one live connection, /ws/v1/ (realtime/, ARCHITECTURE.md §7).
+REALTIME_AUTH_TIMEOUT_SECONDS = float(os.getenv("REALTIME_AUTH_TIMEOUT_SECONDS", "5"))
+REALTIME_HEARTBEAT_SECONDS = 20  # the app pings this often
+REALTIME_PRESENCE_SECONDS = 60  # online until this long after the last ping
+REALTIME_SESSION_CHECK_SECONDS = 60  # a signed-out device loses its socket within this
+REALTIME_REPLY_MEMORY_SECONDS = 60  # a retried req_id gets its first answer back
+REALTIME_MAX_MESSAGE_BYTES = 8 * 1024
+REALTIME_MAX_SUBSCRIPTIONS = 20
+# bucket: (messages, per seconds), per account. Chat = 1/s with bursts of 5.
+REALTIME_RATE_LIMITS = {
+    "control": (10, 1),  # ping, unsubscribe
+    "subscribe": (5, 1),
+    "game": (10, 1),
+    "chat": (5, 5),
+}
+REALTIME_ABUSE_FACTOR = 3  # this many times over a limit closes the socket (4429)
 
 
 

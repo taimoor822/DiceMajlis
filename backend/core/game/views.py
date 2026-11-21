@@ -12,8 +12,6 @@ the app switches on ``code``.
 import secrets
 import string
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -289,8 +287,8 @@ def start_game(request):
             return _game_error_response(exc)
         snapshot = services.game_snapshot(room)
 
-    # WebSocket: game started (after the transaction committed)
-    async_to_sync(get_channel_layer().group_send)(services.group_name(room.code), snapshot)
+    # Sockets: game started (after the transaction committed)
+    services.broadcast(room.code, [snapshot])
 
     return Response({'status': 'game_started'}, status=status.HTTP_200_OK)
 

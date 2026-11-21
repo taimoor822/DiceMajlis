@@ -33,6 +33,11 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   time, by the server's clock. Balances only change on the server, through a ledger
   that can't be edited, and the team can grant or take back currency in the admin
   with a reason. Buying gold and diamonds comes later
+- **Live connection** — while you're signed in, the app keeps one live connection
+  to the server (signed in with your account, checked every 20 seconds, and it
+  reconnects by itself). Today it keeps your Gold and Diamonds up to date: claim the
+  daily reward on one phone and Home on your other phone changes at once. Online
+  games move onto it in the next step
 - **Private rooms** — create a room, share the 4-letter code, 2–4 players
 - **Play on this phone** — offline games from Game Hub: 2–4 players, each colour a
   person (pass the phone around) or the Majlis AI. Works with no account and no
@@ -90,6 +95,7 @@ DiceMajlis/
 │       ├── profiles/            # name, avatar, country, languages, XP/level
 │       ├── wallet/              # gold + diamonds: ledger, admin adjustments, audit
 │       ├── rewards/             # grant() engine, daily reward
+│       ├── realtime/            # the app's one live connection /ws/v1/: sign-in, channels, limits, presence
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer (any game; tables/ = per-game extras)
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app (with a Dart copy of the engine for offline games)
@@ -165,7 +171,8 @@ code is printed in the terminal where the server runs (look for "Your code is").
 # Backend: rules engine (+ shared vectors up to date), game registry (Ludo adapter,
 # a toy second game through rooms, bots and the timer), accounts (guest, email,
 # tokens, reset), profiles, wallet ledger, rewards, API, input checks, seats,
-# leaving, sockets, turn timer (250 tests)
+# leaving, sockets, turn timer, the live connection /ws/v1/ (sign-in, channels,
+# rate limits, retries answered once, presence) (294 tests)
 cd backend/core
 python manage.py test
 
@@ -182,7 +189,9 @@ python -m ludo_engine.vectors
 # themes, board (only server-listed tokens move, leave game), server address, countdown,
 # the Dart engine against every shared vector, offline games (setup, AI turns,
 # pass-and-play, results, playing with no account or no server), game registry
-# (Game Hub from the server catalog, variants, board picked by game type)
+# (Game Hub from the server catalog, variants, board picked by game type), the live
+# connection (sign-in, reconnects with back-off, token refresh, pings, channels,
+# Home balances following the server)
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -210,7 +219,7 @@ vectors.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · online games on v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

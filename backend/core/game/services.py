@@ -34,6 +34,8 @@ import game_platform
 from game_platform import PlatformError, SecureRandom, TurnInfo
 from ludo_engine.board import SEAT_COLORS
 
+from realtime.publish import publish
+
 from .models import Game, GameAction, Player, Room
 from .tables import table_for
 
@@ -227,6 +229,7 @@ def active_seat_for(user) -> dict[str, Any] | None:
             room = seat.room
             return {
                 "code": room.code,
+                "room_id": str(room.id),
                 "seat_id": str(seat.id),
                 "is_host": seat.is_host,
                 "max_players": room.max_players,
@@ -414,6 +417,7 @@ def game_snapshot(room: Room) -> dict[str, Any]:
         "room_code": room.code,
         "game_type": room.game_type,
         "variant": room.variant,
+        "game_id": None,
         "players": players_payload(room),
         "current_turn_player_id": None,
         "version": None,
@@ -425,6 +429,7 @@ def game_snapshot(room: Room) -> dict[str, Any]:
     state = None
     if game is not None:
         snapshot.update(
+            game_id=str(game.id),
             current_turn_player_id=str(game.current_turn_id) if game.current_turn_id else None,
             version=game.version,
             seconds_left=seconds_left(game.turn_deadline),
@@ -453,6 +458,11 @@ def broadcast_players(room: Room) -> None:
 
 
 def broadcast(room_code: str, messages: list[dict]) -> None:
+    """
+    Send room/game messages, after the change is saved. They go to the legacy
+    lobby socket (``/ws/lobby/<code>/``, today's app) and to the ``/ws/v1/``
+    channels ``room/<room id>`` and ``game/<game id>`` (game.topics).
+    """
     if not messages:
         return
     layer = get_channel_layer()
@@ -461,6 +471,26 @@ def broadcast(room_code: str, messages: list[dict]) -> None:
     send = async_to_sync(layer.group_send)
     for message in messages:
         send(group_name(room_code), message)
+    _publish_v1(room_code, messages)
+
+
+def _publish_v1(room_code: str, messages: list[dict]) -> None:
+    room = Room.objects.filter(code=room_code).only("id").first()
+    if room is None:
+        return
+    game_id = Game.objects.filter(room=room).values_list("id", flat=True).first()
+    for message in messages:
+        kind = message["type"]
+        if kind == "game_event" and game_id is not None:
+            data = dict(message["payload"])
+            event_type = data.pop("type")
+            version = data.pop("version", None)
+            publish(f"game/{game_id}", event_type, data, version=version)
+        elif kind == "players_updated":
+            publish(f"room/{room.id}", "players_updated", {"players": message["players"]})
+        elif kind == "game_started":
+            data = {k: v for k, v in message.items() if k != "type"}
+            publish(f"room/{room.id}", "game_started", data, version=data.get("version"))
 
 
 # ---------------------------------------------------------------------------

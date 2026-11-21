@@ -4,6 +4,7 @@ End-to-end tests for the live game: REST endpoints → game.services → ludo_en
 scripted where a test needs a specific roll.
 """
 
+import asyncio
 from dataclasses import replace
 from datetime import timedelta
 from io import StringIO
@@ -22,10 +23,12 @@ import ludo_engine as le
 from accounts import tokens as account_tokens
 from accounts.models import User
 from ludo_engine import GameState, TurnPhase
+from realtime import topics as realtime_topics
+from realtime.protocol import ProtocolError
 
 from . import services, timers
 from .consumers import LobbyConsumer
-from .models import Game, GameAction, Player, Token
+from .models import Game, GameAction, Player, Room, Token
 from .tables.ludo import token_ids_by_player
 
 IN_MEMORY_LAYER = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
@@ -366,6 +369,96 @@ class SocketDeliveryTests(GameApiTestCase):
         self.assertIn('"version": 9', consumer.send.await_args.kwargs["text_data"])
 
 
+class V1ChannelTests(GameApiTestCase):
+    """The /ws/v1/ channels room/<room id> and game/<game id> (game/topics.py)."""
+
+    capture_broadcasts = False
+
+    def listen(self, channel_name):
+        """A fake socket subscribed to a v1 channel; returns a function giving its next event."""
+        _, channel = realtime_topics.resolve(channel_name)
+        layer = get_channel_layer()
+        inbox = async_to_sync(layer.new_channel)()
+        async_to_sync(layer.group_add)(channel.group, inbox)
+
+        def next_event():
+            async def receive():
+                return await asyncio.wait_for(layer.receive(inbox), 2)
+
+            message = async_to_sync(receive)()
+            self.assertEqual(message["type"], "realtime.event")
+            return message["event"]
+
+        return next_event
+
+    def user_of(self, seat_id):
+        return Player.objects.get(id=seat_id).user
+
+    def test_game_events_arrive_with_their_version(self):
+        code, host, _ = self.two_humans()
+        game = self.game(code)
+        next_event = self.listen(f"game/{game.id}")
+        self.dice(3)
+        self.post("roll-dice", code=code, player_id=host)
+        event = next_event()
+        self.assertEqual((event["type"], event["channel"]), ("dice_rolled", f"game/{game.id}"))
+        self.assertEqual(event["version"], game.version + 1)
+        self.assertEqual((event["data"]["dice"], event["data"]["player_id"]), (3, host))
+        self.assertNotIn("type", event["data"])
+
+    def test_the_room_hears_joins_and_the_start(self):
+        code, host = self.create_room()
+        room = Room.objects.get(code=code)
+        next_event = self.listen(f"room/{room.id}")
+        guest = self.join(code)
+        joined = next_event()
+        self.assertEqual(joined["type"], "players_updated")
+        self.assertEqual([p["id"] for p in joined["data"]["players"]], [host, guest])
+
+        self.start(code, host)
+        started = next_event()
+        self.assertEqual(started["type"], "game_started")
+        self.assertEqual(started["data"]["game_id"], str(self.game(code).id))
+        self.assertEqual(started["version"], 0)
+
+    def test_only_seated_players_may_subscribe(self):
+        code, host, guest = self.two_humans()
+        game = self.game(code)
+        stranger = User.objects.create_guest()
+        for name, refused in [(f"room/{game.room_id}", "not_in_room"), (f"game/{game.id}", "not_in_game")]:
+            topic, channel = realtime_topics.resolve(name)
+            topic.authorize(self.user_of(host), channel.key)
+            topic.authorize(self.user_of(guest), channel.key)
+            with self.assertRaises(ProtocolError) as caught:
+                topic.authorize(stranger, channel.key)
+            self.assertEqual(caught.exception.code, refused)
+
+    def test_a_new_subscriber_gets_the_current_state_first(self):
+        code, host, _ = self.two_humans()
+        game = self.game(code)
+        user = self.user_of(host)
+
+        topic, channel = realtime_topics.resolve(f"room/{game.room_id}")
+        players, started = topic.initial_events(user, channel.key)
+        self.assertEqual(players["type"], "players_updated")
+        self.assertEqual(started["type"], "game_started")
+
+        topic, channel = realtime_topics.resolve(f"game/{game.id}")
+        [snapshot] = topic.initial_events(user, channel.key)
+        self.assertEqual(snapshot["type"], "state_snapshot")
+        self.assertEqual(snapshot["version"], game.version)
+        self.assertEqual(snapshot["data"]["game_id"], str(game.id))
+        self.assertEqual(len(snapshot["data"]["tokens"]), 8)
+
+    def test_unknown_rooms_and_games(self):
+        user = User.objects.create_guest()
+        for name in ("room/00000000-0000-0000-0000-000000000000", "game/999999"):
+            topic, channel = realtime_topics.resolve(name)
+            with self.assertRaises(ProtocolError) as caught:
+                topic.authorize(user, channel.key)
+            self.assertEqual(caught.exception.code, "channel_not_found")
+
+
 class TurnTimerTests(GameApiTestCase):
     """game/timers.py: overdue turns are auto-played; idle players are removed."""
 
@@ -693,7 +786,8 @@ class SessionRestoreTests(GameApiTestCase):
         self.assertEqual(
             room,
             {
-                "code": code, "seat_id": host, "is_host": True, "max_players": 4, "started": False,
+                "code": code, "room_id": str(Room.objects.get(code=code).id), "seat_id": host,
+                "is_host": True, "max_players": 4, "started": False,
                 "game_type": "ludo", "variant": "classic",
             },
         )
