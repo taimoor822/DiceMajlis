@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/account.dart';
 import '../../../core/auth/auth_controller.dart';
+import '../../../core/auth/social_sign_in.dart';
+import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
@@ -11,6 +13,7 @@ import '../../../core/theme/theme_mode_controller.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_button.dart';
 import '../../../shared/widgets/majlis_card.dart';
+import '../../profile/data/account_repository.dart';
 
 /// Your account (save it, sign out) and device settings: the theme (saved on
 /// this device).
@@ -159,6 +162,7 @@ class _AccountCard extends ConsumerWidget {
               onPressed: () => context.push(AppRoutes.saveAccount),
             ),
           ],
+          const _SignInMethods(),
           const SizedBox(height: 12),
           Align(
             alignment: AlignmentDirectional.centerStart,
@@ -168,6 +172,123 @@ class _AccountCard extends ConsumerWidget {
               onPressed: () => _signOut(context, ref),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Google / Apple on this account: linked ones (with Unlink) and the ones this
+/// phone can add. A guest who links one is saved, with everything kept.
+class _SignInMethods extends ConsumerStatefulWidget {
+  const _SignInMethods();
+
+  @override
+  ConsumerState<_SignInMethods> createState() => _SignInMethodsState();
+}
+
+class _SignInMethodsState extends ConsumerState<_SignInMethods> {
+  bool _busy = false;
+
+  String _name(AppLocalizations l10n, SocialProvider provider) =>
+      switch (provider) {
+        SocialProvider.google => l10n.providerGoogle,
+        SocialProvider.apple => l10n.providerApple,
+      };
+
+  Future<void> _run(Future<String> Function() action) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final done = await action();
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(done)));
+    } on SocialSignInCancelled {
+      // Closed Google's / Apple's sheet.
+    } on SocialSignInFailed {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.socialSignInFailed)));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.apiErrorText(error))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<String> _link(SocialProvider provider) async {
+    final l10n = AppLocalizations.of(context);
+    final credential = await ref
+        .read(socialSignInProvider)
+        .credential(provider);
+    final account = await ref
+        .read(accountRepositoryProvider)
+        .linkSocial(provider, credential);
+    ref.read(authControllerProvider.notifier).accountChanged(account);
+    return l10n.linkDone(_name(l10n, provider));
+  }
+
+  Future<String> _unlink(SocialProvider provider) async {
+    final l10n = AppLocalizations.of(context);
+    final account = await ref
+        .read(accountRepositoryProvider)
+        .unlinkSocial(provider);
+    ref.read(authControllerProvider.notifier).accountChanged(account);
+    return l10n.unlinkDone(_name(l10n, provider));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = ref.watch(accountProvider);
+    if (account == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final majlis = context.majlis;
+    final available =
+        ref.watch(socialProvidersProvider).valueOrNull ??
+        const <SocialProvider>[];
+    final linked = [
+      for (final key in account.linked) ?SocialProvider.fromKey(key),
+    ];
+    final canAdd = [
+      for (final provider in available)
+        if (!linked.contains(provider)) provider,
+    ];
+    if (linked.isEmpty && canAdd.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final provider in linked)
+            Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: majlis.gold, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(l10n.linkedWith(_name(l10n, provider)))),
+                TextButton(
+                  onPressed: _busy ? null : () => _run(() => _unlink(provider)),
+                  child: Text(l10n.unlinkButton),
+                ),
+              ],
+            ),
+          for (final provider in canAdd)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: OutlinedButton.icon(
+                icon: Icon(
+                  provider == SocialProvider.google
+                      ? Icons.account_circle_outlined
+                      : Icons.phone_iphone,
+                ),
+                label: Text(
+                  account.isGuest
+                      ? l10n.saveWith(_name(l10n, provider))
+                      : l10n.linkButton(_name(l10n, provider)),
+                ),
+                onPressed: _busy ? null : () => _run(() => _link(provider)),
+              ),
+            ),
         ],
       ),
     );

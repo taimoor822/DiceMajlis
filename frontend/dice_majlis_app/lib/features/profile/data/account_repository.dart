@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/account.dart';
+import '../../../core/auth/social_sign_in.dart';
 import '../../../core/network/api_service.dart';
 import '../domain/profile_options.dart';
 
@@ -23,6 +24,15 @@ abstract class AccountRepository {
     required String email,
     required String password,
   });
+
+  /// Attach Google or Apple (a guest keeps everything and is saved).
+  Future<Account> linkSocial(
+    SocialProvider provider,
+    SocialCredential credential,
+  );
+
+  /// Detach Google or Apple.
+  Future<Account> unlinkSocial(SocialProvider provider);
 }
 
 class ApiAccountRepository implements AccountRepository {
@@ -56,6 +66,22 @@ class ApiAccountRepository implements AccountRepository {
   }) async => Account.fromJson(
     await _api.saveAccount(email: email.trim(), password: password),
   );
+
+  @override
+  Future<Account> linkSocial(
+    SocialProvider provider,
+    SocialCredential credential,
+  ) async => Account.fromJson(
+    await _api.linkSocial(
+      provider: provider.key,
+      idToken: credential.idToken,
+      nonce: credential.nonce,
+    ),
+  );
+
+  @override
+  Future<Account> unlinkSocial(SocialProvider provider) async =>
+      Account.fromJson(await _api.unlinkSocial(provider.key));
 }
 
 final accountRepositoryProvider = Provider<AccountRepository>(

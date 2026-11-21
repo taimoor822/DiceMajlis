@@ -32,6 +32,20 @@ class AppConfig {
   /// The app's one live connection, e.g. `ws://10.0.2.2:8000/ws/v1/`.
   static Uri get realtimeUri => Uri.parse('$webSocketUrl/ws/v1/');
 
+  /// Google sign-in (step 1.15), from the Google Cloud OAuth clients:
+  ///
+  ///   --dart-define=GOOGLE_SERVER_CLIENT_ID=WEB_CLIENT_ID.apps.googleusercontent.com
+  ///   --dart-define=GOOGLE_IOS_CLIENT_ID=IOS_CLIENT_ID.apps.googleusercontent.com
+  ///
+  /// The server client ID makes Google's ID token "for" our server (the
+  /// server checks it against GOOGLE_CLIENT_IDS). Empty: no Google button.
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
+  static const String googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
+
   /// Local development defaults: browser and iOS simulator reach the computer
   /// at 127.0.0.1, the Android emulator at 10.0.2.2. A real phone needs
   /// API_BASE_URL with the computer's Wi-Fi IP.

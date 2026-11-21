@@ -26,6 +26,9 @@ abstract class Account with _$Account {
 
     /// Spoken-language codes the player shows (`en`, `ar`, ...).
     @Default(<String>[]) List<String> languages,
+
+    /// Google / Apple sign-ins attached to this account (`google`, `apple`).
+    @Default(<String>[]) List<String> linked,
     @Default(1) int level,
     @Default(0) int xp,
 

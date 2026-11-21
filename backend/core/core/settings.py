@@ -120,6 +120,7 @@ AUTH_RATE_LIMITS = {
     'auth_refresh': os.getenv('AUTH_REFRESH_RATE', '240/hour'),
     'email_signup': os.getenv('AUTH_EMAIL_SIGNUP_RATE', '10/hour'),
     'login': os.getenv('AUTH_LOGIN_RATE', '60/hour'),
+    'social_login': os.getenv('AUTH_SOCIAL_LOGIN_RATE', '60/hour'),
     'password_reset': os.getenv('AUTH_PASSWORD_RESET_RATE', '20/hour'),
 }
 # Wrong passwords allowed per email before it is locked for the window.
@@ -129,6 +130,11 @@ AUTH_LOGIN_FAILURE_WINDOW = timedelta(minutes=15)
 AUTH_RESET_CODE_LIFETIME = timedelta(hours=1)
 AUTH_RESET_CODE_ATTEMPTS = 5
 AUTH_RESET_CODES_PER_HOUR = 5
+# Google / Apple sign-in (step 1.15, accounts/social.py): the client IDs whose ID
+# tokens we accept, comma-separated (Google: the iOS, Android and web client IDs;
+# Apple: the app's bundle ID and the Services ID). Empty = that button is hidden.
+GOOGLE_CLIENT_IDS = os.getenv('GOOGLE_CLIENT_IDS', '')
+APPLE_CLIENT_IDS = os.getenv('APPLE_CLIENT_IDS', '')
 
 # Daily rewards reset at the same moment for everyone (the server's clock decides).
 REWARD_DAY_TIMEZONE = os.getenv('REWARD_DAY_TIMEZONE', 'Asia/Bahrain')

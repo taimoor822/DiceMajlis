@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../network/api_exception.dart';
 import 'account.dart';
 import 'auth_api.dart';
+import 'social_sign_in.dart';
 import 'token_store.dart';
 
 /// Where sign-in stands.
@@ -91,6 +92,22 @@ class AuthController extends Notifier<AuthState> {
     final tokens = await _api.login(
       email: email.trim(),
       password: password,
+      deviceId: await _store.deviceId(),
+      platform: devicePlatform(),
+    );
+    await _accept(tokens);
+  }
+
+  /// Sign in with Google or Apple: the phone asks them, the server checks
+  /// the answer. Throws [SocialSignInCancelled] when the player backs out.
+  Future<void> signInWithProvider(SocialProvider provider) async {
+    final credential = await ref
+        .read(socialSignInProvider)
+        .credential(provider);
+    final tokens = await _api.socialSignIn(
+      provider: provider.key,
+      idToken: credential.idToken,
+      nonce: credential.nonce,
       deviceId: await _store.deviceId(),
       platform: devicePlatform(),
     );

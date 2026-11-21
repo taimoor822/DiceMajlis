@@ -51,6 +51,9 @@ dependencies:
   # Remove this line when the project moves to a newer Flutter.
   path_provider_foundation: ">=2.5.1 <2.6.0"
   country_picker: ^2.0.28
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^7.0.1
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

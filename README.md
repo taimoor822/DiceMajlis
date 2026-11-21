@@ -16,7 +16,8 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 > registry on server and app). Online games run over one live connection, in
 > private rooms with ready checks, host controls, invites, custom rules and
 > rematches, and a dropped player keeps their seat and catches up. Google and Apple
-> sign-in come next (see [roadmap](#roadmap)).
+> sign-in are built and wait for your Google/Apple developer setup (see
+> [roadmap](#roadmap)).
 
 ---
 
@@ -26,7 +27,12 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   Every account gets a permanent 9-digit **Player ID**. A guest can **save the
   account** with an email later and keep everything. **Forgot password?** sends a
   6-digit code by email. The app stays signed in (secure phone storage); sign out in
-  Settings. Google and Apple sign-in say "coming soon"
+  Settings
+- **Google and Apple sign-in** — "Continue with Google / Apple", and a guest can
+  "Save with Google" in Settings without losing anything. The server checks every
+  Google/Apple token itself. The buttons appear once you've created the Google and
+  Apple sign-in IDs ([setup steps](docs/ARCHITECTURE.md#google-and-apple-sign-in-built-in-115));
+  until then they say "coming soon"
 - **Profile** — your name, avatar (16 built-in pictures), country, the languages you
   speak, and your level with an XP bar. Home shows your avatar, name, level and Player
   ID. Earning XP from games comes in Phase 2
@@ -107,7 +113,7 @@ DiceMajlis/
 │       ├── core/                # settings, ASGI, URLs
 │       ├── ludo_engine/         # the Ludo rules engine + tests (+ vectors.py: shared test vectors)
 │       ├── game_platform/       # game registry: one contract for every game, Ludo's adapter
-│       ├── accounts/            # sign-in (guest, email), tokens, Player ID, devices, password reset
+│       ├── accounts/            # sign-in (guest, email, Google, Apple), tokens, Player ID, devices, password reset
 │       ├── profiles/            # name, avatar, country, languages, XP/level
 │       ├── wallet/              # gold + diamonds: ledger, admin adjustments, audit
 │       ├── rewards/             # grant() engine, daily reward
@@ -189,7 +195,8 @@ code is printed in the terminal where the server runs (look for "Your code is").
 # tokens, reset), profiles, wallet ledger, rewards, API, input checks, seats,
 # leaving, sockets, turn timer, the live connection /ws/v1/ (sign-in, channels,
 # rate limits, retries answered once, presence), game actions over it, private
-# rooms (ready, host controls, invites, rules, countdown, rematch), reconnection (~346 tests)
+# rooms (ready, host controls, invites, rules, countdown, rematch), reconnection,
+# Google/Apple token checks (~360 tests)
 cd backend/core
 python manage.py test
 
@@ -236,7 +243,7 @@ vectors.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · ✅ reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · ✅ reconnection · ✅ Google/Apple sign-in (needs your setup) |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

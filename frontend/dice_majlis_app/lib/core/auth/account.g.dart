@@ -16,6 +16,9 @@ _Account _$AccountFromJson(Map<String, dynamic> json) => _Account(
   languages:
       (json['languages'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
+  linked:
+      (json['linked'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const <String>[],
   level: (json['level'] as num?)?.toInt() ?? 1,
   xp: (json['xp'] as num?)?.toInt() ?? 0,
   levelXp: (json['level_xp'] as num?)?.toInt() ?? 0,
@@ -33,6 +36,7 @@ Map<String, dynamic> _$AccountToJson(_Account instance) => <String, dynamic>{
   'avatar': instance.avatar,
   'country': instance.country,
   'languages': instance.languages,
+  'linked': instance.linked,
   'level': instance.level,
   'xp': instance.xp,
   'level_xp': instance.levelXp,

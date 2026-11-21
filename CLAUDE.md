@@ -29,7 +29,8 @@ backend/core/              Django project (run manage.py from here)
                            api_errors.py (one {"error","code"} shape)
   accounts/                User (UUID + 9-digit Player ID), DeviceSession, JWT +
                            rotating refresh tokens, guest + email sign-in, save
-                           guest account, password reset code, /api/me
+                           guest account, password reset code, /api/me;
+                           social.py + SocialAccount = Google/Apple sign-in
   profiles/                Profile (name, avatar key, country, languages, XP),
                            level curve, PATCH /api/me/profile/
   wallet/                  gold + diamond accounts, append-only ledger, post() /
@@ -102,7 +103,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~346 tests)
+python manage.py test                                  # everything (~360 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -250,6 +251,12 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `RealtimeRoomSocket` applies `state_delta` / `sync` deltas through the same version
   checks. Fake server: `FakeRealtimeServer.catchUp` and `.subscribes`. Tests:
   `game/test_reconnect.py`, app `test/online_game_test.dart`.
+- Google/Apple (1.15): `accounts/social.py` verifies ID tokens (tests sign their own
+  with an RSA key and patch `social._fetch_jwks`; never hit the network). Client IDs
+  come from `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS` (empty = not configured). Never
+  join accounts by email. App: `core/auth/social_sign_in.dart`; tests fake it with
+  `FakeSocialSignIn` (`testApp(social: …)`) and `FakeAuthApi.serverProviders`.
+  Real sign-in needs the owner's Google Cloud / Apple setup (ARCHITECTURE §8).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -265,8 +272,9 @@ layer: registry + game_type/variant on server and app (1.10), WebSocket v1: one
 authenticated socket, channels, rate limits, remembered replies, presence, live
 balances (1.11), online games on v1: actions over the socket, versioned sync (1.12),
 private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13),
-reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14).
-Next: 1.15 Google + Apple sign-in.
+reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
+Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
+Phase 1 is complete; next is Phase 2 (see `docs/planning.md`).
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

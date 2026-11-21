@@ -178,6 +178,60 @@ abstract class AppLocalizations {
   /// **'Continue with Apple'**
   String get welcomeApple;
 
+  /// No description provided for @providerGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get providerGoogle;
+
+  /// No description provided for @providerApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple'**
+  String get providerApple;
+
+  /// No description provided for @socialSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That sign-in didn\'t work. Please try again.'**
+  String get socialSignInFailed;
+
+  /// No description provided for @linkButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Link {provider}'**
+  String linkButton(String provider);
+
+  /// No description provided for @saveWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Save with {provider}'**
+  String saveWith(String provider);
+
+  /// No description provided for @linkedWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked with {provider}'**
+  String linkedWith(String provider);
+
+  /// No description provided for @linkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} is linked. Sign in with it on any phone.'**
+  String linkDone(String provider);
+
+  /// No description provided for @unlinkButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get unlinkButton;
+
+  /// No description provided for @unlinkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} is no longer linked.'**
+  String unlinkDone(String provider);
+
   /// No description provided for @emailTitle.
   ///
   /// In en, this message translates to:
@@ -1545,6 +1599,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That email already has an account. Sign in instead.'**
   String get errorEmailTaken;
+
+  /// No description provided for @errorSocialAccountTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That account is already linked to another player.'**
+  String get errorSocialAccountTaken;
+
+  /// No description provided for @errorAlreadyLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'A different account of this kind is already linked.'**
+  String get errorAlreadyLinked;
+
+  /// No description provided for @errorLastSignInMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your only way to sign in, so it can\'t be unlinked.'**
+  String get errorLastSignInMethod;
+
+  /// No description provided for @errorSignInNotSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'This sign-in isn\'t available right now.'**
+  String get errorSignInNotSetUp;
 
   /// No description provided for @errorAlreadySaved.
   ///

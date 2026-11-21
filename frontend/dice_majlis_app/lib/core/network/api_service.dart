@@ -149,6 +149,20 @@ class ApiService {
     'email': email,
     'password': password,
   });
+
+  /// Attach Google or Apple ([provider]) to the signed-in account.
+  Future<Map<String, dynamic>> linkSocial({
+    required String provider,
+    required String idToken,
+    String? nonce,
+  }) => _send('POST', 'me/link/$provider/', {
+    'id_token': idToken,
+    'nonce': ?nonce,
+  });
+
+  /// Detach Google or Apple (refused if it is the only way to sign in).
+  Future<Map<String, dynamic>> unlinkSocial(String provider) =>
+      _send('POST', 'me/unlink/$provider/');
 }
 
 final apiServiceProvider = Provider<ApiService>(

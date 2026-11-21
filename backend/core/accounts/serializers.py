@@ -20,6 +20,17 @@ class GuestLoginInput(DeviceInput):
     pass
 
 
+class SocialTokenInput(serializers.Serializer):
+    # The ID token Google or Apple gave the app (checked in accounts/social.py).
+    id_token = serializers.CharField(max_length=8192)
+    # The random value the app sent to Apple with the sign-in, if any.
+    nonce = serializers.CharField(max_length=256, required=False)
+
+
+class SocialLoginInput(DeviceInput, SocialTokenInput):
+    pass
+
+
 class RefreshInput(serializers.Serializer):
     refresh = serializers.CharField(max_length=200)
 
