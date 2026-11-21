@@ -38,7 +38,7 @@ The master prompt's priority list (items 1–15), in build order.
 
 ## Phase 2 — Player system
 
-- [ ] XP and account levels from games
+- [x] **2.1** XP and account levels from games. Server: a **domain-event outbox** (`events/`: `emit()` writes a `DomainEvent` in the same transaction as the change, handlers run after the commit, the timer sweep retries what's left; SOCIAL_MAJLIS §11); `services.perform()` emits `game_finished` when a game ends (`game/results.py`: places, seats, accounts, and `counts` = a real game: 2+ accounts, no bots); `profiles/xp.py` gives XP through an append-only `XpEntry` ledger (`add_xp`, once per idempotency key, daily cap) and pushes `xp_gained` on `user/<id>`. Placeholder amounts: 20 per game played to the end, +30 for 1st, +10 for 2nd with 3+ players, 0 when you forfeit, 500 a day from games. App: the level updates live; the result dialog shows "+N XP", level ups, or "games with the AI don't give XP"
 - [ ] Item system + basic customisation: dice skins, board skins, frames; equip (**S4**)
 - [ ] Statistics from real online games, bot games excluded (**S2**)
 - [ ] Progress engine: achievements first (**S3**); missions reuse it in Phase 8

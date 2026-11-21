@@ -2,8 +2,8 @@
 Account level from XP. Level 1 starts at 0 XP and each level needs 100 XP more
 than the one before: level 2 at 100, level 3 at 300, level 4 at 600 ...
 
-XP comes from activity (games, missions); earning it is built in Phase 2. The app
-never computes levels: it shows what the server sends.
+XP comes from activity (games today, missions later) through profiles.xp.add_xp().
+The app never computes levels: it shows what the server sends.
 """
 
 from math import isqrt

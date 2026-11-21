@@ -64,7 +64,7 @@ void main() {
     await tester.tap(find.text('Sara'));
     await tester.pumpAndSettle();
     expect(find.text('350 / 600 XP'), findsOneWidget);
-    expect(find.text('Earning XP from games is coming soon.'), findsOneWidget);
+    expect(find.text('Earn XP by playing online games against other people.'), findsOneWidget);
     expect(account.levelProgress, closeTo(50 / 300, 1e-9));
   });
 

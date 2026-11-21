@@ -474,6 +474,11 @@ Important changes write a `DomainEvent` row **in the same transaction** (the out
 A worker (alongside the turn timer) hands each event to its handlers and marks it done.
 Handlers are idempotent, so an event processed twice changes nothing twice.
 
+*Built in step 2.1:* `backend/core/events/` (`emit(kind, payload)`, `on(kind, handler)`).
+Handlers run right after the commit; one that fails is rolled back and retried by the
+sweep (wait 2, 4, 8 … minutes, up to 8 tries; `last_error` shows why). `game_finished`
+comes from `game/results.py` (payload documented there) and feeds account XP today.
+
 | Event | Handlers |
 |---|---|
 | `game_finished` | statistics, account XP, achievements, moments (big wins) |

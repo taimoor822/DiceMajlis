@@ -12,6 +12,8 @@ import 'package:dice_majlis_app/features/ludo/presentation/widgets/player_token.
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session_controller.dart';
 import 'package:dice_majlis_app/features/multiplayer/presentation/waiting_room_screen.dart';
+import 'package:dice_majlis_app/features/profile/domain/xp_gain.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -142,6 +144,53 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('the result shows the XP the server gave, and level ups', (
+    tester,
+  ) async {
+    final sockets = await openBoard(tester);
+    final players = [
+      {'id': me, 'name': 'Player 1', 'color': 'red', 'is_host': true},
+      {'id': 'p-sara', 'name': 'Sara', 'color': 'green'},
+    ];
+    sockets.last.emit({...snapshot(), 'players': players});
+    await tester.pump();
+    // The XP arrives just before the end of the game.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(GameBoardScreen)),
+    );
+    container
+        .read(xpGainsProvider.notifier)
+        .add(
+          'AB12',
+          XpGain.fromJson({
+            'amount': 50,
+            'reason': 'game',
+            'room_code': 'AB12',
+            'level_up': true,
+            'level': 2,
+            'xp': 120,
+            'level_xp': 100,
+            'next_level_xp': 300,
+          })!,
+        );
+    sockets.last.emit({'type': 'game_finished', 'winner_id': me});
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.text("Level up! You're now level 2"), findsOneWidget);
+    expect(find.text("Games with the AI don't give XP."), findsNothing);
+  });
+
+  testWidgets('a game with the AI says it gives no XP', (tester) async {
+    final sockets = await openBoard(tester);
+    sockets.last.emit(snapshot());
+    await tester.pump();
+    sockets.last.emit({'type': 'game_finished', 'winner_id': me});
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('You win!'), findsOneWidget);
+    expect(find.text("Games with the AI don't give XP."), findsOneWidget);
+    expect(find.byKey(const Key('game-over-xp')), findsNothing);
   });
 
   testWidgets('a player drops: the seat stays, shown as away until back', (

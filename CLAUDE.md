@@ -32,10 +32,13 @@ backend/core/              Django project (run manage.py from here)
                            guest account, password reset code, /api/me;
                            social.py + SocialAccount = Google/Apple sign-in
   profiles/                Profile (name, avatar key, country, languages, XP),
-                           level curve, PATCH /api/me/profile/
+                           level curve, PATCH /api/me/profile/; xp.py = XP ledger
+                           (add_xp) + XP from games
   wallet/                  gold + diamond accounts, append-only ledger, post() /
                            reverse(), admin adjustments, audit_wallets command
   rewards/                 grant() engine, reward-day (00:00 Bahrain), daily login
+  events/                  domain-event outbox: emit() in the change's transaction,
+                           on(kind, handler); handlers run after commit, sweep retries
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
   game_platform/           PURE game registry: GameEngine contract, register/get_game,
@@ -103,7 +106,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~360 tests)
+python manage.py test                                  # everything (~380 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -257,6 +260,19 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   join accounts by email. App: `core/auth/social_sign_in.dart`; tests fake it with
   `FakeSocialSignIn` (`testApp(social: …)`) and `FakeAuthApi.serverProviders`.
   Real sign-in needs the owner's Google Cloud / Apple setup (ARCHITECTURE §8).
+- Domain events + XP (2.1): `events.outbox.emit(kind, payload)` inside the change's
+  transaction; register handlers with `events.outbox.on(kind, fn)` in an app's
+  `ready()`. Handlers must be idempotent (an event may arrive twice) and run inside
+  one transaction with "processed" (a failure undoes them; the timer sweep retries).
+  `game_finished` is emitted only by `services.perform()` (payload: `game/results.py`;
+  `counts` = real game, 2+ accounts and no bots — bot games never give XP, stats or
+  achievements). XP changes only through `profiles.xp.add_xp()` (append-only
+  `XpEntry`, idempotency key, optional daily cap, pushes `xp_gained` on `user/<id>`);
+  `Profile.xp` is read-only in the admin. Amounts are placeholders at the top of
+  `profiles/xp.py`. Tests: `TestCase` never runs commit hooks, so wrap the action in
+  `self.captureOnCommitCallbacks(execute=True)` or call `dispatch_pending(min_age_seconds=0)`.
+  App: `xpLiveProvider` (watched by the app root) updates the account from
+  `xp_gained`; `xpGainsProvider` keeps game XP by room code for the result dialog.
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -274,7 +290,8 @@ balances (1.11), online games on v1: actions over the socket, versioned sync (1.
 private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13),
 reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
-Phase 1 is complete; next is Phase 2 (see `docs/planning.md`).
+Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1).
+Next: items and cosmetics (2.2), see `docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

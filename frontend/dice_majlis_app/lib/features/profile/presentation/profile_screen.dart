@@ -389,7 +389,7 @@ class _LevelCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.profileXpSoon,
+            l10n.profileXpHow,
             style: theme.textTheme.bodySmall?.copyWith(color: majlis.textMuted),
           ),
         ],

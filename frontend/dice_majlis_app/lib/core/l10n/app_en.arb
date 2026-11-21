@@ -146,7 +146,7 @@
       "next": {"type": "int"}
     }
   },
-  "profileXpSoon": "Earning XP from games is coming soon.",
+  "profileXpHow": "Earn XP by playing online games against other people.",
   "profileOptionsFailed": "Couldn't load the profile choices.",
 
   "languageEn": "English",
@@ -371,6 +371,19 @@
   "gameOverHome": "Back to home",
   "gameOverPlayAgain": "Play again",
   "gameOverWaitingForOthers": "Waiting for the others to say yes…",
+  "gameOverXpGained": "+{amount} XP",
+  "@gameOverXpGained": {
+    "placeholders": {
+      "amount": {"type": "int"}
+    }
+  },
+  "gameOverLevelUp": "Level up! You're now level {level}",
+  "@gameOverLevelUp": {
+    "placeholders": {
+      "level": {"type": "int"}
+    }
+  },
+  "gameOverNoXpWithAi": "Games with the AI don't give XP.",
 
   "gameTimeoutSelf": "Time ran out, so we played for you.",
   "gameTimeoutSelfWarning": "Time ran out, so we played for you. Miss {count, plural, =1{1 more turn} other{{count} more turns}} in a row and you leave the game.",

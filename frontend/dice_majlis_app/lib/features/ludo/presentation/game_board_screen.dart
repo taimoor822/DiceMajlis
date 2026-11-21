@@ -17,6 +17,7 @@ import '../../games/domain/game_catalog.dart';
 import '../../multiplayer/data/room_repository.dart';
 import '../../multiplayer/domain/room_session.dart';
 import '../../multiplayer/domain/room_session_controller.dart';
+import '../../profile/domain/xp_gain.dart';
 import '../domain/ludo_path.dart';
 import '../domain/turn_clock.dart';
 
@@ -969,6 +970,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     final me = myPlayerId;
     final room = roomCode;
     final l10n = _l10n;
+    final withAi = _playersById.values.any((p) => p.isBot);
     var asked = false;
     _winnerDialogOpen = true;
     showDialog(
@@ -976,12 +978,19 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text(l10n.gameOverTitle),
-          content: Text(
-            asked
-                ? l10n.gameOverWaitingForOthers
-                : me != null && winnerId == me
-                ? l10n.gameOverWon
-                : l10n.gameOverLost,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                asked
+                    ? l10n.gameOverWaitingForOthers
+                    : me != null && winnerId == me
+                    ? l10n.gameOverWon
+                    : l10n.gameOverLost,
+              ),
+              if (room != null) _GameOverXp(roomCode: room, withAi: withAi),
+            ],
           ),
           actions: [
             TextButton(
@@ -1256,6 +1265,52 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The XP this game gave (it arrives from the server just before the game
+/// ends), or why there is none.
+class _GameOverXp extends ConsumerWidget {
+  const _GameOverXp({required this.roomCode, required this.withAi});
+
+  final String roomCode;
+  final bool withAi;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final majlis = context.majlis;
+    final gain = ref.watch(xpGainsProvider.select((gains) => gains[roomCode]));
+    if (gain == null) {
+      if (!withAi) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          l10n.gameOverNoXpWithAi,
+          style: TextStyle(color: majlis.textMuted),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.gameOverXpGained(gain.amount),
+            key: const Key('game-over-xp'),
+            style: TextStyle(color: majlis.gold, fontWeight: FontWeight.w700),
+          ),
+          if (gain.levelUp)
+            Text(
+              l10n.gameOverLevelUp(gain.level),
+              key: const Key('game-over-level-up'),
+              style: TextStyle(color: majlis.success),
+            ),
+        ],
       ),
     );
   }
