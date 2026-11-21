@@ -14,6 +14,7 @@ import '../../../core/theme/majlis_colors.dart';
 import '../../../shared/widgets/majlis_background.dart';
 import '../../../shared/widgets/majlis_card.dart';
 import '../../../shared/widgets/player_avatar.dart';
+import '../../stats/presentation/stats_card.dart';
 import '../data/account_repository.dart';
 import '../domain/profile_options.dart';
 
@@ -164,6 +165,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _Header(account: account),
                   const SizedBox(height: 16),
                   _LevelCard(account: account),
+                  const SizedBox(height: 16),
+                  const StatsCard(),
                   const SizedBox(height: 16),
                   MajlisCard(
                     padding: EdgeInsets.zero,

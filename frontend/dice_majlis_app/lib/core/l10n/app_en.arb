@@ -150,6 +150,35 @@
   "profileCustomise": "Customise",
   "profileCustomiseHint": "Dice, board and profile frame",
 
+  "statsTitle": "Statistics",
+  "statsGames": "Games",
+  "statsWins": "Wins",
+  "statsWinRate": "Win rate",
+  "statsBestStreak": "Best streak",
+  "statsPercent": "{value}%",
+  "@statsPercent": {
+    "placeholders": {
+      "value": {"type": "int"}
+    }
+  },
+  "statsCurrentStreak": "Wins in a row now: {count}",
+  "@statsCurrentStreak": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "statsRecent": "Latest games",
+  "statsResultPlace": "{place} of {players}",
+  "@statsResultPlace": {
+    "placeholders": {
+      "place": {"type": "int"},
+      "players": {"type": "int"}
+    }
+  },
+  "statsResultLeft": "Left",
+  "statsEmpty": "No games yet. Play an online game against other people to start your statistics.",
+  "statsOnlyRealGames": "Only online games against other people count (not games with the AI or offline games).",
+
   "customiseTitle": "Customise",
   "customiseDice": "Dice",
   "customiseBoard": "Board",

@@ -126,6 +126,9 @@ class ApiService {
   /// Your balances: `{"balances": {"gold": n, "diamond": n}}`.
   Future<Map<String, dynamic>> wallet() => _send('GET', 'wallet/');
 
+  /// Your statistics from real online games, and your latest results.
+  Future<Map<String, dynamic>> myStats() => _send('GET', 'me/stats/');
+
   /// What you own and wear (cosmetics today).
   Future<Map<String, dynamic>> myItems() => _send('GET', 'me/items/');
 

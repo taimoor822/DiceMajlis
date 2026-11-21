@@ -286,6 +286,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileCustomiseHint => 'Dice, board and profile frame';
 
   @override
+  String get statsTitle => 'Statistics';
+
+  @override
+  String get statsGames => 'Games';
+
+  @override
+  String get statsWins => 'Wins';
+
+  @override
+  String get statsWinRate => 'Win rate';
+
+  @override
+  String get statsBestStreak => 'Best streak';
+
+  @override
+  String statsPercent(int value) {
+    return '$value%';
+  }
+
+  @override
+  String statsCurrentStreak(int count) {
+    return 'Wins in a row now: $count';
+  }
+
+  @override
+  String get statsRecent => 'Latest games';
+
+  @override
+  String statsResultPlace(int place, int players) {
+    return '$place of $players';
+  }
+
+  @override
+  String get statsResultLeft => 'Left';
+
+  @override
+  String get statsEmpty =>
+      'No games yet. Play an online game against other people to start your statistics.';
+
+  @override
+  String get statsOnlyRealGames =>
+      'Only online games against other people count (not games with the AI or offline games).';
+
+  @override
   String get customiseTitle => 'Customise';
 
   @override
