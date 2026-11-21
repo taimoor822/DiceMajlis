@@ -125,6 +125,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      icon: const Icon(Icons.phone_android),
+                      label: Text(l10n.welcomePlayOffline),
+                      onPressed: _loading
+                          ? null
+                          : () => context.push(AppRoutes.localPlay),
+                    ),
                   ],
                 ),
               ),

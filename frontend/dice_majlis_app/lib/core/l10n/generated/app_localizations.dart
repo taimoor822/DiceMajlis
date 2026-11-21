@@ -124,6 +124,12 @@ abstract class AppLocalizations {
   /// **'Can\'t reach the Majlis server. Check your connection and try again.'**
   String get splashOffline;
 
+  /// No description provided for @splashPlayOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Play offline'**
+  String get splashPlayOffline;
+
   /// No description provided for @welcomeBody.
   ///
   /// In en, this message translates to:
@@ -135,6 +141,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play as guest'**
   String get welcomePlayAsGuest;
+
+  /// No description provided for @welcomePlayOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Play offline on this phone'**
+  String get welcomePlayOffline;
 
   /// No description provided for @welcomeGuestHint.
   ///
@@ -769,14 +781,20 @@ abstract class AppLocalizations {
   /// No description provided for @hubLocalPlay.
   ///
   /// In en, this message translates to:
-  /// **'Local play'**
+  /// **'Play on this phone'**
   String get hubLocalPlay;
 
   /// No description provided for @hubLocalPlayBody.
   ///
   /// In en, this message translates to:
-  /// **'Pass one phone around the table.'**
+  /// **'Play the Majlis AI or pass one phone around the table. Works offline.'**
   String get hubLocalPlayBody;
+
+  /// No description provided for @hubLocalPlayStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Play offline'**
+  String get hubLocalPlayStart;
 
   /// No description provided for @hubTeamLudo.
   ///
@@ -1377,6 +1395,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The server didn\'t accept that. Please check and try again.'**
   String get errorInvalidInput;
+
+  /// No description provided for @localSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on this phone'**
+  String get localSetupTitle;
+
+  /// No description provided for @localSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the Majlis AI, or pass one phone around the table. Offline games don\'t earn Gold or Diamonds and don\'t change your rating.'**
+  String get localSetupBody;
+
+  /// No description provided for @localSetupPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Players'**
+  String get localSetupPlayers;
+
+  /// No description provided for @localSetupSeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Who plays each colour'**
+  String get localSetupSeats;
+
+  /// No description provided for @localSeatHuman.
+  ///
+  /// In en, this message translates to:
+  /// **'Player'**
+  String get localSeatHuman;
+
+  /// No description provided for @localSeatAi.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get localSeatAi;
+
+  /// No description provided for @localSetupPlayOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on for every place'**
+  String get localSetupPlayOn;
+
+  /// No description provided for @localSetupPlayOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep playing after the first player gets home.'**
+  String get localSetupPlayOnBody;
+
+  /// No description provided for @localSetupStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start game'**
+  String get localSetupStart;
+
+  /// No description provided for @colorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorRed;
+
+  /// No description provided for @colorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorBlue;
+
+  /// No description provided for @colorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorGreen;
+
+  /// No description provided for @colorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorYellow;
+
+  /// No description provided for @localNamePlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Player {number}'**
+  String localNamePlayer(int number);
+
+  /// No description provided for @localNameAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Majlis AI'**
+  String get localNameAi;
+
+  /// No description provided for @localNameAiNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'Majlis AI {number}'**
+  String localNameAiNumbered(int number);
+
+  /// No description provided for @localGameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline game'**
+  String get localGameTitle;
+
+  /// No description provided for @localStatusYourRoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn: roll the dice'**
+  String get localStatusYourRoll;
+
+  /// No description provided for @localStatusRoll.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: roll the dice'**
+  String localStatusRoll(String name);
+
+  /// No description provided for @localStatusYourMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a token to move'**
+  String get localStatusYourMove;
+
+  /// No description provided for @localStatusMove.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: pick a token'**
+  String localStatusMove(String name);
+
+  /// No description provided for @localStatusAi.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is playing…'**
+  String localStatusAi(String name);
+
+  /// No description provided for @localNoticeNoMoves.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} can\'t move'**
+  String localNoticeNoMoves(String name);
+
+  /// No description provided for @localNoticeTooManySixes.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} rolled too many sixes'**
+  String localNoticeTooManySixes(String name);
+
+  /// No description provided for @localNoticeCaptured.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} sent a token back to base!'**
+  String localNoticeCaptured(String name);
+
+  /// No description provided for @localNoticeHome.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} got every token home: place {place}!'**
+  String localNoticeHome(String name, int place);
+
+  /// No description provided for @localWinner.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} wins!'**
+  String localWinner(String name);
+
+  /// No description provided for @localResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game over'**
+  String get localResultsTitle;
+
+  /// No description provided for @localPlaceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'#{place}'**
+  String localPlaceShort(int place);
+
+  /// No description provided for @localPlayAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get localPlayAgain;
+
+  /// No description provided for @localDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get localDone;
+
+  /// No description provided for @localLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this game?'**
+  String get localLeaveTitle;
+
+  /// No description provided for @localLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline games aren\'t saved, so this one will end.'**
+  String get localLeaveBody;
 
   /// No description provided for @errorGeneric.
   ///

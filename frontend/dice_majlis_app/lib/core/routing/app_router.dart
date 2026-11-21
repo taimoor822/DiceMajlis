@@ -7,6 +7,8 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
+import '../../features/local_play/presentation/local_game_screen.dart';
+import '../../features/local_play/presentation/local_setup_screen.dart';
 import '../../features/ludo/presentation/game_board_screen.dart';
 import '../../features/multiplayer/domain/room_session.dart';
 import '../../features/multiplayer/domain/room_session_controller.dart';
@@ -32,12 +34,15 @@ import 'app_routes.dart';
 /// - Signed in: never the welcome screens again (straight back to the room the
 ///   account is in, if any), and rooms need a session for that room
 ///   ([roomGuard]). The splash screen moves on by itself.
+/// - Offline games on this phone are open in every case: they need no
+///   account and no server.
 String? appRedirect({
   required AuthState auth,
   required RoomSession? session,
   required Uri location,
 }) {
   final path = location.path;
+  if (AppRoutes.isLocal(path)) return null;
   final atSplash = path == AppRoutes.splash;
   final atWelcome =
       path == AppRoutes.welcome || path.startsWith('${AppRoutes.welcome}/');
@@ -164,6 +169,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/game/:code',
         builder: (context, state) =>
             GameBoardScreen(roomCode: state.pathParameters['code']!),
+      ),
+      GoRoute(
+        path: AppRoutes.localPlay,
+        builder: (context, state) => const LocalSetupScreen(),
+        routes: [
+          GoRoute(
+            path: 'game',
+            builder: (context, state) => const LocalGameScreen(),
+          ),
+        ],
       ),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),

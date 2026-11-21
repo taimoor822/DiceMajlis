@@ -74,4 +74,30 @@ void main() {
       expect(home.y, inInclusiveRange(6, 8), reason: color);
     }
   });
+
+  test('base tokens sit in their own colour\'s corner, one per circle', () {
+    // Corners of the board picture: blue top-left, green top-right,
+    // red bottom-left, yellow bottom-right (red enters at the bottom).
+    const corners = {
+      'red': (0.0, 9.0),
+      'blue': (0.0, 0.0),
+      'green': (9.0, 0.0),
+      'yellow': (9.0, 9.0),
+    };
+    for (final color in _seats) {
+      final (left, top) = corners[color]!;
+      final spots = {for (var t = 0; t < 4; t++) LudoPath.basePoint(color, t)};
+      expect(spots, hasLength(4), reason: color);
+      for (final spot in spots) {
+        expect(spot.dx, inInclusiveRange(left + 1, left + 5), reason: color);
+        expect(spot.dy, inInclusiveRange(top + 1, top + 5), reason: color);
+      }
+      expect(LudoPath.pointFor(color, -1, 2), LudoPath.basePoint(color, 2));
+      final start = LudoPath.getPath(color).first;
+      expect(
+        LudoPath.pointFor(color, 0, 0),
+        Offset(start.x + 0.5, start.y + 0.5),
+      );
+    }
+  });
 }

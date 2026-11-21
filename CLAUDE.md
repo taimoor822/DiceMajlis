@@ -35,12 +35,15 @@ backend/core/              Django project (run manage.py from here)
   wallet/                  gold + diamond accounts, append-only ledger, post() /
                            reverse(), admin adjustments, audit_wallets command
   rewards/                 grant() engine, reward-day (00:00 Bahrain), daily login
-  ludo_engine/             PURE Python rules engine + tests (no Django inside)
+  ludo_engine/             PURE Python rules engine + tests (no Django inside);
+                           vectors.py writes the shared test vectors
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
                            routing, l10n), lib/shared/widgets, lib/features/<x>/
                            {data,domain,presentation}; server address in
                            lib/core/config/app_config.dart
+shared/ludo/               engine_vectors.json: the rules as data; Python and Dart
+                           engines must both pass it (generated, never edit by hand)
 docs/                      plans and designs
 .github/workflows/ci.yml   CI: backend tests on Postgres + flutter analyze/test
 ```
@@ -61,7 +64,9 @@ docs/                      plans and designs
    Privileges are checked only through the entitlement engine — no `if user.isVip`.
    VIP/Royal never affect ratings, leagues or matchmaking (no pay-to-win).
 5. **No hard-coded gameplay numbers or prices in Flutter.** Rules live in
-   `ludo_engine/rules.py`; gift prices and catalogs come from the server.
+   `ludo_engine/rules.py`; gift prices and catalogs come from the server. The one
+   exception is the Dart engine for offline games (`features/ludo/domain/engine/`),
+   a copy kept identical by the shared test vectors: change Python first.
 6. **Build vertically, one plan step at a time.** Keep the app runnable after every
    step. Don't rewrite unrelated working code.
 7. **No fake features.** Anything not built is labelled TODO / "coming soon", never
@@ -86,10 +91,11 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~225 tests)
+python manage.py test                                  # everything (~227 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
 python manage.py audit_wallets                         # every balance = its ledger
+python -m ludo_engine.vectors                          # rewrite shared/ludo/engine_vectors.json after a rules change
 
 # Flutter (from frontend/dice_majlis_app)
 flutter pub get
@@ -164,6 +170,18 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - App economy state: `balancesProvider` (set it from any answer that brings new
   balances), `dailyRewardProvider`. Widget tests get wallet/reward fakes from
   `fakeNetwork()`, or `fakeEconomy()` when pumping a screen alone.
+- Offline games (1.9): the Dart engine in `features/ludo/domain/engine/` copies the
+  Python one exactly (same events, error codes, bot). After changing a rule in
+  Python, run `python -m ludo_engine.vectors`, commit the JSON, then make
+  `test/ludo_engine_vectors_test.dart` pass. `features/local_play/` runs games on the
+  phone (`LocalGameController`: secure dice, AI turns, token walks); tests override
+  `localDiceProvider` (`ScriptedDice`) and `localPlayTimingProvider`
+  (`LocalPlayTiming.instant`). `/local` pages are open signed out and offline. Offline
+  games never call the server or touch money/XP/ratings.
+- Board picture (`assets/board/majlis_board.svg`): its colours must follow the seat
+  order (red enters at the bottom, then blue left, green top, yellow right, as in
+  `LudoPath`). `LudoBoardView` draws board + tokens for offline games; the online
+  `GameBoardScreen` still has its own drawing until 1.12.
 
 ## Status
 
@@ -171,8 +189,9 @@ See `docs/planning.md` (master roadmap, 13 phases, Phase 1 = playable foundation
 Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI (1.3),
 Flutter architecture + Majlis theme (1.4), main navigation (1.5), guest accounts with
 Player ID + session restore (1.6), email sign-in + password reset + basic profile (1.7),
-gold + diamonds wallet ledger, grant() and daily reward (1.8).
-Next: 1.9 local play, 1.10 game platform layer, 1.11 WebSocket v1.
+gold + diamonds wallet ledger, grant() and daily reward (1.8), local play on a Dart
+engine checked by shared test vectors, vs AI and pass-and-play (1.9).
+Next: 1.10 game platform layer, 1.11 WebSocket v1, 1.12 online multiplayer on v1.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

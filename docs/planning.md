@@ -28,7 +28,7 @@ The master prompt's priority list (items 1–15), in build order.
 - [x] **1.6** Accounts: guest login + JWT + **permanent 9-digit Player ID** + session restore; rooms use the account (item 2)
 - [x] **1.7** Email/password, password reset, basic profile: avatar, name, Player ID, country, languages, level/XP (items 2, 4)
 - [x] **1.8** Currency foundation: wallet ledger (**Gold** and **Diamonds**), daily login reward, balances on Home (item 5, **S6**). The daily reward needs the reward engine's core now (one `grant()`, claims, reward-day boundary); Phase 2 adds admin-made bundles, items and streak options to it
-- [ ] **1.9** Local play: Dart engine + shared test vectors; vs AI and pass-and-play (item 10)
+- [x] **1.9** Local play: Dart engine + shared test vectors; vs AI and pass-and-play (item 10). The Dart engine (`features/ludo/domain/engine/`) replays every vector the Python engine exports (`shared/ludo/engine_vectors.json`); "Play on this phone" (Game Hub, or Welcome/splash with no account or no server) runs 2–4 seats, each a person or the Majlis AI, with no Gold, Diamonds or rating. The board picture's red and blue were swapped to match the seat order
 - [ ] **1.10** Game platform layer: `game_type` / `variant` + engine registry on server and app, ready for Domino/Jackaroo (PLATFORM §3)
 - [ ] **1.11** WebSocket foundation v1: one socket, first-message auth, subscriptions (`game/` `room/` `chat/` `user/` `notifications/`), envelope, idempotency, rate limits, presence (item 12)
 - [ ] **1.12** Online multiplayer on v1: game actions over the socket, versioned sync (item 13)
@@ -148,6 +148,7 @@ Answer when the phase that needs them starts.
 | Web as a target | 1.4 | Secondary (testing), focus Android + iOS |
 | Email provider for password codes (SMTP) | Before launch (Phase 12) | — (ask); development prints emails in the server terminal |
 | Profile photos: image storage service + moderation | When photo avatars are built | Built-in avatars only until then |
+| Board picture: `majlis_board.svg` was made from a stock file (Vecteezy); check its licence or draw our own board | Design pass (before launch) | Replace with an original board drawn in code |
 
 Decided: real money yes — the two currencies and VIP are sold via App Store / Google Play.
 Decided: the currencies are **Gold** (everyday) and **Diamonds** (premium).
