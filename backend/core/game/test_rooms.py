@@ -122,11 +122,14 @@ class ReadyAndStartTests(RoomTestCase):
         self.assertEqual(rooms.start_due_rooms(timezone.now() + timedelta(seconds=4)), 1)
 
     def test_the_timer_sweep_starts_due_rooms(self):
-        with mock.patch.object(rooms, "start_due_rooms", return_value=0) as sweep:
-            from . import timers
+        from . import timers
 
-            stop = mock.Mock()
-            stop.is_set.side_effect = [False, True]
+        stop = mock.Mock()
+        stop.is_set.side_effect = [False, True]
+        # One sweep, without closing the test's database connection.
+        with mock.patch.object(timers, "close_old_connections"), \
+                mock.patch.object(timers, "process_due_turns", return_value=0), \
+                mock.patch.object(rooms, "start_due_rooms", return_value=0) as sweep:
             timers.run_forever(0, stop)
         sweep.assert_called_once()
 
