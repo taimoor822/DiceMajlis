@@ -64,6 +64,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   String _typeLabel(AppLocalizations l10n, String type) => switch (type) {
     'reward_daily' => l10n.walletTypeDaily,
+    'reward_achievement' => l10n.walletTypeAchievement,
     'admin_grant' => l10n.walletTypeAdminGrant,
     'admin_revoke' => l10n.walletTypeAdminRevoke,
     'reversal' => l10n.walletTypeReversal,

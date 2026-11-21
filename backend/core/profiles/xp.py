@@ -99,6 +99,21 @@ def add_xp(
         except IntegrityError:  # the same key won a race on another connection
             return XpAdded(None, False, level_before, level_before)
         Profile.objects.filter(pk=profile.pk).update(xp=entry.xp_after)
+        from events.outbox import emit
+
+        # Achievements on the level react to this (after the commit).
+        emit(
+            "xp_added",
+            {
+                "user_id": str(user.pk),
+                "amount": entry.amount,
+                "reason": entry.reason,
+                "xp": entry.xp_after,
+                "level": level_for_xp(entry.xp_after),
+                "level_up": level_for_xp(entry.xp_after) > level_before,
+                **(details or {}),
+            },
+        )
         cached = user._state.fields_cache.get("profile")  # keep user.profile current
         if cached is not None:
             cached.xp = entry.xp_after

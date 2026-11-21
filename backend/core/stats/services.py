@@ -87,6 +87,7 @@ def record_result(user, *, game_id, room_code, game_type, variant, place, player
                 "user_id": str(user.pk),
                 "game_type": game_type,
                 "game_id": game_id,
+                "room_code": room_code,
                 "won": won,
                 "stats": stats_row(stats),
                 "total": totals(user),

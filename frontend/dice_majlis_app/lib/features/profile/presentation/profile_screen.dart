@@ -185,6 +185,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   MajlisCard(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      key: const Key('profile-achievements'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
+                      leading: Icon(
+                        Icons.emoji_events_outlined,
+                        color: majlis.gold,
+                      ),
+                      title: Text(l10n.profileAchievements),
+                      subtitle: Text(l10n.profileAchievementsHint),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push(AppRoutes.achievements),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  MajlisCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

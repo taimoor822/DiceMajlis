@@ -179,6 +179,51 @@
   "statsEmpty": "No games yet. Play an online game against other people to start your statistics.",
   "statsOnlyRealGames": "Only online games against other people count (not games with the AI or offline games).",
 
+  "profileAchievements": "Achievements",
+  "profileAchievementsHint": "Milestones that give Gold and Diamonds",
+  "achievementsTitle": "Achievements",
+  "achievementsSummary": "{unlocked} of {total} unlocked",
+  "@achievementsSummary": {
+    "placeholders": {
+      "unlocked": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "achievementsOnlyRealGames": "They unlock from online games against other people (not games with the AI or offline games).",
+  "achievementsProgress": "{value} / {target}",
+  "@achievementsProgress": {
+    "placeholders": {
+      "value": {"type": "int"},
+      "target": {"type": "int"}
+    }
+  },
+  "achievementsCompleted": "Completed",
+  "achievementsHidden": "{count, plural, =1{1 hidden achievement still to find} other{{count} hidden achievements still to find}}",
+  "@achievementsHidden": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "achievementUnlockedToast": "Achievement unlocked: {name}",
+  "@achievementUnlockedToast": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "rewardAmount": "+{amount} {currency}",
+  "@rewardAmount": {
+    "placeholders": {
+      "amount": {"type": "String"},
+      "currency": {"type": "String"}
+    }
+  },
+  "gameOverAchievement": "Achievement: {name}",
+  "@gameOverAchievement": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
   "customiseTitle": "Customise",
   "customiseDice": "Dice",
   "customiseBoard": "Board",
@@ -256,6 +301,7 @@
   "walletFailed": "Couldn't load your wallet.",
   "walletEarnHint": "Earn gold every day. Buying gold and diamonds comes later.",
   "walletTypeDaily": "Daily reward",
+  "walletTypeAchievement": "Achievement reward",
   "walletTypeAdminGrant": "From the Dice Majlis team",
   "walletTypeAdminRevoke": "Taken back by the team",
   "walletTypeReversal": "Correction",

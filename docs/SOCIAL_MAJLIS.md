@@ -497,7 +497,13 @@ comes from `game/results.py` (payload documented there) and feeds account XP tod
 optional tiers (10 / 100 / 1,000), reward (coins or a cosmetic), hidden flag.
 Metrics are counters kept up to date by the handlers: `games_played`, `wins`,
 `best_win_streak`, `gift_value_sent`, `friends`, `tournaments_won`,
-`diamonds_collected`, and so on. Examples: 🏆 First Victory (wins ≥ 1) ·
+`diamonds_collected`, and so on.
+
+*Built in step 2.4* (`backend/core/progress/`): achievements with tiers
+(`AchievementTier`: threshold + reward bundle through `grant()`), hidden ones, and the
+metrics `games_played`, `wins`, `best_win_streak` and `level`, read live from
+statistics and XP. Rewards are currencies for now; items join with the reward bundles
+of step 2.5. Examples: 🏆 First Victory (wins ≥ 1) ·
 🎯 100 Games · 🔥 10 Win Streak · 🎁 Gift Giver (gift value sent ≥ 10,000) ·
 👥 Social Star (friends ≥ 50).
 

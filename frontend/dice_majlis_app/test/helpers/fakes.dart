@@ -12,6 +12,8 @@ import 'package:dice_majlis_app/core/realtime/realtime_message.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_providers.dart';
 import 'package:dice_majlis_app/core/websocket/socket_service.dart';
+import 'package:dice_majlis_app/features/achievements/data/achievements_repository.dart';
+import 'package:dice_majlis_app/features/achievements/domain/achievements.dart';
 import 'package:dice_majlis_app/features/cosmetics/data/items_repository.dart';
 import 'package:dice_majlis_app/features/cosmetics/domain/inventory.dart';
 import 'package:dice_majlis_app/features/stats/data/stats_repository.dart';
@@ -574,6 +576,23 @@ class FakeItemsRepository implements ItemsRepository {
   }
 }
 
+/// Achievements without a server: none until a test sets [overview].
+class FakeAchievementsRepository implements AchievementsRepository {
+  FakeAchievementsRepository({this.overview = const AchievementsOverview()});
+
+  AchievementsOverview overview;
+  String? failWith;
+  int loads = 0;
+
+  @override
+  Future<AchievementsOverview> myAchievements() async {
+    loads++;
+    final code = failWith;
+    if (code != null) throw ApiException(code);
+    return overview;
+  }
+}
+
 /// Statistics without a server: none until a test sets [stats].
 class FakeStatsRepository implements StatsRepository {
   FakeStatsRepository({this.stats = const StatsOverview()});
@@ -946,10 +965,14 @@ List<Override> fakeNetwork({
   FakeSocialSignIn? social,
   FakeItemsRepository? items,
   FakeStatsRepository? stats,
+  FakeAchievementsRepository? achievements,
 }) => [
   ...fakeEconomy(wallet: wallet, rewards: rewards),
   itemsRepositoryProvider.overrideWithValue(items ?? FakeItemsRepository()),
   statsRepositoryProvider.overrideWithValue(stats ?? FakeStatsRepository()),
+  achievementsRepositoryProvider.overrideWithValue(
+    achievements ?? FakeAchievementsRepository(),
+  ),
   socialSignInProvider.overrideWithValue(social ?? FakeSocialSignIn()),
   realtimeConnectorProvider.overrideWithValue(
     (realtime ?? FakeRealtimeServer()).connect,
@@ -997,6 +1020,7 @@ Widget testApp({
   FakeSocialSignIn? social,
   FakeItemsRepository? items,
   FakeStatsRepository? stats,
+  FakeAchievementsRepository? achievements,
   List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
@@ -1013,6 +1037,7 @@ Widget testApp({
       social: social,
       items: items,
       stats: stats,
+      achievements: achievements,
     ),
     ...overrides,
   ],

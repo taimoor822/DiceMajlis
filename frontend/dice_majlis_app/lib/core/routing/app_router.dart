@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/achievements/presentation/achievements_screen.dart';
 import '../../features/auth/presentation/email_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
@@ -163,6 +164,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 GoRoute(
                   path: 'customise',
                   builder: (context, state) => const CustomiseScreen(),
+                ),
+                GoRoute(
+                  path: 'achievements',
+                  builder: (context, state) => const AchievementsScreen(),
                 ),
               ],
             ),

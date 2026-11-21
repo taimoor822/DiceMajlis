@@ -129,6 +129,10 @@ class ApiService {
   /// Your statistics from real online games, and your latest results.
   Future<Map<String, dynamic>> myStats() => _send('GET', 'me/stats/');
 
+  /// Your achievements, with progress and rewards.
+  Future<Map<String, dynamic>> myAchievements() =>
+      _send('GET', 'me/achievements/');
+
   /// What you own and wear (cosmetics today).
   Future<Map<String, dynamic>> myItems() => _send('GET', 'me/items/');
 

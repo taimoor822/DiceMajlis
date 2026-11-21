@@ -20,6 +20,7 @@ class Currency(models.TextChoices):
 
 class TransactionType(models.TextChoices):
     REWARD_DAILY = "reward_daily", "Daily reward"
+    REWARD_ACHIEVEMENT = "reward_achievement", "Achievement reward"
     ADMIN_GRANT = "admin_grant", "Admin grant"
     ADMIN_REVOKE = "admin_revoke", "Admin revoke"
     REVERSAL = "reversal", "Reversal"

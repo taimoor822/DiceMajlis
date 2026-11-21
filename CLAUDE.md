@@ -42,6 +42,8 @@ backend/core/              Django project (run manage.py from here)
   items/                   one item system: catalog, inventory, append-only item
                            ledger, equip cosmetics (dice, board, frame), expiry
   stats/                   statistics from real online games (results + totals)
+  progress/                progress engine: achievements (metrics, tiers, unlocks,
+                           rewards through grant()); missions later
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
   game_platform/           PURE game registry: GameEngine contract, register/get_game,
@@ -109,7 +111,8 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~400 tests)
+python manage.py test                                  # everything (~410 tests)
+python manage.py check_achievements                    # unlock achievements players already qualify for
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -300,6 +303,23 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `GET /api/me/stats/` (totals, per game type, last 10 results; the win rate is worked
   out on the server). App: `features/stats/` (`statsProvider`, `StatsCard` on the
   Profile); tests use `FakeStatsRepository` (`testApp(stats: …)`).
+- Achievements (2.4): `progress/` is the progress engine (missions reuse it later).
+  `Achievement` (admin catalog: metric, icon key, rarity, hidden) with
+  `AchievementTier`s (threshold + reward bundle). Metrics are read live from where
+  the server keeps them (`progress/metrics.py`: games_played, wins, best_win_streak
+  from stats; level from XP) — never stored twice. Handlers: `player_stats_changed`
+  and `xp_added` (emitted by `add_xp`) call `services.check(user, metrics)`, which
+  unlocks reached tiers once (`AchievementUnlock` unique per user+tier), pays the
+  reward through `rewards.grant(kind="achievement")`, emits `achievement_unlocked`
+  (for moments/notifications later) and pushes it on `user/<id>` (with `room_code`
+  when a game did it). After adding achievements, run `manage.py
+  check_achievements`. Event chains (game_finished → stats → achievements) run right
+  after each commit; in tests call `dispatch_pending(min_age_seconds=0)` a few times.
+  App: `features/achievements/` (`/home/profile/achievements`, `achievementsProvider`,
+  `achievementUnlocksProvider`); the app root shows a note per unlock through
+  `rootMessengerKeyProvider` (`core/ui/messenger.dart`); the game result lists the
+  game's unlocks. Tests: `progress/tests/`, app `test/achievements_test.dart`
+  (`FakeAchievementsRepository`).
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -318,8 +338,8 @@ private rooms v2: ready, host controls, invites, custom rules, countdown, rematc
 reconnection: seat kept, away/back, state_delta catch-up, restart-safe (1.14),
 Google + Apple sign-in, built and waiting for the owner's provider setup (1.15).
 Phase 1 is complete. Phase 2: domain events + XP and levels from games (2.1), item
-system + cosmetics (2.2), statistics (2.3). Next: achievements (2.4), see
-`docs/planning.md`.
+system + cosmetics (2.2), statistics (2.3), achievements (2.4). Next: reward
+bundles with items and XP (2.5), see `docs/planning.md`.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.
