@@ -138,6 +138,9 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
 - **Line endings:** several Dart files use CRLF or mixed endings. Never run
   `dart format` on whole folders; format only files you created, and edit existing
   files without converting their line endings (keep diffs minimal).
+- App ID everywhere is **`com.dicemajlis.app`** (Android `applicationId` + `namespace`,
+  `MainActivity` in `kotlin/com/dicemajlis/app/`; iOS/macOS `PRODUCT_BUNDLE_IDENTIFIER`;
+  Linux `APPLICATION_ID`). Changing it again breaks store listings and sign-in setup.
 - The project (and CI) uses **Flutter 3.38.7**. Newer Flutter versions rewrite
   `analysis_options.yaml` and `pubspec.lock` on `pub get`, and newer package
   versions need Flutter 3.47+. Revert those unless the change is intended.
