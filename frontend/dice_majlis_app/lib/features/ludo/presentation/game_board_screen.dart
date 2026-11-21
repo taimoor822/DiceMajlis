@@ -19,6 +19,7 @@ import '../../games/domain/game_catalog.dart';
 import '../../multiplayer/data/room_repository.dart';
 import '../../multiplayer/domain/room_session.dart';
 import '../../multiplayer/domain/room_session_controller.dart';
+import '../../achievements/data/achievements_repository.dart';
 import '../../profile/domain/xp_gain.dart';
 import '../domain/ludo_path.dart';
 import '../domain/turn_clock.dart';
@@ -1287,8 +1288,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   }
 }
 
-/// The XP this game gave (it arrives from the server just before the game
-/// ends), or why there is none.
+/// The XP and achievements this game gave (they arrive from the server just
+/// before the game ends), or why there are none.
 class _GameOverXp extends ConsumerWidget {
   const _GameOverXp({required this.roomCode, required this.withAi});
 
@@ -1300,7 +1301,29 @@ class _GameOverXp extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final majlis = context.majlis;
     final gain = ref.watch(xpGainsProvider.select((gains) => gains[roomCode]));
+    final unlocked = ref
+        .watch(achievementUnlocksProvider)
+        .where((a) => a.roomCode == roomCode)
+        .toList();
+    final achievements = [
+      for (final a in unlocked)
+        Text(
+          l10n.gameOverAchievement(a.name),
+          key: ValueKey('game-over-achievement-${a.code}-${a.tier}'),
+          style: TextStyle(color: majlis.gold),
+        ),
+    ];
     if (gain == null) {
+      if (achievements.isNotEmpty) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: achievements,
+          ),
+        );
+      }
       if (!withAi) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.only(top: 12),
@@ -1327,6 +1350,7 @@ class _GameOverXp extends ConsumerWidget {
               key: const Key('game-over-level-up'),
               style: TextStyle(color: majlis.success),
             ),
+          ...achievements,
         ],
       ),
     );

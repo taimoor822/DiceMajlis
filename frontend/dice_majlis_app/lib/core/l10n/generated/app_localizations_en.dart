@@ -330,6 +330,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only online games against other people count (not games with the AI or offline games).';
 
   @override
+  String get profileAchievements => 'Achievements';
+
+  @override
+  String get profileAchievementsHint =>
+      'Milestones that give Gold and Diamonds';
+
+  @override
+  String get achievementsTitle => 'Achievements';
+
+  @override
+  String achievementsSummary(int unlocked, int total) {
+    return '$unlocked of $total unlocked';
+  }
+
+  @override
+  String get achievementsOnlyRealGames =>
+      'They unlock from online games against other people (not games with the AI or offline games).';
+
+  @override
+  String achievementsProgress(int value, int target) {
+    return '$value / $target';
+  }
+
+  @override
+  String get achievementsCompleted => 'Completed';
+
+  @override
+  String achievementsHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hidden achievements still to find',
+      one: '1 hidden achievement still to find',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String achievementUnlockedToast(String name) {
+    return 'Achievement unlocked: $name';
+  }
+
+  @override
+  String rewardAmount(String amount, String currency) {
+    return '+$amount $currency';
+  }
+
+  @override
+  String gameOverAchievement(String name) {
+    return 'Achievement: $name';
+  }
+
+  @override
   String get customiseTitle => 'Customise';
 
   @override
@@ -472,6 +525,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletTypeDaily => 'Daily reward';
+
+  @override
+  String get walletTypeAchievement => 'Achievement reward';
 
   @override
   String get walletTypeAdminGrant => 'From the Dice Majlis team';

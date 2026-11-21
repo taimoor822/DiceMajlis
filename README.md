@@ -46,6 +46,10 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   and frame show for you (Home, Profile)
 - **Statistics** — the Profile shows your games, wins, win rate, best and current win
   streak and your latest results. Only online games against other people count
+- **Achievements** — Profile → Achievements: milestones for games played, wins, win
+  streaks and your level, each in tiers that give Gold or Diamonds (some are hidden
+  until you find them). A note pops up when one unlocks, and the game result lists
+  what that game unlocked
 - **Gold and Diamonds** — balances at the top of Home and a **Wallet** with the full
   history of every change. A **daily reward** grows for 7 days in a row (day 7 adds
   diamonds); miss a day and it starts again. The day changes at midnight Bahrain
@@ -130,6 +134,7 @@ DiceMajlis/
 │       ├── events/              # domain events (outbox): game_finished → XP, later stats and achievements
 │       ├── items/               # one item system: catalog, inventory + item ledger, equip cosmetics, expiry
 │       ├── stats/               # statistics from real online games (results, wins, streaks)
+│       ├── progress/            # progress engine: achievements (tiers, rewards); missions later
 │       ├── realtime/            # the app's one live connection /ws/v1/: sign-in, channels, limits, presence
 │       └── game/                # rooms, REST API, WebSocket, bots, turn timer (any game; tables/ = per-game extras)
 ├── frontend/
@@ -210,7 +215,7 @@ code is printed in the terminal where the server runs (look for "Your code is").
 # rate limits, retries answered once, presence), game actions over it, private
 # rooms (ready, host controls, invites, rules, countdown, rematch), reconnection,
 # Google/Apple token checks, domain events, XP from games, items and equip,
-# statistics (~400 tests)
+# statistics, achievements (~410 tests)
 cd backend/core
 python manage.py test
 
@@ -230,7 +235,7 @@ python -m ludo_engine.vectors
 # (Game Hub from the server catalog, variants, board picked by game type), the live
 # connection (sign-in, reconnects with back-off, token refresh, pings, channels,
 # Home balances following the server, XP and level ups after a game, Customise,
-# dice and board skins, statistics)
+# dice and board skins, statistics, achievements)
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -259,7 +264,7 @@ vectors.
 | Phase | What |
 |---|---|
 | **1 — Playable foundation** | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · ✅ real-time v1 · ✅ online games on v1 · ✅ private rooms v2 · ✅ reconnection · ✅ Google/Apple sign-in (needs your setup) |
-| **2 — Player system** (now) | ✅ XP and levels from games · ✅ items and customisation · ✅ statistics · achievements · reward bundles · entitlements |
+| **2 — Player system** (now) | ✅ XP and levels from games · ✅ items and customisation · ✅ statistics · ✅ achievements · reward bundles · entitlements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |
 | 5 — Social | Friends, chat, feed, notifications, Majlis rooms, communities |

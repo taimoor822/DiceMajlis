@@ -658,6 +658,72 @@ abstract class AppLocalizations {
   /// **'Only online games against other people count (not games with the AI or offline games).'**
   String get statsOnlyRealGames;
 
+  /// No description provided for @profileAchievements.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get profileAchievements;
+
+  /// No description provided for @profileAchievementsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Milestones that give Gold and Diamonds'**
+  String get profileAchievementsHint;
+
+  /// No description provided for @achievementsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements'**
+  String get achievementsTitle;
+
+  /// No description provided for @achievementsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{unlocked} of {total} unlocked'**
+  String achievementsSummary(int unlocked, int total);
+
+  /// No description provided for @achievementsOnlyRealGames.
+  ///
+  /// In en, this message translates to:
+  /// **'They unlock from online games against other people (not games with the AI or offline games).'**
+  String get achievementsOnlyRealGames;
+
+  /// No description provided for @achievementsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} / {target}'**
+  String achievementsProgress(int value, int target);
+
+  /// No description provided for @achievementsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get achievementsCompleted;
+
+  /// No description provided for @achievementsHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hidden achievement still to find} other{{count} hidden achievements still to find}}'**
+  String achievementsHidden(int count);
+
+  /// No description provided for @achievementUnlockedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement unlocked: {name}'**
+  String achievementUnlockedToast(String name);
+
+  /// No description provided for @rewardAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{amount} {currency}'**
+  String rewardAmount(String amount, String currency);
+
+  /// No description provided for @gameOverAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement: {name}'**
+  String gameOverAchievement(String name);
+
   /// No description provided for @customiseTitle.
   ///
   /// In en, this message translates to:
@@ -873,6 +939,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily reward'**
   String get walletTypeDaily;
+
+  /// No description provided for @walletTypeAchievement.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievement reward'**
+  String get walletTypeAchievement;
 
   /// No description provided for @walletTypeAdminGrant.
   ///

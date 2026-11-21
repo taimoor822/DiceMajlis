@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/realtime/realtime_message.dart';
 import '../../../core/realtime/realtime_providers.dart';
+import '../../achievements/data/achievements_repository.dart';
+import '../../achievements/domain/achievements.dart';
 import 'xp_gain.dart';
 
 /// Keeps the signed-in account live from its `user/` channel: XP and level
 /// (`xp_gained`, also kept per game in [xpGainsProvider]) and what it wears
-/// (`cosmetics_changed`, e.g. chosen on another phone). Watched by the app root,
+/// (`cosmetics_changed`, e.g. chosen on another phone), and achievements it
+/// unlocks (`achievement_unlocked`, into [achievementUnlocksProvider]). Watched by the app root,
 /// so it runs whenever someone is signed in with a live connection.
 final accountLiveProvider = Provider<void>((ref) {
   final playerId = ref.watch(
@@ -34,6 +37,11 @@ final accountLiveProvider = Provider<void>((ref) {
         );
         final room = gain.roomCode;
         if (room != null) ref.read(xpGainsProvider.notifier).add(room, gain);
+      case 'achievement_unlocked':
+        final unlocked = AchievementUnlocked.fromJson(message.data);
+        if (unlocked != null) {
+          ref.read(achievementUnlocksProvider.notifier).add(unlocked);
+        }
       case 'cosmetics_changed':
         final cosmetics = message.data['cosmetics'];
         if (cosmetics is! Map) return;

@@ -5,6 +5,8 @@ import 'package:dice_majlis_app/core/auth/auth_controller.dart';
 import 'package:dice_majlis_app/core/realtime/realtime_providers.dart';
 import 'package:dice_majlis_app/core/routing/app_router.dart';
 import 'package:dice_majlis_app/core/routing/app_routes.dart';
+import 'package:dice_majlis_app/features/achievements/data/achievements_repository.dart';
+import 'package:dice_majlis_app/features/achievements/domain/achievements.dart';
 import 'package:dice_majlis_app/features/home/presentation/home_screen.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/game_board_screen.dart';
 import 'package:dice_majlis_app/features/ludo/presentation/widgets/dice_widget.dart';
@@ -175,9 +177,20 @@ void main() {
             'next_level_xp': 300,
           })!,
         );
+    container
+        .read(achievementUnlocksProvider.notifier)
+        .add(
+          const AchievementUnlocked(
+            code: 'wins',
+            name: 'Victories',
+            tier: 1,
+            roomCode: 'AB12',
+          ),
+        );
     sockets.last.emit({'type': 'game_finished', 'winner_id': me});
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.text('Achievement: Victories'), findsOneWidget);
     expect(find.text("Level up! You're now level 2"), findsOneWidget);
     expect(find.text("Games with the AI don't give XP."), findsNothing);
   });

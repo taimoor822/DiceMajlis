@@ -21,6 +21,7 @@ from .models import RewardClaim
 # Which ledger entry type each kind of reward writes.
 LEDGER_TYPES = {
     "daily_login": TransactionType.REWARD_DAILY,
+    "achievement": TransactionType.REWARD_ACHIEVEMENT,
 }
 
 

@@ -140,7 +140,8 @@ class GameXpTests(RoomTestCase):
         from events.outbox import dispatch_pending
 
         self.assertGreaterEqual(dispatch_pending(min_age_seconds=0), 1)
-        dispatch_pending(min_age_seconds=0)  # nothing is given twice
+        for _ in range(5):  # what the handlers emitted (stats, achievements ...)
+            dispatch_pending(min_age_seconds=0)  # and nothing is given twice
         self.assertEqual((self.xp_of(host), self.xp_of(guest)), (50, 20))
         self.assertEqual(XpEntry.objects.count(), 2)
         self.assertFalse(DomainEvent.objects.filter(processed_at__isnull=True).exists())
