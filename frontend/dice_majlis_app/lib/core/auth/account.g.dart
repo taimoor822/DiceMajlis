@@ -46,6 +46,8 @@ _ActiveRoom _$ActiveRoomFromJson(Map<String, dynamic> json) => _ActiveRoom(
   isHost: json['is_host'] as bool? ?? false,
   maxPlayers: (json['max_players'] as num?)?.toInt(),
   started: json['started'] as bool? ?? false,
+  gameType: json['game_type'] as String? ?? 'ludo',
+  variant: json['variant'] as String? ?? 'classic',
 );
 
 Map<String, dynamic> _$ActiveRoomToJson(_ActiveRoom instance) =>
@@ -55,4 +57,6 @@ Map<String, dynamic> _$ActiveRoomToJson(_ActiveRoom instance) =>
       'is_host': instance.isHost,
       'max_players': instance.maxPlayers,
       'started': instance.started,
+      'game_type': instance.gameType,
+      'variant': instance.variant,
     };

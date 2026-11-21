@@ -4,8 +4,9 @@ Server-side turn timer.
 Each running game stores ``Game.turn_deadline``, written by game.services in
 the same transaction as the game state. A sweep runs every second, finds
 overdue turns and:
-  - human player: applies ludo_engine.timeout (auto-roll with server dice, bot
-    move; after ``rules.max_missed_turns`` misses in a row they forfeit)
+  - human player: applies the game's "timeout" action (Ludo: auto-roll with
+    server dice and the bot's move; after ``rules.max_missed_turns`` misses in
+    a row they forfeit)
   - bot player: just lets the bot act. An overdue bot means its thread died,
     and a bot shouldn't be penalised for a server hiccup.
 
@@ -28,7 +29,7 @@ from datetime import datetime
 from django.db import close_old_connections
 from django.utils import timezone
 
-from ludo_engine import EngineError, GameState
+import game_platform
 
 from . import services
 from .models import Game, Player
@@ -66,7 +67,7 @@ def process_due_turns(now: datetime | None = None) -> int:
 def _handle_overdue(room_code: str, now: datetime) -> bool:
     game = (
         Game.objects.filter(room__code=room_code)
-        .only("state", "turn_deadline", "is_finished")
+        .only("state", "turn_deadline", "is_finished", "game_type")
         .first()
     )
     if game is None or game.state is None or game.is_finished:
@@ -74,8 +75,9 @@ def _handle_overdue(room_code: str, now: datetime) -> bool:
     if game.turn_deadline is None or game.turn_deadline > now:
         return False
 
-    state = GameState.from_dict(game.state)
-    current = state.current_player.player_id
+    game_def = game_platform.get_game(game.game_type)
+    info = game_def.info(game_def.load(game.state))
+    current = info.current_player_id
 
     if Player.objects.filter(id=current, is_bot=True).exists():
         services.schedule_bots(room_code)
@@ -84,10 +86,10 @@ def _handle_overdue(room_code: str, now: datetime) -> bool:
     try:
         result = services.perform(
             room_code,
-            {"type": "timeout", "turn_number": state.turn_number},
+            {"type": "timeout", "turn_number": info.turn_number},
             now=now,
         )
-    except (EngineError, services.GameConflict, services.TimerNotDue):
+    except (*services.rule_errors(), services.GameConflict, services.TimerNotDue):
         return False  # the player acted just in time, or another sweep got there first
     if result.next_is_bot:
         services.schedule_bots(room_code)

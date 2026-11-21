@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_service.dart';
+import '../../games/domain/game_catalog.dart';
 import '../domain/room_session.dart';
 
 /// What the server allows when creating a room.
@@ -48,8 +49,11 @@ class RollResult {
 /// server finds your seat from it). Tests swap in a fake through
 /// [roomRepositoryProvider].
 abstract class RoomRepository {
-  Future<RoomOptions> roomOptions();
-  Future<RoomSession> createRoom({required int maxPlayers});
+  Future<RoomOptions> roomOptions(GameChoice game);
+  Future<RoomSession> createRoom({
+    required int maxPlayers,
+    required GameChoice game,
+  });
   Future<RoomSession> joinRoom(String code);
   Future<void> startGame(String roomCode);
   Future<RollResult> rollDice(String roomCode);
@@ -66,14 +70,22 @@ class ApiRoomRepository implements RoomRepository {
   final ApiService _api;
 
   @override
-  Future<RoomOptions> roomOptions() async =>
-      RoomOptions.fromJson(await _api.roomOptions());
+  Future<RoomOptions> roomOptions(GameChoice game) async =>
+      RoomOptions.fromJson(
+        await _api.roomOptions(gameType: game.gameType, variant: game.variant),
+      );
 
   @override
-  Future<RoomSession> createRoom({required int maxPlayers}) async =>
-      RoomSession.fromRoomResponse(
-        await _api.createRoom(maxPlayers: maxPlayers),
-      );
+  Future<RoomSession> createRoom({
+    required int maxPlayers,
+    required GameChoice game,
+  }) async => RoomSession.fromRoomResponse(
+    await _api.createRoom(
+      maxPlayers: maxPlayers,
+      gameType: game.gameType,
+      variant: game.variant,
+    ),
+  );
 
   @override
   Future<RoomSession> joinRoom(String code) async =>
@@ -98,8 +110,9 @@ final roomRepositoryProvider = Provider<RoomRepository>(
   (ref) => ApiRoomRepository(ref.watch(apiServiceProvider)),
 );
 
-/// The create-room choices, loaded from the server once per visit to the
-/// create screen.
-final roomOptionsProvider = FutureProvider.autoDispose<RoomOptions>(
-  (ref) => ref.watch(roomRepositoryProvider).roomOptions(),
-);
+/// The create-room choices for a game and variant, loaded from the server once
+/// per visit to the create screen.
+final roomOptionsProvider = FutureProvider.autoDispose
+    .family<RoomOptions, GameChoice>(
+      (ref, game) => ref.watch(roomRepositoryProvider).roomOptions(game),
+    );

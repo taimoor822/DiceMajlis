@@ -9,7 +9,8 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/hub/presentation/game_hub_screen.dart';
 import '../../features/local_play/presentation/local_game_screen.dart';
 import '../../features/local_play/presentation/local_setup_screen.dart';
-import '../../features/ludo/presentation/game_board_screen.dart';
+import '../../features/games/domain/game_catalog.dart';
+import '../../features/games/presentation/game_route_screen.dart';
 import '../../features/multiplayer/domain/room_session.dart';
 import '../../features/multiplayer/domain/room_session_controller.dart';
 import '../../features/multiplayer/presentation/create_room_screen.dart';
@@ -128,7 +129,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           _tab(AppRoutes.hub, const GameHubScreen(), [
             GoRoute(
               path: 'create-room',
-              builder: (context, state) => const CreateRoomScreen(),
+              builder: (context, state) => CreateRoomScreen(
+                game: GameChoice(
+                  gameType:
+                      state.uri.queryParameters['game'] ?? GameChoice.ludo,
+                  variant:
+                      state.uri.queryParameters['variant'] ??
+                      GameChoice.classic,
+                ),
+              ),
             ),
             GoRoute(
               path: 'join-room',
@@ -168,7 +177,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/game/:code',
         builder: (context, state) =>
-            GameBoardScreen(roomCode: state.pathParameters['code']!),
+            GameRouteScreen(roomCode: state.pathParameters['code']!),
       ),
       GoRoute(
         path: AppRoutes.localPlay,

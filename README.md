@@ -12,8 +12,8 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
 > (guest or email), a permanent Player ID, a basic profile, and Gold and Diamonds
 > with a daily reward. The app has its Majlis look (dark navy and gold, plus a light
 > theme) and its main navigation, and offline games (vs the AI or pass-and-play) run
-> on the phone with the same rules. The multi-game layer comes next (see
-> [roadmap](#roadmap)).
+> on the phone with the same rules. The platform is ready for more games (a game
+> registry on server and app). Real-time v1 comes next (see [roadmap](#roadmap)).
 
 ---
 
@@ -45,6 +45,10 @@ Flutter app (Android / iOS) + Django backend with real-time WebSockets.
   or move for someone else
 - **Clear messages** — if something fails (room full, wrong code, no
   connection), the app says why
+- **Many games, one platform** — every room knows its game and variant (today:
+  Classic Ludo). Game Hub lists the games the server offers; the server runs any game
+  in its registry with the same rooms, bots, turn timer and move log, so Domino and
+  Jackaroo can plug in later
 - **Main navigation** — bottom bar with Events, Game Hub, Battle, Chat and Social;
   Battle in the centre is the Home lobby. Rooms live in Game Hub; sections not built
   yet say "coming soon"
@@ -81,11 +85,12 @@ DiceMajlis/
 │   └── core/                    # Django project (manage.py lives here)
 │       ├── core/                # settings, ASGI, URLs
 │       ├── ludo_engine/         # the Ludo rules engine + tests (+ vectors.py: shared test vectors)
+│       ├── game_platform/       # game registry: one contract for every game, Ludo's adapter
 │       ├── accounts/            # sign-in (guest, email), tokens, Player ID, devices, password reset
 │       ├── profiles/            # name, avatar, country, languages, XP/level
 │       ├── wallet/              # gold + diamonds: ledger, admin adjustments, audit
 │       ├── rewards/             # grant() engine, daily reward
-│       └── game/                # rooms, REST API, WebSocket, bots, turn timer
+│       └── game/                # rooms, REST API, WebSocket, bots, turn timer (any game; tables/ = per-game extras)
 ├── frontend/
 │   └── dice_majlis_app/         # Flutter app (with a Dart copy of the engine for offline games)
 ├── shared/ludo/engine_vectors.json  # rules written down by the Python engine; both engines must pass it
@@ -157,9 +162,10 @@ code is printed in the terminal where the server runs (look for "Your code is").
 ## Tests
 
 ```bash
-# Backend: rules engine (+ shared vectors up to date), accounts (guest, email, tokens,
-# reset), profiles, wallet ledger, rewards, API, input checks, seats, leaving,
-# sockets, turn timer (227 tests)
+# Backend: rules engine (+ shared vectors up to date), game registry (Ludo adapter,
+# a toy second game through rooms, bots and the timer), accounts (guest, email,
+# tokens, reset), profiles, wallet ledger, rewards, API, input checks, seats,
+# leaving, sockets, turn timer (250 tests)
 cd backend/core
 python manage.py test
 
@@ -175,7 +181,8 @@ python -m ludo_engine.vectors
 # room, navigation, create/join/waiting-room/leave flow, error messages, routes,
 # themes, board (only server-listed tokens move, leave game), server address, countdown,
 # the Dart engine against every shared vector, offline games (setup, AI turns,
-# pass-and-play, results, playing with no account or no server)
+# pass-and-play, results, playing with no account or no server), game registry
+# (Game Hub from the server catalog, variants, board picked by game type)
 cd frontend/dice_majlis_app
 flutter test
 ```
@@ -203,7 +210,7 @@ vectors.
 
 | Phase | What |
 |---|---|
-| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · multi-game layer · real-time v1 · private rooms v2 · reconnection |
+| **1 — Playable foundation** (now) | ✅ rules engine · ✅ online game on the engine · ✅ turn timer · ✅ dev setup & CI · ✅ app architecture & Majlis theme · ✅ main navigation · ✅ accounts with Player ID · ✅ email sign-in & profile · ✅ gold, diamonds & daily reward · ✅ local play · ✅ multi-game layer · real-time v1 · private rooms v2 · reconnection |
 | 2 — Player system | XP and levels, inventory and basic customisation, statistics, achievements |
 | 3 — Ludo complete | Team mode, variants (Quick, Snakes, Lucky, Jungle, Night, Fight), replays |
 | 4 — Multiplayer at scale | Matchmaking, spectators, load testing |

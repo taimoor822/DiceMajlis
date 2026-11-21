@@ -748,11 +748,17 @@ abstract class AppLocalizations {
   /// **'Game Hub'**
   String get hubTitle;
 
-  /// No description provided for @hubClassicTitle.
+  /// No description provided for @hubCatalogFailed.
   ///
   /// In en, this message translates to:
-  /// **'Classic Ludo'**
-  String get hubClassicTitle;
+  /// **'Couldn\'t load the games'**
+  String get hubCatalogFailed;
+
+  /// No description provided for @hubUpdateForGames.
+  ///
+  /// In en, this message translates to:
+  /// **'New games are available. Update the app to play them.'**
+  String get hubUpdateForGames;
 
   /// No description provided for @hubClassicBody.
   ///
@@ -1395,6 +1401,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The server didn\'t accept that. Please check and try again.'**
   String get errorInvalidInput;
+
+  /// No description provided for @gameLudo.
+  ///
+  /// In en, this message translates to:
+  /// **'Ludo'**
+  String get gameLudo;
+
+  /// No description provided for @variantClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get variantClassic;
+
+  /// A game with its variant, e.g. Classic Ludo
+  ///
+  /// In en, this message translates to:
+  /// **'{variant} {game}'**
+  String gameTitle(String variant, String game);
+
+  /// No description provided for @gameUnsupportedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update the app to play this game'**
+  String get gameUnsupportedTitle;
+
+  /// No description provided for @gameUnsupportedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This room plays a game this version of Dice Majlis can\'t show yet. Update the app, or leave the game to play something else.'**
+  String get gameUnsupportedBody;
 
   /// No description provided for @localSetupTitle.
   ///

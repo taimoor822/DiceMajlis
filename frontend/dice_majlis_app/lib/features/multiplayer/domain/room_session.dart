@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/auth/account.dart';
+import '../../games/domain/game_catalog.dart';
 
 part 'room_session.freezed.dart';
 part 'room_session.g.dart';
@@ -39,11 +40,15 @@ abstract class RoomSession with _$RoomSession {
 
     /// This account's own player entry, when the server sent it.
     RoomPlayer? self,
+
+    /// Which game the room plays and how (server game registry).
+    @Default(GameChoice.ludo) String gameType,
+    @Default(GameChoice.classic) String variant,
   }) = _RoomSession;
 
   /// From the create-room / join-room API response:
-  /// `{"room": {"code": ..., "max_players": ..., "is_started": ...},
-  ///   "player": {"id": ..., "is_host": ...}}`.
+  /// `{"room": {"code": ..., "game_type": ..., "variant": ...,
+  ///   "max_players": ..., "is_started": ...}, "player": {"id": ..., "is_host": ...}}`.
   factory RoomSession.fromRoomResponse(Map<String, dynamic> response) {
     final room = Map<String, dynamic>.from(response['room'] as Map);
     final player = Map<String, dynamic>.from(response['player'] as Map);
@@ -59,6 +64,8 @@ abstract class RoomSession with _$RoomSession {
       isStarted: room['is_started'] == true,
       maxPlayers: maxPlayers is num ? maxPlayers.toInt() : null,
       self: self,
+      gameType: room['game_type']?.toString() ?? GameChoice.ludo,
+      variant: room['variant']?.toString() ?? GameChoice.classic,
     );
   }
 
@@ -69,5 +76,7 @@ abstract class RoomSession with _$RoomSession {
     isHost: room.isHost,
     isStarted: room.started,
     maxPlayers: room.maxPlayers,
+    gameType: room.gameType,
+    variant: room.variant,
   );
 }

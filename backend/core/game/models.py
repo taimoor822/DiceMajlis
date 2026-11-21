@@ -3,10 +3,19 @@ from django.db import models
 from django.db.models import Q
 import uuid
 
+from game_platform import CLASSIC, LUDO
+
+# Which game and which way to play it (game_platform registry). Plain text, not
+# choices: the registry decides what exists, and the views check it.
+GAME_TYPE_MAX_LENGTH = 20
+VARIANT_MAX_LENGTH = 30
+
 
 class Room(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(max_length=6, unique=True)
+    game_type = models.CharField(max_length=GAME_TYPE_MAX_LENGTH, default=LUDO)
+    variant = models.CharField(max_length=VARIANT_MAX_LENGTH, default=CLASSIC)
     max_players = models.PositiveIntegerField(default=4)
     is_started = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -55,6 +64,10 @@ class Game(models.Model):
         on_delete=models.CASCADE
     )
 
+    # Copied from the room when the game starts; decides which engine runs it.
+    game_type = models.CharField(max_length=GAME_TYPE_MAX_LENGTH, default=LUDO)
+    variant = models.CharField(max_length=VARIANT_MAX_LENGTH, default=CLASSIC)
+
     current_turn = models.ForeignKey(
         Player,
         on_delete=models.SET_NULL,
@@ -69,8 +82,9 @@ class Game(models.Model):
 
     is_finished = models.BooleanField(default=False)
 
-    # Authoritative ludo_engine snapshot (GameState.to_dict()). current_turn,
-    # last_dice, is_finished and Token rows are mirrors of it for existing reads.
+    # Authoritative engine snapshot (the game's ``dump()``; for Ludo
+    # GameState.to_dict()). current_turn, is_finished and, for Ludo, last_dice
+    # and the Token rows are mirrors of it for existing reads.
     # Only game.services may write these. NULL = game started before the engine.
     state = models.JSONField(null=True, blank=True)
     initial_state = models.JSONField(null=True, blank=True)
@@ -87,7 +101,7 @@ class Game(models.Model):
 class GameAction(models.Model):
     """
     Every accepted action, in order, including the server's dice value.
-    ludo_engine.replay(initial_state, actions) rebuilds the game exactly:
+    The game's ``replay(initial_state, actions)`` rebuilds it exactly:
     used for disputes, anti-cheat review and recovery.
     """
 

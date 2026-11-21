@@ -37,7 +37,10 @@ backend/core/              Django project (run manage.py from here)
   rewards/                 grant() engine, reward-day (00:00 Bahrain), daily login
   ludo_engine/             PURE Python rules engine + tests (no Django inside);
                            vectors.py writes the shared test vectors
-  game/                    rooms, REST views, socket consumer, services.py, timers.py, bots
+  game_platform/           PURE game registry: GameEngine contract, register/get_game,
+                           Ludo adapter (variant classic), catalog(); toy game in tests
+  game/                    rooms, REST views, socket consumer, services.py, timers.py, bots;
+                           tables/ = per-game extras (Ludo: Token rows, socket messages)
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, websocket, theme,
                            routing, l10n), lib/shared/widgets, lib/features/<x>/
                            {data,domain,presentation}; server address in
@@ -53,8 +56,10 @@ docs/                      plans and designs
 1. **Server-authoritative.** The app never sends dice values, positions, prices or
    balances. It asks ("roll", "move token 2", "send gift X"); the server decides.
 2. **One write path for games.** All game state changes go through
-   `game/services.py::perform()` → `ludo_engine`. Never write `Game.state`, `Token`
-   rows or game broadcasts anywhere else.
+   `game/services.py::perform()` → the room's engine from `game_platform`
+   (`get_game(game_type)`). Never write `Game.state`, `Token` rows or game
+   broadcasts anywhere else, and never import a game engine in shared code: look it
+   up in the registry.
 3. **`ludo_engine` stays pure:** no Django, no database, no clock, no randomness.
    The server rolls with `SecureDice` and passes values in; that keeps games replayable.
 4. **Money and items (when built):** balances and item counts change only through the
@@ -91,8 +96,9 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~227 tests)
+python manage.py test                                  # everything (~250 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
+python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
 python manage.py audit_wallets                         # every balance = its ledger
 python -m ludo_engine.vectors                          # rewrite shared/ludo/engine_vectors.json after a rules change
@@ -128,8 +134,9 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   network. `testApp()` opens signed in (a saved refresh token); pass
   `tokens: MemoryTokenStore()` for a signed-out start.
 - Backend tests use `GAME_BOTS_INLINE=True` (bots run synchronously), the in-memory
-  channel layer and a local-memory cache (rate limits). Script dice by patching
-  `game.services.SecureDice.roll`. `GameApiTestCase.post(..., player_id=X)` signs in
+  channel layer and a local-memory cache (rate limits). Script dice with
+  `GameApiTestCase.dice(6, 3, ...)` (it swaps `services.SERVER_RANDOM` for a
+  `game_platform.ScriptedRandom`). `GameApiTestCase.post(..., player_id=X)` signs in
   as the account holding seat X; without it, as a brand-new guest.
 - Engine token index ↔ DB token: tokens of a player sorted by `str(id)` (the Flutter
   board uses the same order).
@@ -178,6 +185,14 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `localDiceProvider` (`ScriptedDice`) and `localPlayTimingProvider`
   (`LocalPlayTiming.instant`). `/local` pages are open signed out and offline. Offline
   games never call the server or touch money/XP/ratings.
+- Game platform (1.10): rooms and games have `game_type` + `variant` (default
+  `ludo`/`classic`). A new game = pure engine + adapter (`game_platform/contract.py`)
+  + `register()` in `game_platform/__init__.py` (+ a table in `game/tables/` if it
+  needs extra rows/messages) + an app `GameModule` in `gameModulesProvider`
+  (`features/games/game_registry.dart`). Engines do the server's part in
+  `prepare_action` (dice, bot choice, timeouts) with the random source passed in.
+  The roll/move REST endpoints are Ludo's (`wrong_game` otherwise). App tests fake
+  the catalog with `FakeGameCatalogRepository` (Ludo Classic by default).
 - Board picture (`assets/board/majlis_board.svg`): its colours must follow the seat
   order (red enters at the bottom, then blue left, green top, yellow right, as in
   `LudoPath`). `LudoBoardView` draws board + tokens for offline games; the online
@@ -190,8 +205,9 @@ Done: engine (1.0), live game on engine (1.1), turn timer (1.2), dev setup + CI 
 Flutter architecture + Majlis theme (1.4), main navigation (1.5), guest accounts with
 Player ID + session restore (1.6), email sign-in + password reset + basic profile (1.7),
 gold + diamonds wallet ledger, grant() and daily reward (1.8), local play on a Dart
-engine checked by shared test vectors, vs AI and pass-and-play (1.9).
-Next: 1.10 game platform layer, 1.11 WebSocket v1, 1.12 online multiplayer on v1.
+engine checked by shared test vectors, vs AI and pass-and-play (1.9), game platform
+layer: registry + game_type/variant on server and app (1.10).
+Next: 1.11 WebSocket v1, 1.12 online multiplayer on v1, 1.13 private rooms v2.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

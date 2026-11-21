@@ -1,14 +1,16 @@
 """
-Runs live games on ``ludo_engine``. This is the ONLY module that changes game
-state: views, the socket consumer and the bot loop all call into it.
+Runs live games. This is the ONLY module that changes game state: views, the
+socket consumer, the turn timer and the bot loop all call into it.
+
+It works for any game in the ``game_platform`` registry: the room's
+``game_type`` picks the engine, and the game's table (``game.tables``) adds
+what that game needs on top (for Ludo: Token rows and the socket messages
+today's app understands).
 
 Each action runs in one DB transaction:
-    lock game → load engine state → server dice → engine → save new state
-    (only if nobody else saved first) → log action → mirror Token rows
-and the resulting events are broadcast after the transaction commits.
-
-Socket messages keep the names the Flutter app already handles
-(dice_rolled, token_moved, turn_changed, game_finished) and add ``version``.
+    lock game → load engine state → server randomness (dice) → engine → save new
+    state (only if nobody else saved first) → log action → the game's table
+and the resulting messages are broadcast after the transaction commits.
 """
 
 from __future__ import annotations
@@ -28,15 +30,17 @@ from django.conf import settings
 from django.db import close_old_connections, transaction
 from django.utils import timezone
 
-import ludo_engine as engine
-from ludo_engine import EngineError, EventType, GameState, SecureDice, TurnPhase
-from ludo_engine.board import HOME_PROGRESS
+import game_platform
+from game_platform import PlatformError, SecureRandom, TurnInfo
+from ludo_engine.board import SEAT_COLORS
 
-from .models import Game, GameAction, Player, Room, Token
+from .models import Game, GameAction, Player, Room
+from .tables import table_for
 
 logger = logging.getLogger(__name__)
 
-COLOR_BY_SEAT = engine.SEAT_COLORS  # ("red", "blue", "green", "yellow")
+# Seats are handed out by colour (TODO 1.13 rooms v2: seats per game type).
+COLOR_BY_SEAT = SEAT_COLORS  # ("red", "blue", "green", "yellow")
 SEAT_BY_COLOR = {"red": 0, "blue": 1, "green": 2, "yellow": 3, "orange": 3, "amber": 3}
 
 # Seats handed out as people join: the second player sits opposite the host,
@@ -44,6 +48,10 @@ SEAT_BY_COLOR = {"red": 0, "blue": 1, "green": 2, "yellow": 3, "orange": 3, "amb
 JOIN_SEAT_ORDER = (0, 2, 1, 3)
 
 MAX_BOT_ACTIONS_PER_RUN = 500
+
+# Every server-side random choice (dice, later shuffled tiles). Tests swap it
+# for game_platform.ScriptedRandom.
+SERVER_RANDOM = SecureRandom()
 
 
 class GameConflict(Exception):
@@ -66,12 +74,17 @@ class LegacyGame(Exception):
 
 @dataclass(frozen=True)
 class ActionResult:
-    state: GameState
-    events: tuple[engine.Event, ...]
-    dice: int | None
+    state: Any  # the engine's new state
+    events: tuple[Any, ...]
+    info: TurnInfo
     next_is_bot: bool
-    # After a roll: the DB ids of the tokens that may move with it.
-    movable_token_ids: tuple[str, ...] = ()
+    # From the game's table, for the HTTP answer (Ludo: dice, movable_token_ids).
+    details: dict[str, Any]
+
+
+def rule_errors() -> tuple[type[Exception], ...]:
+    """Errors an action can be refused with: every engine's rules, plus the platform's."""
+    return game_platform.rule_errors() + (PlatformError,)
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +148,9 @@ def bot_seat_for(used_seats: set[int], host_seat: int) -> int:
 # ---------------------------------------------------------------------------
 
 
-def start_game(room: Room, host: Player) -> tuple[Game, GameState]:
-    """Create the engine game, seat everyone, create tokens. Call inside a transaction."""
+def start_game(room: Room, host: Player) -> tuple[Game, Any]:
+    """Create the room's game on its engine and seat everyone. Call inside a transaction."""
+    game_def = game_platform.get_game(room.game_type)
     players = list(room.players.order_by("joined_at"))
     seats = assign_seats(players)
     for player in players:
@@ -146,24 +160,26 @@ def start_game(room: Room, host: Player) -> tuple[Game, GameState]:
             player.color = COLOR_BY_SEAT[seat]
             player.save(update_fields=["color"])
 
-    state = engine.new_game(
+    state = game_def.new_game(
         str(room.id),
         [str(p.id) for p in players],
+        variant=room.variant,
         seats=[seats[str(p.id)] for p in players],
         first_player_id=str(host.id),
     )
-    snapshot = state.to_dict()
+    snapshot = game_def.dump(state)
+    info = game_def.info(state)
     game = Game.objects.create(
         room=room,
+        game_type=room.game_type,
+        variant=room.variant,
         current_turn=host,
         state=snapshot,
         initial_state=snapshot,
-        version=state.version,
-        turn_deadline=timezone.now() + turn_duration(state),
+        version=info.version,
+        turn_deadline=_deadline(info, timezone.now()),
     )
-    for player in players:
-        for _ in range(state.rules.tokens_per_player):
-            Token.objects.create(player=player)
+    table_for(room.game_type).on_start(room, state)
     return game, state
 
 
@@ -193,14 +209,15 @@ def seat_in_play(player: Player) -> bool:
     room = player.room
     if not room.is_started:
         return True
-    game = Game.objects.filter(room=room).only("state", "is_finished").first()
+    game = Game.objects.filter(room=room).only("state", "is_finished", "game_type").first()
     if game is None or game.is_finished or game.state is None:
         return False
     try:
-        status = GameState.from_dict(game.state).player(str(player.id)).status
-    except EngineError:
+        game_def = game_platform.get_game(game.game_type)
+        info = game_def.info(game_def.load(game.state))
+    except rule_errors():
         return False
-    return status is engine.PlayerStatus.ACTIVE
+    return str(player.id) in info.active_player_ids
 
 
 def active_seat_for(user) -> dict[str, Any] | None:
@@ -214,6 +231,8 @@ def active_seat_for(user) -> dict[str, Any] | None:
                 "is_host": seat.is_host,
                 "max_players": room.max_players,
                 "started": room.is_started,
+                "game_type": room.game_type,
+                "variant": room.variant,
             }
     return None
 
@@ -263,7 +282,7 @@ def leave_room(player: Player, *, forfeit: bool = True) -> None:
             if attempt == 2:
                 raise
             continue
-        except (EngineError, LegacyGame, Game.DoesNotExist):
+        except (*rule_errors(), LegacyGame, Game.DoesNotExist):
             return  # already out, or the game is over
         if result.next_is_bot:
             schedule_bots(room.code)
@@ -288,21 +307,11 @@ def _free_seat(room: Room, player: Player) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def token_ids_by_player(room: Room) -> dict[str, list[str]]:
-    """
-    Engine token index ↔ DB token id. Ordered by id string, the same order the
-    Flutter board uses for labels, so "token 1" means the same thing everywhere.
-    """
-    result: dict[str, list[str]] = {}
-    for token in Token.objects.filter(player__room=room).only("id", "player_id"):
-        result.setdefault(str(token.player_id), []).append(str(token.id))
-    for ids in result.values():
-        ids.sort()
-    return result
-
-
-def turn_duration(state: GameState) -> timedelta:
-    return timedelta(seconds=state.rules.turn_timeout_seconds)
+def _deadline(info: TurnInfo, now: datetime) -> datetime | None:
+    """When the current turn runs out, or None (game over, or a game without a timer)."""
+    if info.finished or not info.turn_seconds:
+        return None
+    return now + timedelta(seconds=info.turn_seconds)
 
 
 def seconds_left(deadline: datetime | None, now: datetime | None = None) -> int | None:
@@ -315,11 +324,12 @@ def seconds_left(deadline: datetime | None, now: datetime | None = None) -> int 
 
 def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = None) -> ActionResult:
     """
-    Apply one action. ``action`` uses ludo_engine.apply_action's format, plus:
-      - "roll" without "value": the server rolls with SecureDice
-      - "bot_move": the server picks the move with ludo_engine.choose_move
-    Raises EngineError (rule violations), GameConflict, LegacyGame, TimerNotDue,
-    Room.DoesNotExist / Game.DoesNotExist.
+    Apply one action, in the engine's own action format. The engine fills in
+    the server's part first (``prepare_action``): for Ludo a "roll" gets the
+    server's dice, a "bot" action becomes the bot's roll or move, and a
+    "timeout" gets dice when a roll is due.
+    Raises the engine's rule errors, PlatformError, GameConflict, LegacyGame,
+    TimerNotDue, Room.DoesNotExist / Game.DoesNotExist.
     """
     now = now or timezone.now()
     with transaction.atomic():
@@ -328,92 +338,51 @@ def perform(room_code: str, action: dict[str, Any], *, now: datetime | None = No
         if game.state is None:
             raise LegacyGame("this game was started before the rules update")
 
-        state = GameState.from_dict(game.state)
-        if state.version != game.version:
+        game_def = game_platform.get_game(game.game_type)
+        state = game_def.load(game.state)
+        if game_def.info(state).version != game.version:
             raise GameConflict("stored state and version disagree")
         if action.get("type") == "timeout" and (
             game.turn_deadline is None or game.turn_deadline > now
         ):
             raise TimerNotDue("this turn has not run out yet")
 
-        resolved = _resolve(state, action)
-        transition = engine.apply_action(state, resolved)
+        resolved = game_def.prepare_action(state, action, SERVER_RANDOM)
+        transition = game_def.apply_action(state, resolved)
         new_state = transition.state
+        info = game_def.info(new_state)
+        old_info = game_def.info(state)
+
+        if info.finished:
+            deadline = None
+        elif info.turn_number != old_info.turn_number:
+            deadline = _deadline(info, now)  # a new turn gets a fresh clock
+        else:
+            deadline = game.turn_deadline  # same turn (roll -> move): clock keeps running
 
         # Optimistic check: only save if nobody saved a newer version meanwhile.
         # (SQLite ignores SELECT ... FOR UPDATE, so this is the real guard there.)
-        current = new_state.current_player.player_id
-        if new_state.is_finished:
-            deadline = None
-        elif new_state.turn_number != state.turn_number:
-            deadline = now + turn_duration(new_state)  # a new turn gets a fresh clock
-        else:
-            deadline = game.turn_deadline  # same turn (roll -> move): clock keeps running
-        saved = Game.objects.filter(pk=game.pk, version=state.version).update(
-            state=new_state.to_dict(),
-            version=new_state.version,
-            current_turn_id=current,
-            last_dice=new_state.dice_value,
-            is_finished=new_state.is_finished,
+        saved = Game.objects.filter(pk=game.pk, version=game.version).update(
+            state=game_def.dump(new_state),
+            version=info.version,
+            current_turn_id=info.current_player_id,
+            is_finished=info.finished,
             turn_deadline=deadline,
         )
         if saved != 1:
             raise GameConflict("the game changed while this action was running")
 
-        GameAction.objects.create(game=game, version=new_state.version, action=resolved)
-        token_ids = token_ids_by_player(room)
-        _mirror_tokens(state, new_state, token_ids)
-        messages = socket_messages(transition, token_ids, deadline=deadline, now=now)
+        GameAction.objects.create(game=game, version=info.version, action=resolved)
+        messages, details = table_for(game.game_type).record(
+            room, state, transition, deadline=deadline, now=now
+        )
         next_is_bot = (
-            not new_state.is_finished
-            and Player.objects.filter(id=current, is_bot=True).exists()
+            not info.finished
+            and Player.objects.filter(id=info.current_player_id, is_bot=True).exists()
         )
 
-        dice, movable = None, ()
-        for event in transition.events:
-            if event.type is EventType.DICE_RESULT:
-                ids = token_ids.get(event.data["player_id"], [])
-                dice = event.data["value"]
-                movable = tuple(ids[k] for k in event.data["movable_tokens"] if k < len(ids))
-
     broadcast(room_code, messages)
-    return ActionResult(new_state, transition.events, dice, next_is_bot, movable)
-
-
-def _resolve(state: GameState, action: dict[str, Any]) -> dict[str, Any]:
-    """Fill in server-side choices so the logged action can be replayed exactly."""
-    kind = action.get("type")
-    if kind == "roll":
-        # Never trust a client value: the server always rolls, and only when a roll is legal.
-        engine.check_roll(state, str(action["player_id"]))
-        return {"type": "roll", "player_id": str(action["player_id"]), "value": SecureDice().roll()}
-    if kind == "bot_move":
-        if state.phase is not TurnPhase.AWAITING_MOVE:
-            raise engine.WrongPhase("bot has nothing to move")
-        if state.current_player.player_id != str(action["player_id"]):
-            raise engine.NotYourTurn("not the bot's turn")
-        chosen = engine.choose_move(state)
-        return {"type": "move", "player_id": str(action["player_id"]), "token_index": chosen.token_index}
-    if kind == "timeout":
-        expected_turn = action.get("turn_number", state.turn_number)
-        engine.check_timeout(state, expected_turn)  # stale timers never touch the dice
-        rolling = state.phase is TurnPhase.AWAITING_ROLL
-        return {
-            "type": "timeout",
-            "turn_number": expected_turn,
-            "dice_value": SecureDice().roll() if rolling else None,
-        }
-    return dict(action)
-
-
-def _mirror_tokens(old: GameState, new: GameState, token_ids: dict[str, list[str]]) -> None:
-    for old_player, new_player in zip(old.players, new.players):
-        ids = token_ids.get(new_player.player_id, [])
-        for index, (before, after) in enumerate(zip(old_player.tokens, new_player.tokens)):
-            if before != after and index < len(ids):
-                Token.objects.filter(id=ids[index]).update(
-                    position=after, is_finished=after == HOME_PROGRESS
-                )
+    return ActionResult(new_state, tuple(transition.events), info, next_is_bot, details)
 
 
 # ---------------------------------------------------------------------------
@@ -438,128 +407,40 @@ def game_snapshot(room: Room) -> dict[str, Any]:
     """
     Everything the app needs to draw a started game from scratch: sent when the
     game starts and to anyone who (re)connects. Same shape as the
-    ``game_started`` socket message.
+    ``game_started`` socket message; the game's table adds its own fields.
     """
     snapshot: dict[str, Any] = {
         "type": "game_started",
         "room_code": room.code,
+        "game_type": room.game_type,
+        "variant": room.variant,
         "players": players_payload(room),
-        "tokens": [
-            {
-                "id": str(t.id),
-                "player_id": str(t.player_id),
-                "position": t.position,
-                "is_finished": t.is_finished,
-            }
-            for t in Token.objects.filter(player__room=room).order_by("created_at")
-        ],
         "current_turn_player_id": None,
-        "last_dice": None,
-        "movable_token_ids": [],
         "version": None,
         "seconds_left": None,
         "warning_seconds": None,
         "winner_id": None,
     }
     game = Game.objects.filter(room=room).first()
-    if game is None:
-        return snapshot
-    snapshot.update(
-        current_turn_player_id=str(game.current_turn_id) if game.current_turn_id else None,
-        last_dice=game.last_dice,
-        version=game.version,
-        seconds_left=seconds_left(game.turn_deadline),
-    )
-    if game.state is not None:
-        state = GameState.from_dict(game.state)
-        ids = token_ids_by_player(room).get(state.current_player.player_id, [])
+    state = None
+    if game is not None:
         snapshot.update(
-            movable_token_ids=[
-                ids[m.token_index] for m in engine.legal_moves(state) if m.token_index < len(ids)
-            ],
-            warning_seconds=state.rules.timeout_warning_seconds,
-            winner_id=state.winner_id,
+            current_turn_player_id=str(game.current_turn_id) if game.current_turn_id else None,
+            version=game.version,
+            seconds_left=seconds_left(game.turn_deadline),
         )
+        if game.state is not None:
+            game_def = game_platform.get_game(game.game_type)
+            state = game_def.load(game.state)
+            info = game_def.info(state)
+            snapshot.update(warning_seconds=info.warning_seconds, winner_id=info.winner_id)
+    snapshot.update(table_for(room.game_type).snapshot(room, game, state))
     return snapshot
 
 
 # ---------------------------------------------------------------------------
-# Socket messages
+# Socket messages (each game's table writes them; see game.tables)
 # ---------------------------------------------------------------------------
-
-
-def socket_messages(
-    transition: engine.Transition,
-    token_ids: dict[str, list[str]],
-    *,
-    deadline: datetime | None = None,
-    now: datetime | None = None,
-) -> list[dict]:
-    """Engine events → the messages the Flutter app already understands (+ version)."""
-    rules = transition.state.rules
-
-    def token_id(player_id: str, index: int) -> str | None:
-        ids = token_ids.get(player_id, [])
-        return ids[index] if index < len(ids) else None
-
-    events = list(transition.events)
-    payloads: list[dict[str, Any]] = []
-    for i, event in enumerate(events):
-        data, version = event.data, event.version
-        if event.type is EventType.DICE_RESULT:
-            payloads.append({
-                "type": "dice_rolled",
-                "player_id": data["player_id"],
-                "dice": data["value"],
-                "movable_token_ids": [token_id(data["player_id"], k) for k in data["movable_tokens"]],
-                "version": version,
-            })
-        elif event.type is EventType.TOKEN_MOVED:
-            killed = []
-            for later in events[i + 1:]:
-                if later.type is not EventType.TOKEN_CAPTURED:
-                    break
-                killed.append(token_id(later.data["player_id"], later.data["token_index"]))
-            payloads.append({
-                "type": "token_moved",
-                "player_id": data["player_id"],
-                "token_id": token_id(data["player_id"], data["token_index"]),
-                "from": data["from_progress"],
-                "to": data["to_progress"],
-                "dice": data["dice"],
-                "killed": killed,
-                "version": version,
-            })
-        elif event.type is EventType.TURN_STARTED:
-            payloads.append({
-                "type": "turn_changed",
-                "player_id": data["player_id"],
-                "turn_number": data["turn_number"],
-                "extra_turn": data["extra_turn"],
-                # Countdown for the app. seconds_left avoids trusting the phone's clock.
-                "seconds_left": seconds_left(deadline, now),
-                "turn_deadline": deadline.isoformat() if deadline else None,
-                "warning_seconds": rules.timeout_warning_seconds,
-                "version": version,
-            })
-        elif event.type is EventType.GAME_FINISHED:
-            payloads.append({
-                "type": "game_finished",
-                "winner_id": data["winner_id"],
-                "standings": data["standings"],
-                "version": version,
-            })
-        elif event.type is EventType.PLAYER_TIMEOUT:
-            payloads.append({
-                "type": "player_timeout",
-                **data,
-                "max_missed_turns": rules.max_missed_turns,
-                "version": version,
-            })
-        elif event.type in (EventType.PLAYER_FINISHED, EventType.PLAYER_FORFEITED):
-            payloads.append({"type": event.type.value, **data, "version": version})
-        # token_captured / token_finished / turn_ended are folded into the messages above.
-    return [{"type": "game_event", "payload": p} for p in payloads]
 
 
 def group_name(room_code: str) -> str:
@@ -617,24 +498,28 @@ def _run_bots_in_thread(room_code: str) -> None:
 def _run_bots(room_code: str) -> None:
     conflicts = 0
     for _ in range(MAX_BOT_ACTIONS_PER_RUN):
-        game = Game.objects.filter(room__code=room_code).only("state", "is_finished").first()
+        game = (
+            Game.objects.filter(room__code=room_code)
+            .only("state", "is_finished", "game_type")
+            .first()
+        )
         if game is None or game.state is None or game.is_finished:
             return
-        state = GameState.from_dict(game.state)
-        bot_id = state.current_player.player_id
+        game_def = game_platform.get_game(game.game_type)
+        bot_id = game_def.info(game_def.load(game.state)).current_player_id
         if not Player.objects.filter(id=bot_id, is_bot=True).exists():
             return
 
         _bot_pause()
-        kind = "roll" if state.phase is TurnPhase.AWAITING_ROLL else "bot_move"
         try:
-            perform(room_code, {"type": kind, "player_id": bot_id})
+            # The engine picks the bot's roll or move inside the action's lock.
+            perform(room_code, {"type": "bot", "player_id": bot_id})
             conflicts = 0
         except GameConflict:
             conflicts += 1
             if conflicts > 3:
                 return
-        except EngineError:
+        except rule_errors():
             return  # someone else acted first; the next action will reschedule us
 
 

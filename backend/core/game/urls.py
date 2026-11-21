@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     create_room,
+    game_catalog,
     join_room,
     leave_room,
     move_token,
@@ -11,6 +12,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('catalog/', game_catalog),
     path('room-options/', room_options),
     path('create-room/', create_room),
     path('join-room/', join_room),

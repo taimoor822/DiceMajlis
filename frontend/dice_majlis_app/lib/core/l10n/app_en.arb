@@ -183,7 +183,8 @@
   "homeSettings": "Settings",
 
   "hubTitle": "Game Hub",
-  "hubClassicTitle": "Classic Ludo",
+  "hubCatalogFailed": "Couldn't load the games",
+  "hubUpdateForGames": "New games are available. Update the app to play them.",
   "hubClassicBody": "Play with friends in a private room, or start alone and the Majlis AI joins you.",
   "hubCreateRoom": "Create room",
   "hubJoinRoom": "Join room",
@@ -328,6 +329,19 @@
   "errorTryAgain": "The game just changed. Please try again.",
   "errorLegacyGame": "This game was started before an update. Please start a new one.",
   "errorInvalidInput": "The server didn't accept that. Please check and try again.",
+  "gameLudo": "Ludo",
+  "variantClassic": "Classic",
+  "gameTitle": "{variant} {game}",
+  "@gameTitle": {
+    "description": "A game with its variant, e.g. Classic Ludo",
+    "placeholders": {
+      "variant": {"type": "String"},
+      "game": {"type": "String"}
+    }
+  },
+  "gameUnsupportedTitle": "Update the app to play this game",
+  "gameUnsupportedBody": "This room plays a game this version of Dice Majlis can't show yet. Update the app, or leave the game to play something else.",
+
   "localSetupTitle": "Play on this phone",
   "localSetupBody": "Play the Majlis AI, or pass one phone around the table. Offline games don't earn Gold or Diamonds and don't change your rating.",
   "localSetupPlayers": "Players",

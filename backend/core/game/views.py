@@ -22,25 +22,21 @@ from rest_framework.response import Response
 
 from core.api_errors import invalid_input_response
 
-from ludo_engine import (
-    MAX_PLAYERS,
-    MIN_PLAYERS,
-    EngineError,
-    GameNotActive,
-    NotYourTurn,
-    UnknownPlayer,
-)
+import game_platform
+from game_platform import LUDO
 
 from . import services
 from .models import Game, Player, Room
 from .serializers import (
     CreateRoomInput,
+    GameChoiceInput,
     JoinRoomInput,
     MoveTokenInput,
     PlayerSerializer,
     RoomInput,
     RoomSerializer,
 )
+from .tables.ludo import token_ids_by_player
 
 ROOM_CODE_LENGTH = 4
 ROOM_CODE_ALPHABET = string.ascii_uppercase + string.digits
@@ -77,14 +73,16 @@ def _already_in_game(room):
     )
 
 
+# Rule errors from any game's engine, by their stable code.
+_RULE_ERROR_HTTP = {
+    'not_your_turn': ('Not your turn', status.HTTP_403_FORBIDDEN),
+    'unknown_player': ('Player is not in this game', status.HTTP_404_NOT_FOUND),
+    'game_not_active': ('Game finished', status.HTTP_400_BAD_REQUEST),
+}
+
+
 def _game_error_response(exc):
     """Engine/service errors -> HTTP. ``code`` is stable for the app to switch on."""
-    if isinstance(exc, NotYourTurn):
-        return _error('Not your turn', exc.code, status.HTTP_403_FORBIDDEN)
-    if isinstance(exc, UnknownPlayer):
-        return _error('Player is not in this game', exc.code, status.HTTP_404_NOT_FOUND)
-    if isinstance(exc, GameNotActive):
-        return _error('Game finished', exc.code, status.HTTP_400_BAD_REQUEST)
     if isinstance(exc, services.LegacyGame):
         return _error(
             'This game was started before the rules update. Please start a new game.',
@@ -93,9 +91,22 @@ def _game_error_response(exc):
         )
     if isinstance(exc, services.GameConflict):
         return _error('The game changed, please try again', exc.code, status.HTTP_409_CONFLICT)
-    if isinstance(exc, EngineError):
-        return _error(str(exc), exc.code, status.HTTP_400_BAD_REQUEST)
+    if isinstance(exc, services.rule_errors()):
+        code = getattr(exc, 'code', 'invalid_action')
+        message, http_status = _RULE_ERROR_HTTP.get(code, (str(exc), status.HTTP_400_BAD_REQUEST))
+        return _error(message, code, http_status)
     raise exc
+
+
+def _ludo_only(room):
+    """roll-dice and move-token are Ludo's actions (other games act over the socket, 1.12)."""
+    if room.game_type != LUDO:
+        return _error('This room plays another game', 'wrong_game', status.HTTP_400_BAD_REQUEST)
+    return None
+
+
+def _game_errors():
+    return (*services.rule_errors(), services.GameConflict, services.LegacyGame)
 
 
 def _my_seat(room, user):
@@ -119,11 +130,26 @@ def _seat_response(room, player, http_status):
 # =========================
 
 @api_view(['GET'])
+def game_catalog(request):
+    """Every game and variant the server can run, with their rules (game registry)."""
+    return Response({'games': game_platform.catalog()})
+
+
+@api_view(['GET'])
 def room_options(request):
-    """What the app may offer when creating a room (from the rules, not the app)."""
+    """
+    What the app may offer when creating a room for a game and variant
+    (``?game_type=&variant=``, default Ludo Classic), from the rules, not the app.
+    """
+    form = GameChoiceInput(data=request.query_params)
+    if not form.is_valid():
+        return _invalid(form)
+    variant = form.validated_data['variant_rules']
     return Response({
-        'player_counts': list(range(MIN_PLAYERS, MAX_PLAYERS + 1)),
-        'default_player_count': MAX_PLAYERS,
+        'game_type': form.validated_data['game_type'],
+        'variant': variant.code,
+        'player_counts': list(range(variant.min_players, variant.max_players + 1)),
+        'default_player_count': variant.default_players,
     })
 
 
@@ -150,7 +176,12 @@ def create_room(request):
         code = generate_room_code()
         while Room.objects.filter(code=code).exists():
             code = generate_room_code()
-        room = Room.objects.create(code=code, max_players=data['max_players'])
+        room = Room.objects.create(
+            code=code,
+            game_type=data['game_type'],
+            variant=data['variant'],
+            max_players=data['max_players'],
+        )
         player = Player.objects.create(
             room=room,
             user=user,
@@ -253,7 +284,7 @@ def start_game(request):
         room.save(update_fields=['is_started'])
         try:
             services.start_game(room, host)
-        except EngineError as exc:
+        except services.rule_errors() as exc:
             transaction.set_rollback(True)
             return _game_error_response(exc)
         snapshot = services.game_snapshot(room)
@@ -283,21 +314,24 @@ def roll_dice(request):
     seat = _my_seat(room, request.user)
     if seat is None:
         return _not_in_room()
+    wrong_game = _ludo_only(room)
+    if wrong_game is not None:
+        return wrong_game
 
     try:
         result = services.perform(room.code, {'type': 'roll', 'player_id': str(seat.id)})
     except Game.DoesNotExist:
         return _error('The game has not started', 'game_not_started', status.HTTP_400_BAD_REQUEST)
-    except (EngineError, services.GameConflict, services.LegacyGame) as exc:
+    except _game_errors() as exc:
         return _game_error_response(exc)
 
     if result.next_is_bot:
         services.schedule_bots(room.code)
 
     return Response({
-        'dice': result.dice,
-        'movable_token_ids': list(result.movable_token_ids),
-        'version': result.state.version,
+        'dice': result.details.get('dice'),
+        'movable_token_ids': list(result.details.get('movable_token_ids', [])),
+        'version': result.info.version,
     })
 
 
@@ -321,9 +355,12 @@ def move_token(request):
     seat = _my_seat(room, request.user)
     if seat is None:
         return _not_in_room()
+    wrong_game = _ludo_only(room)
+    if wrong_game is not None:
+        return wrong_game
     player_id = str(seat.id)
 
-    my_tokens = services.token_ids_by_player(room).get(player_id, [])
+    my_tokens = token_ids_by_player(room).get(player_id, [])
     if token_id not in my_tokens:
         return _error('That token is not yours', 'not_your_token', status.HTTP_404_NOT_FOUND)
 
@@ -335,15 +372,15 @@ def move_token(request):
         })
     except Game.DoesNotExist:
         return _error('The game has not started', 'game_not_started', status.HTTP_400_BAD_REQUEST)
-    except (EngineError, services.GameConflict, services.LegacyGame) as exc:
+    except _game_errors() as exc:
         return _game_error_response(exc)
 
     if result.next_is_bot:
         services.schedule_bots(room.code)
 
-    if result.state.is_finished and result.state.winner_id == player_id:
-        return Response({'winner': True, 'version': result.state.version})
-    return Response({'success': True, 'version': result.state.version})
+    if result.info.finished and result.info.winner_id == player_id:
+        return Response({'winner': True, 'version': result.info.version})
+    return Response({'success': True, 'version': result.info.version})
 
 
 # =========================
