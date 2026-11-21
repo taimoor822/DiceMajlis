@@ -10,7 +10,8 @@ import 'realtime_providers.dart';
 /// A room's updates over the app's one live connection (`/ws/v1/`), in the
 /// message shapes the room screens already read (see [SocketService]):
 ///
-/// - `room/<room id>`: `players_updated`, and `game_started` when it starts;
+/// - `room/<room id>`: `players_updated`, `room_updated` (status, lock, rules,
+///   host, countdown), `player_kicked`, `game_started` and `rematch_started`;
 /// - `game/<game id>`: the game's events, each with its state `version`.
 ///
 /// Versions keep the board right: an event the board already has is dropped,
@@ -86,11 +87,10 @@ class RealtimeRoomSocket implements SocketService {
   }
 
   void _onRoom(RealtimeMessage message) {
-    switch (message.type) {
-      case 'players_updated':
-        _emit({'type': 'players_updated', ...message.data});
-      case 'game_started':
-        _onSnapshot(message.data);
+    if (message.type == 'game_started') {
+      _onSnapshot(message.data);
+    } else {
+      _emit({'type': message.type, ...message.data});
     }
   }
 

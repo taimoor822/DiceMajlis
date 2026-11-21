@@ -42,7 +42,8 @@ backend/core/              Django project (run manage.py from here)
   game/                    rooms, REST views, socket consumer, services.py, timers.py, bots;
                            tables/ = per-game extras (Ludo: Token rows, socket messages);
                            topics.py = the room/ and game/ socket channels;
-                           handlers.py = game requests on /ws/v1/ (roll_dice, …)
+                           handlers.py = game + room requests on /ws/v1/ (roll_dice, …);
+                           rooms.py = private rooms (status, ready, host, invites, rematch)
   realtime/                /ws/v1/ (the app's one socket): protocol, topics (channels),
                            publish(), handlers (requests), limits, presence, consumer
 frontend/dice_majlis_app/  Flutter app: lib/core (config, network, realtime, websocket, theme,
@@ -100,7 +101,7 @@ docs/                      plans and designs
 pip install -r ../requirements.txt
 python manage.py migrate
 uvicorn core.asgi:application --reload --host 0.0.0.0 --port 8000   # NOT runserver (no WebSockets)
-python manage.py test                                  # everything (~311 tests)
+python manage.py test                                  # everything (~334 tests)
 python -m unittest discover -s ludo_engine/tests -t .  # engine only, no Django
 python -m unittest discover -s game_platform/tests -t .  # game registry only, no Django
 python manage.py run_turn_timers --once                # one timer sweep
@@ -228,6 +229,17 @@ Redis (one server process only). CI runs the backend on PostgreSQL.
   `test/online_game_test.dart` (`FakeRealtimeServer.handlers[type]` answers requests;
   throw `RealtimeException(code)` to refuse). The REST roll/move endpoints and the
   lobby socket remain as a fallback until removed.
+- Private rooms (1.13): room rules live in `game/rooms.py` (raise `RoomError(code)`);
+  `Room.status` WAITING/READY/STARTING/PLAYING/FINISHED/CLOSED (keep `is_started` in
+  step: True from PLAYING on). Every room change ends with `rooms.broadcast_room(room)`
+  (`players_updated` + `room_updated`). The host is always ready; guests set
+  `is_ready`. Starting = `rooms.request_start` (countdown `GAME_START_COUNTDOWN_SECONDS`,
+  0 in `GameApiTestCase`; `rooms.start_due_rooms()` runs in the timer sweep). A rematch
+  is a NEW room (old one CLOSED, `next_room`). Custom rules are `Variant.options`
+  (`RoomOption`), passed to `new_game(options=…)`; the app names them through
+  `GameModule.ruleName/ruleValue`. Test guests: `GameApiTestCase.join()` marks them
+  ready (`ready=False` to skip). Tests: `game/test_rooms.py`, app
+  `test/private_rooms_test.dart`.
 - Running the backend tests locally without Redis: `CHANNEL_LAYER=memory
   DJANGO_DEBUG=true python manage.py test` (as CI does).
 
@@ -241,8 +253,9 @@ gold + diamonds wallet ledger, grant() and daily reward (1.8), local play on a D
 engine checked by shared test vectors, vs AI and pass-and-play (1.9), game platform
 layer: registry + game_type/variant on server and app (1.10), WebSocket v1: one
 authenticated socket, channels, rate limits, remembered replies, presence, live
-balances (1.11), online games on v1: actions over the socket, versioned sync (1.12).
-Next: 1.13 private rooms v2, 1.14 reconnection, 1.15 Google + Apple sign-in.
+balances (1.11), online games on v1: actions over the socket, versioned sync (1.12),
+private rooms v2: ready, host controls, invites, custom rules, countdown, rematch (1.13).
+Next: 1.14 reconnection, 1.15 Google + Apple sign-in.
 
 Dice Majlis is a **platform**: new games (Domino, Jackaroo) plug in through the game
 registry (PLATFORM §3) — keep game-specific code out of shared systems.

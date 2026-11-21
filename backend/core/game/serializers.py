@@ -12,7 +12,7 @@ CODE_MAX_LENGTH = Room._meta.get_field('code').max_length
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
-        fields = ['id', 'code', 'game_type', 'variant', 'max_players', 'is_started']
+        fields = ['id', 'code', 'game_type', 'variant', 'max_players', 'is_started', 'status', 'is_locked']
 
 
 class PlayerSerializer(serializers.ModelSerializer):

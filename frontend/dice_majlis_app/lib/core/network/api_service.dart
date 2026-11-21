@@ -112,6 +112,9 @@ class ApiService {
   Future<Map<String, dynamic>> leaveRoom({required String roomCode}) =>
       _send('POST', 'game/leave-room/', {'code': roomCode});
 
+  /// Invites to rooms you can still join (by Player ID).
+  Future<Map<String, dynamic>> roomInvites() => _send('GET', 'game/invites/');
+
   /// What a profile may hold (avatars, languages, name length).
   Future<Map<String, dynamic>> profileOptions() =>
       _send('GET', 'profile/options/');

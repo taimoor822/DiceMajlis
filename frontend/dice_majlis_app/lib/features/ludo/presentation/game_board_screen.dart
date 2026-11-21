@@ -11,7 +11,9 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/websocket/socket_providers.dart';
 import '../../../core/websocket/socket_service.dart';
+import '../../games/domain/game_catalog.dart';
 import '../../multiplayer/data/room_repository.dart';
+import '../../multiplayer/domain/room_session.dart';
 import '../../multiplayer/domain/room_session_controller.dart';
 import '../domain/ludo_path.dart';
 import '../domain/turn_clock.dart';
@@ -105,6 +107,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   String? roomId;
   String? myPlayerId;
   bool _winnerShown = false;
+  bool _winnerDialogOpen = false;
+  bool _rematchOpened = false;
 
   String? currentTurnPlayerId;
   int? lastDice;
@@ -368,6 +372,16 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
         case 'player_forfeited':
           _showPlayerRemoved(data);
+          break;
+
+        case 'rematch_started':
+          _openRematch(
+            roomCode: data['room_code']?.toString(),
+            roomId: data['room_id']?.toString(),
+            seatId: (data['seats'] is Map)
+                ? (data['seats'] as Map)[myPlayerId]?.toString()
+                : null,
+          );
           break;
 
         case 'game_finished':
@@ -901,26 +915,99 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     if (_winnerShown) return;
     _winnerShown = true;
     final me = myPlayerId;
-    ref.read(roomSessionProvider.notifier).clear();
+    final room = roomCode;
     final l10n = _l10n;
+    var asked = false;
+    _winnerDialogOpen = true;
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.gameOverTitle),
-        content: Text(
-          me != null && winnerId == me ? l10n.gameOverWon : l10n.gameOverLost,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              if (mounted) context.go(AppRoutes.home);
-            },
-            child: Text(l10n.gameOverHome),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(l10n.gameOverTitle),
+          content: Text(
+            asked
+                ? l10n.gameOverWaitingForOthers
+                : me != null && winnerId == me
+                ? l10n.gameOverWon
+                : l10n.gameOverLost,
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _goHomeAfterGame();
+              },
+              child: Text(l10n.gameOverHome),
+            ),
+            if (!asked && room != null)
+              TextButton(
+                onPressed: () async {
+                  setDialogState(() => asked = true);
+                  try {
+                    final answer = await ref
+                        .read(roomRepositoryProvider)
+                        .rematch(room, want: true);
+                    // The last one to say yes gets the new room right away.
+                    if (answer.started) {
+                      _openRematch(
+                        roomCode: answer.roomCode,
+                        roomId: answer.roomId,
+                        seatId: answer.seatId,
+                      );
+                    }
+                  } catch (e) {
+                    if (dialogContext.mounted) {
+                      setDialogState(() => asked = false);
+                    }
+                    _showNotice(l10n.apiErrorText(e));
+                  }
+                },
+                child: Text(l10n.gameOverPlayAgain),
+              ),
+          ],
+        ),
       ),
-    );
+    ).whenComplete(() => _winnerDialogOpen = false);
+  }
+
+  /// Home after the game: the seat is given back, so nobody waits for a
+  /// rematch answer from this player.
+  void _goHomeAfterGame() {
+    final room = roomCode;
+    if (room != null) {
+      unawaited(
+        ref
+            .read(roomRepositoryProvider)
+            .leaveRoom(room)
+            .then<void>((_) {}, onError: (Object _) {}),
+      );
+    }
+    ref.read(roomSessionProvider.notifier).clear();
+    if (mounted) context.go(AppRoutes.home);
+  }
+
+  /// Everyone agreed: the rematch room, with this player's new seat.
+  void _openRematch({String? roomCode, String? roomId, String? seatId}) {
+    final session = ref.read(roomSessionProvider);
+    if (!mounted || roomCode == null || seatId == null || _rematchOpened) {
+      return;
+    }
+    _rematchOpened = true;
+    if (_winnerDialogOpen) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    ref
+        .read(roomSessionProvider.notifier)
+        .start(
+          RoomSession(
+            roomCode: roomCode,
+            roomId: roomId,
+            playerId: seatId,
+            gameType: session?.gameType ?? GameChoice.ludo,
+            variant: session?.variant ?? GameChoice.classic,
+          ),
+        );
+    context.go(AppRoutes.room(roomCode));
   }
 
   @override

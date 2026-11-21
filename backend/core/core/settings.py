@@ -186,6 +186,9 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "true").lower() in 
 # `python manage.py run_turn_timers` as its own process instead.
 GAME_TIMER_IN_PROCESS = os.getenv("GAME_TIMER_IN_PROCESS", "true").lower() in {"1", "true", "yes", "on"}
 GAME_TIMER_INTERVAL_SECONDS = float(os.getenv("GAME_TIMER_INTERVAL_SECONDS", "1"))
+# Private rooms: the countdown between the host's start and the game (the same
+# sweep starts the game). 0 starts at once.
+GAME_START_COUNTDOWN_SECONDS = int(os.getenv("GAME_START_COUNTDOWN_SECONDS", "3"))
 
 # Real-time messaging between server processes.
 #   CHANNEL_LAYER=redis  (default, required in production / with several processes)

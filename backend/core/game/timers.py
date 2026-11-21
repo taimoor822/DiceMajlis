@@ -31,7 +31,7 @@ from django.utils import timezone
 
 import game_platform
 
-from . import services
+from . import rooms, services
 from .models import Game, Player
 
 logger = logging.getLogger(__name__)
@@ -103,6 +103,7 @@ def run_forever(interval: float = 1.0, stop: threading.Event | None = None) -> N
         close_old_connections()
         try:
             process_due_turns()
+            rooms.start_due_rooms()  # start countdowns that ran out
         except Exception:
             logger.exception("turn timer sweep failed")
         finally:

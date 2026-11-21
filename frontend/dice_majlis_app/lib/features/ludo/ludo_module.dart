@@ -33,4 +33,25 @@ class LudoModule extends GameModule {
 
   @override
   String? get offlineRoute => AppRoutes.localPlay;
+
+  // Keys are the server's rule names (ludo_engine/rules.py).
+  @override
+  String? ruleName(AppLocalizations l10n, String key) => switch (key) {
+    'turn_timeout_seconds' => l10n.ruleTurnTime,
+    'capture_enabled' => l10n.ruleCaptures,
+    'extra_turn_on_six' => l10n.ruleExtraTurnOnSix,
+    'end_when_first_player_finishes' => l10n.ruleGameEnds,
+    _ => null,
+  };
+
+  @override
+  String ruleValue(AppLocalizations l10n, String key, Object? value) =>
+      switch ((key, value)) {
+        ('turn_timeout_seconds', final int seconds) => l10n.ruleSeconds(
+          seconds,
+        ),
+        ('end_when_first_player_finishes', true) => l10n.ruleEndsFirstHome,
+        ('end_when_first_player_finishes', false) => l10n.ruleEndsAllPlaces,
+        _ => super.ruleValue(l10n, key, value),
+      };
 }

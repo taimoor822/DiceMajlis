@@ -12,12 +12,42 @@ VARIANT_MAX_LENGTH = 30
 
 
 class Room(models.Model):
+    """
+    A private room (PLATFORM.md §5): WAITING → READY → STARTING → PLAYING →
+    FINISHED → CLOSED. Its rules live in game/rooms.py.
+    """
+
+    class Status(models.TextChoices):
+        WAITING = 'waiting'  # someone isn't ready yet
+        READY = 'ready'  # everyone is ready: the host may start
+        STARTING = 'starting'  # the countdown runs (``starts_at``)
+        PLAYING = 'playing'
+        FINISHED = 'finished'  # game over; players may ask for a rematch
+        CLOSED = 'closed'  # everyone left, or the rematch moved to ``next_room``
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(max_length=6, unique=True)
     game_type = models.CharField(max_length=GAME_TYPE_MAX_LENGTH, default=LUDO)
     variant = models.CharField(max_length=VARIANT_MAX_LENGTH, default=CLASSIC)
     max_players = models.PositiveIntegerField(default=4)
     is_started = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.WAITING, db_index=True
+    )
+    # Locked: only people with an invite may join.
+    is_locked = models.BooleanField(default=False)
+    # The host's custom rules (checked against the variant's options).
+    options = models.JSONField(default=dict, blank=True)
+    # End of the start countdown (status STARTING).
+    starts_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Removed by the host: they may not come back to this room.
+    kicked_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name='+', blank=True
+    )
+    # Where the rematch is played.
+    next_room = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL, related_name='+'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -32,6 +62,12 @@ class Player(models.Model):
     position = models.IntegerField(default=0)
     is_host = models.BooleanField(default=False)
     is_bot = models.BooleanField(default=False)
+    # Before the start: ready to play (the host always is).
+    is_ready = models.BooleanField(default=False)
+    # After the game: wants to play again with the same people.
+    wants_rematch = models.BooleanField(default=False)
+    # Left the room after the start (forfeited, or went home after the game).
+    has_left = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
     # The account sitting here. NULL for bots (and if an account is ever deleted,
     # so the game history stays intact).
@@ -140,6 +176,27 @@ class Token(models.Model):
     def __str__(self):
         return f"Token {self.id} ({self.player.name}) @ {self.position}"
 
+
+
+class RoomInvite(models.Model):
+    """An invite to a room by Player ID. Lets the guest into a locked room."""
+
+    room = models.ForeignKey(Room, related_name='invites', on_delete=models.CASCADE)
+    from_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='+', on_delete=models.CASCADE
+    )
+    to_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='room_invites', on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['room', 'to_user'], name='unique_room_invite'),
+        ]
+
+    def __str__(self):
+        return f"Invite to {self.room.code}"
 
 
 class Turn(models.Model):

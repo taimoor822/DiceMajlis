@@ -12,6 +12,9 @@ _RoomPlayer _$RoomPlayerFromJson(Map<String, dynamic> json) => _RoomPlayer(
   color: json['color'] as String,
   isHost: json['is_host'] as bool? ?? false,
   isBot: json['is_bot'] as bool? ?? false,
+  isReady: json['is_ready'] as bool? ?? false,
+  wantsRematch: json['wants_rematch'] as bool? ?? false,
+  hasLeft: json['has_left'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$RoomPlayerToJson(_RoomPlayer instance) =>
@@ -21,4 +24,7 @@ Map<String, dynamic> _$RoomPlayerToJson(_RoomPlayer instance) =>
       'color': instance.color,
       'is_host': instance.isHost,
       'is_bot': instance.isBot,
+      'is_ready': instance.isReady,
+      'wants_rematch': instance.wantsRematch,
+      'has_left': instance.hasLeft,
     };

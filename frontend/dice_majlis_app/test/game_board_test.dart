@@ -11,6 +11,7 @@ import 'package:dice_majlis_app/features/ludo/presentation/widgets/dice_widget.d
 import 'package:dice_majlis_app/features/ludo/presentation/widgets/player_token.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session.dart';
 import 'package:dice_majlis_app/features/multiplayer/domain/room_session_controller.dart';
+import 'package:dice_majlis_app/features/multiplayer/presentation/waiting_room_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -141,6 +142,37 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('after the game: play again, then the rematch room opens', (
+    tester,
+  ) async {
+    final repo = FakeRoomRepository();
+    final sockets = await openBoard(tester, repository: repo);
+    sockets.last.emit(snapshot());
+    await tester.pump();
+    sockets.last.emit({'type': 'game_finished', 'winner_id': bot});
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('You lost'), findsOneWidget);
+    await tester.tap(find.text('Play again'));
+    await tester.pump();
+    expect(repo.calls.last, 'rematch:AB12:true');
+    expect(find.text('Waiting for the others to say yes…'), findsOneWidget);
+    expect(find.text('Play again'), findsNothing);
+
+    sockets.last.emit({
+      'type': 'rematch_started',
+      'room_code': 'CD34',
+      'room_id': 'room-2',
+      'seats': {me: 'new-seat', bot: 'new-bot'},
+    });
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(WaitingRoomScreen), findsOneWidget);
+    expect(find.text('CD34'), findsOneWidget);
+    expect(sockets.last.connectedRoom, 'CD34');
+    expect(sockets.last.connectedRoomId, 'room-2');
   });
 
   testWidgets('leaving asks first, then forfeits on the server', (

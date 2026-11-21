@@ -245,6 +245,58 @@
   "playerTagHost": "Host",
   "playerTagYou": "You",
   "playerTagBot": "AI",
+  "waitingRoomStatusWaiting": "Waiting for everyone to be ready…",
+  "waitingRoomStatusReady": "Everyone is ready.",
+  "waitingRoomStatusAlone": "Start now and the Majlis AI plays with you, or invite friends first.",
+  "waitingRoomStartingIn": "Starting in {seconds}…",
+  "@waitingRoomStartingIn": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "waitingRoomReady": "I'm ready",
+  "waitingRoomUnready": "Not ready yet",
+  "waitingRoomPlayerReady": "Ready",
+  "waitingRoomPlayerNotReady": "Not ready",
+  "waitingRoomLock": "Lock the room",
+  "waitingRoomUnlock": "Unlock the room",
+  "waitingRoomLocked": "Locked: invited players only",
+  "waitingRoomInvite": "Invite by Player ID",
+  "waitingRoomInviteHint": "9-digit Player ID",
+  "waitingRoomInviteSend": "Send invite",
+  "waitingRoomInviteSent": "Invite sent",
+  "waitingRoomInviteInvalid": "Enter a 9-digit Player ID.",
+  "waitingRoomCancel": "Cancel",
+  "waitingRoomPlayerMenu": "Player options",
+  "waitingRoomMakeHost": "Make host",
+  "waitingRoomRemove": "Remove from the room",
+  "waitingRoomKicked": "The host removed you from the room.",
+  "waitingRoomRules": "Rules",
+  "waitingRoomRulesHint": "Tap a rule to change it. Everyone gets ready again after a change.",
+  "ruleTurnTime": "Turn time",
+  "ruleCaptures": "Captures",
+  "ruleExtraTurnOnSix": "Extra turn on a six",
+  "ruleGameEnds": "The game ends",
+  "ruleEndsFirstHome": "When the first player is home",
+  "ruleEndsAllPlaces": "When every place is decided",
+  "ruleSeconds": "{seconds} s",
+  "@ruleSeconds": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "ruleOn": "On",
+  "ruleOff": "Off",
+  "invitesTitle": "Invites",
+  "inviteFrom": "{name} invited you to {game}",
+  "@inviteFrom": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "game": {"type": "String"}
+    }
+  },
+  "inviteJoin": "Join",
+  "inviteDecline": "Decline",
 
   "gameStatusSyncing": "Syncing…",
   "gameStatusYourTurn": "Your turn",
@@ -270,6 +322,8 @@
   "gameOverWon": "You win!",
   "gameOverLost": "You lost",
   "gameOverHome": "Back to home",
+  "gameOverPlayAgain": "Play again",
+  "gameOverWaitingForOthers": "Waiting for the others to say yes…",
 
   "gameTimeoutSelf": "Time ran out, so we played for you.",
   "gameTimeoutSelfWarning": "Time ran out, so we played for you. Miss {count, plural, =1{1 more turn} other{{count} more turns}} in a row and you leave the game.",
@@ -304,7 +358,7 @@
   "errorRoomFull": "That room is full.",
   "errorGameAlreadyStarted": "That game has already started.",
   "errorGameNotStarted": "The game hasn't started yet.",
-  "errorNotHost": "Only the host can start the game.",
+  "errorNotHost": "Only the host can do that.",
   "errorNotYourSeat": "That isn't your seat.",
   "errorNotInRoom": "You're not in this room any more.",
   "errorAlreadyInGame": "You're still playing another game. Finish or leave it first.",
@@ -328,6 +382,16 @@
   "errorGameFinished": "This game is over.",
   "errorTryAgain": "The game just changed. Please try again.",
   "errorLegacyGame": "This game was started before an update. Please start a new one.",
+  "errorNotEveryoneReady": "Everyone has to be ready first.",
+  "errorPlayerKicked": "The host removed you from this room.",
+  "errorRoomLocked": "This room is for invited players only.",
+  "errorGameStarting": "That game is starting. Try another room.",
+  "errorPlayerNotFound": "No player with that ID.",
+  "errorCannotInviteYourself": "That's your own Player ID.",
+  "errorAlreadyInRoom": "They're already in this room.",
+  "errorInvalidOption": "That rule can't be set that way.",
+  "errorGameNotFinished": "The game isn't over yet.",
+  "errorRoomClosed": "This room is closed.",
   "errorInvalidInput": "The server didn't accept that. Please check and try again.",
   "gameLudo": "Ludo",
   "variantClassic": "Classic",

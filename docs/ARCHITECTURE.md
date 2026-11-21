@@ -655,6 +655,18 @@ rate-limit bucket.
   load the state again. Socket refusals become `ApiException`s with the same code
   (`disconnected`/`timeout` → `network_error`).
 
+**Room requests (step 1.13, `game/rooms.py`; PLATFORM §5 "What step 1.13 built"),** all
+`{code, …}` in the `game` bucket: `set_ready {ready}`, `kick_player {player_id}`,
+`lock_room {locked}`, `transfer_host {player_id}`, `room_settings {variant?,
+options?}`, `invite_player {player_id: 9-digit}`, `decline_invite`, `start_game`
+(`{status: starting|started}`), `rematch {want}` (`{next_room, seat_id}` once everyone
+agreed). Creating and joining stay REST (`create-room`, `join-room`; joining checks
+the status, kicks and the lock), and so does `start-game` (same rules). Refusal codes:
+`not_host`, `not_in_room`, `host_always_ready`, `not_everyone_ready`, `game_starting`,
+`game_already_started`, `player_kicked`, `room_locked`, `player_not_found`,
+`cannot_invite_yourself`, `already_in_room`, `invalid_option`, `unknown_variant`,
+`game_not_finished`, `room_closed`.
+
 ### Reconnection
 
 ```

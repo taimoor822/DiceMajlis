@@ -1084,6 +1084,222 @@ abstract class AppLocalizations {
   /// **'AI'**
   String get playerTagBot;
 
+  /// No description provided for @waitingRoomStatusWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for everyone to be ready…'**
+  String get waitingRoomStatusWaiting;
+
+  /// No description provided for @waitingRoomStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone is ready.'**
+  String get waitingRoomStatusReady;
+
+  /// No description provided for @waitingRoomStatusAlone.
+  ///
+  /// In en, this message translates to:
+  /// **'Start now and the Majlis AI plays with you, or invite friends first.'**
+  String get waitingRoomStatusAlone;
+
+  /// No description provided for @waitingRoomStartingIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting in {seconds}…'**
+  String waitingRoomStartingIn(int seconds);
+
+  /// No description provided for @waitingRoomReady.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m ready'**
+  String get waitingRoomReady;
+
+  /// No description provided for @waitingRoomUnready.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready yet'**
+  String get waitingRoomUnready;
+
+  /// No description provided for @waitingRoomPlayerReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get waitingRoomPlayerReady;
+
+  /// No description provided for @waitingRoomPlayerNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Not ready'**
+  String get waitingRoomPlayerNotReady;
+
+  /// No description provided for @waitingRoomLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the room'**
+  String get waitingRoomLock;
+
+  /// No description provided for @waitingRoomUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the room'**
+  String get waitingRoomUnlock;
+
+  /// No description provided for @waitingRoomLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked: invited players only'**
+  String get waitingRoomLocked;
+
+  /// No description provided for @waitingRoomInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite by Player ID'**
+  String get waitingRoomInvite;
+
+  /// No description provided for @waitingRoomInviteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'9-digit Player ID'**
+  String get waitingRoomInviteHint;
+
+  /// No description provided for @waitingRoomInviteSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send invite'**
+  String get waitingRoomInviteSend;
+
+  /// No description provided for @waitingRoomInviteSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite sent'**
+  String get waitingRoomInviteSent;
+
+  /// No description provided for @waitingRoomInviteInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 9-digit Player ID.'**
+  String get waitingRoomInviteInvalid;
+
+  /// No description provided for @waitingRoomCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get waitingRoomCancel;
+
+  /// No description provided for @waitingRoomPlayerMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Player options'**
+  String get waitingRoomPlayerMenu;
+
+  /// No description provided for @waitingRoomMakeHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Make host'**
+  String get waitingRoomMakeHost;
+
+  /// No description provided for @waitingRoomRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from the room'**
+  String get waitingRoomRemove;
+
+  /// No description provided for @waitingRoomKicked.
+  ///
+  /// In en, this message translates to:
+  /// **'The host removed you from the room.'**
+  String get waitingRoomKicked;
+
+  /// No description provided for @waitingRoomRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules'**
+  String get waitingRoomRules;
+
+  /// No description provided for @waitingRoomRulesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a rule to change it. Everyone gets ready again after a change.'**
+  String get waitingRoomRulesHint;
+
+  /// No description provided for @ruleTurnTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn time'**
+  String get ruleTurnTime;
+
+  /// No description provided for @ruleCaptures.
+  ///
+  /// In en, this message translates to:
+  /// **'Captures'**
+  String get ruleCaptures;
+
+  /// No description provided for @ruleExtraTurnOnSix.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra turn on a six'**
+  String get ruleExtraTurnOnSix;
+
+  /// No description provided for @ruleGameEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'The game ends'**
+  String get ruleGameEnds;
+
+  /// No description provided for @ruleEndsFirstHome.
+  ///
+  /// In en, this message translates to:
+  /// **'When the first player is home'**
+  String get ruleEndsFirstHome;
+
+  /// No description provided for @ruleEndsAllPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'When every place is decided'**
+  String get ruleEndsAllPlaces;
+
+  /// No description provided for @ruleSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} s'**
+  String ruleSeconds(int seconds);
+
+  /// No description provided for @ruleOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get ruleOn;
+
+  /// No description provided for @ruleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get ruleOff;
+
+  /// No description provided for @invitesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invites'**
+  String get invitesTitle;
+
+  /// No description provided for @inviteFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} invited you to {game}'**
+  String inviteFrom(String name, String game);
+
+  /// No description provided for @inviteJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get inviteJoin;
+
+  /// No description provided for @inviteDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get inviteDecline;
+
   /// No description provided for @gameStatusSyncing.
   ///
   /// In en, this message translates to:
@@ -1180,6 +1396,18 @@ abstract class AppLocalizations {
   /// **'Back to home'**
   String get gameOverHome;
 
+  /// No description provided for @gameOverPlayAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get gameOverPlayAgain;
+
+  /// No description provided for @gameOverWaitingForOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the others to say yes…'**
+  String get gameOverWaitingForOthers;
+
   /// No description provided for @gameTimeoutSelf.
   ///
   /// In en, this message translates to:
@@ -1255,7 +1483,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorNotHost.
   ///
   /// In en, this message translates to:
-  /// **'Only the host can start the game.'**
+  /// **'Only the host can do that.'**
   String get errorNotHost;
 
   /// No description provided for @errorNotYourSeat.
@@ -1395,6 +1623,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This game was started before an update. Please start a new one.'**
   String get errorLegacyGame;
+
+  /// No description provided for @errorNotEveryoneReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone has to be ready first.'**
+  String get errorNotEveryoneReady;
+
+  /// No description provided for @errorPlayerKicked.
+  ///
+  /// In en, this message translates to:
+  /// **'The host removed you from this room.'**
+  String get errorPlayerKicked;
+
+  /// No description provided for @errorRoomLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This room is for invited players only.'**
+  String get errorRoomLocked;
+
+  /// No description provided for @errorGameStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'That game is starting. Try another room.'**
+  String get errorGameStarting;
+
+  /// No description provided for @errorPlayerNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No player with that ID.'**
+  String get errorPlayerNotFound;
+
+  /// No description provided for @errorCannotInviteYourself.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s your own Player ID.'**
+  String get errorCannotInviteYourself;
+
+  /// No description provided for @errorAlreadyInRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'re already in this room.'**
+  String get errorAlreadyInRoom;
+
+  /// No description provided for @errorInvalidOption.
+  ///
+  /// In en, this message translates to:
+  /// **'That rule can\'t be set that way.'**
+  String get errorInvalidOption;
+
+  /// No description provided for @errorGameNotFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'The game isn\'t over yet.'**
+  String get errorGameNotFinished;
+
+  /// No description provided for @errorRoomClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This room is closed.'**
+  String get errorRoomClosed;
 
   /// No description provided for @errorInvalidInput.
   ///

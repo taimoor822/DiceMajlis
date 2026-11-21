@@ -554,6 +554,122 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerTagBot => 'AI';
 
   @override
+  String get waitingRoomStatusWaiting => 'Waiting for everyone to be ready…';
+
+  @override
+  String get waitingRoomStatusReady => 'Everyone is ready.';
+
+  @override
+  String get waitingRoomStatusAlone =>
+      'Start now and the Majlis AI plays with you, or invite friends first.';
+
+  @override
+  String waitingRoomStartingIn(int seconds) {
+    return 'Starting in $seconds…';
+  }
+
+  @override
+  String get waitingRoomReady => 'I\'m ready';
+
+  @override
+  String get waitingRoomUnready => 'Not ready yet';
+
+  @override
+  String get waitingRoomPlayerReady => 'Ready';
+
+  @override
+  String get waitingRoomPlayerNotReady => 'Not ready';
+
+  @override
+  String get waitingRoomLock => 'Lock the room';
+
+  @override
+  String get waitingRoomUnlock => 'Unlock the room';
+
+  @override
+  String get waitingRoomLocked => 'Locked: invited players only';
+
+  @override
+  String get waitingRoomInvite => 'Invite by Player ID';
+
+  @override
+  String get waitingRoomInviteHint => '9-digit Player ID';
+
+  @override
+  String get waitingRoomInviteSend => 'Send invite';
+
+  @override
+  String get waitingRoomInviteSent => 'Invite sent';
+
+  @override
+  String get waitingRoomInviteInvalid => 'Enter a 9-digit Player ID.';
+
+  @override
+  String get waitingRoomCancel => 'Cancel';
+
+  @override
+  String get waitingRoomPlayerMenu => 'Player options';
+
+  @override
+  String get waitingRoomMakeHost => 'Make host';
+
+  @override
+  String get waitingRoomRemove => 'Remove from the room';
+
+  @override
+  String get waitingRoomKicked => 'The host removed you from the room.';
+
+  @override
+  String get waitingRoomRules => 'Rules';
+
+  @override
+  String get waitingRoomRulesHint =>
+      'Tap a rule to change it. Everyone gets ready again after a change.';
+
+  @override
+  String get ruleTurnTime => 'Turn time';
+
+  @override
+  String get ruleCaptures => 'Captures';
+
+  @override
+  String get ruleExtraTurnOnSix => 'Extra turn on a six';
+
+  @override
+  String get ruleGameEnds => 'The game ends';
+
+  @override
+  String get ruleEndsFirstHome => 'When the first player is home';
+
+  @override
+  String get ruleEndsAllPlaces => 'When every place is decided';
+
+  @override
+  String ruleSeconds(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get ruleOn => 'On';
+
+  @override
+  String get ruleOff => 'Off';
+
+  @override
+  String get invitesTitle => 'Invites';
+
+  @override
+  String inviteFrom(String name, String game) {
+    return '$name invited you to $game';
+  }
+
+  @override
+  String get inviteJoin => 'Join';
+
+  @override
+  String get inviteDecline => 'Decline';
+
+  @override
   String get gameStatusSyncing => 'Syncing…';
 
   @override
@@ -603,6 +719,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameOverHome => 'Back to home';
+
+  @override
+  String get gameOverPlayAgain => 'Play again';
+
+  @override
+  String get gameOverWaitingForOthers => 'Waiting for the others to say yes…';
 
   @override
   String get gameTimeoutSelf => 'Time ran out, so we played for you.';
@@ -658,7 +780,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGameNotStarted => 'The game hasn\'t started yet.';
 
   @override
-  String get errorNotHost => 'Only the host can start the game.';
+  String get errorNotHost => 'Only the host can do that.';
 
   @override
   String get errorNotYourSeat => 'That isn\'t your seat.';
@@ -735,6 +857,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorLegacyGame =>
       'This game was started before an update. Please start a new one.';
+
+  @override
+  String get errorNotEveryoneReady => 'Everyone has to be ready first.';
+
+  @override
+  String get errorPlayerKicked => 'The host removed you from this room.';
+
+  @override
+  String get errorRoomLocked => 'This room is for invited players only.';
+
+  @override
+  String get errorGameStarting => 'That game is starting. Try another room.';
+
+  @override
+  String get errorPlayerNotFound => 'No player with that ID.';
+
+  @override
+  String get errorCannotInviteYourself => 'That\'s your own Player ID.';
+
+  @override
+  String get errorAlreadyInRoom => 'They\'re already in this room.';
+
+  @override
+  String get errorInvalidOption => 'That rule can\'t be set that way.';
+
+  @override
+  String get errorGameNotFinished => 'The game isn\'t over yet.';
+
+  @override
+  String get errorRoomClosed => 'This room is closed.';
 
   @override
   String get errorInvalidInput =>

@@ -15,7 +15,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$RoomPlayer {
 
- String get id; String get name; String get color; bool get isHost; bool get isBot;
+ String get id; String get name; String get color; bool get isHost; bool get isBot;/// Before the start: ready to play (the host always is).
+ bool get isReady;/// After the game: asked to play again.
+ bool get wantsRematch;/// Left the room after the start.
+ bool get hasLeft;
 /// Create a copy of RoomPlayer
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +31,16 @@ $RoomPlayerCopyWith<RoomPlayer> get copyWith => _$RoomPlayerCopyWithImpl<RoomPla
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RoomPlayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isBot, isBot) || other.isBot == isBot));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RoomPlayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isBot, isBot) || other.isBot == isBot)&&(identical(other.isReady, isReady) || other.isReady == isReady)&&(identical(other.wantsRematch, wantsRematch) || other.wantsRematch == wantsRematch)&&(identical(other.hasLeft, hasLeft) || other.hasLeft == hasLeft));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,color,isHost,isBot);
+int get hashCode => Object.hash(runtimeType,id,name,color,isHost,isBot,isReady,wantsRematch,hasLeft);
 
 @override
 String toString() {
-  return 'RoomPlayer(id: $id, name: $name, color: $color, isHost: $isHost, isBot: $isBot)';
+  return 'RoomPlayer(id: $id, name: $name, color: $color, isHost: $isHost, isBot: $isBot, isReady: $isReady, wantsRematch: $wantsRematch, hasLeft: $hasLeft)';
 }
 
 
@@ -48,7 +51,7 @@ abstract mixin class $RoomPlayerCopyWith<$Res>  {
   factory $RoomPlayerCopyWith(RoomPlayer value, $Res Function(RoomPlayer) _then) = _$RoomPlayerCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String color, bool isHost, bool isBot
+ String id, String name, String color, bool isHost, bool isBot, bool isReady, bool wantsRematch, bool hasLeft
 });
 
 
@@ -65,13 +68,16 @@ class _$RoomPlayerCopyWithImpl<$Res>
 
 /// Create a copy of RoomPlayer
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? color = null,Object? isHost = null,Object? isBot = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? color = null,Object? isHost = null,Object? isBot = null,Object? isReady = null,Object? wantsRematch = null,Object? hasLeft = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,isBot: null == isBot ? _self.isBot : isBot // ignore: cast_nullable_to_non_nullable
+as bool,isReady: null == isReady ? _self.isReady : isReady // ignore: cast_nullable_to_non_nullable
+as bool,wantsRematch: null == wantsRematch ? _self.wantsRematch : wantsRematch // ignore: cast_nullable_to_non_nullable
+as bool,hasLeft: null == hasLeft ? _self.hasLeft : hasLeft // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -157,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String color,  bool isHost,  bool isBot)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String color,  bool isHost,  bool isBot,  bool isReady,  bool wantsRematch,  bool hasLeft)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RoomPlayer() when $default != null:
-return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _:
+return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot,_that.isReady,_that.wantsRematch,_that.hasLeft);case _:
   return orElse();
 
 }
@@ -178,10 +184,10 @@ return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String color,  bool isHost,  bool isBot)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String color,  bool isHost,  bool isBot,  bool isReady,  bool wantsRematch,  bool hasLeft)  $default,) {final _that = this;
 switch (_that) {
 case _RoomPlayer():
-return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _:
+return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot,_that.isReady,_that.wantsRematch,_that.hasLeft);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +204,10 @@ return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String color,  bool isHost,  bool isBot)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String color,  bool isHost,  bool isBot,  bool isReady,  bool wantsRematch,  bool hasLeft)?  $default,) {final _that = this;
 switch (_that) {
 case _RoomPlayer() when $default != null:
-return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _:
+return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot,_that.isReady,_that.wantsRematch,_that.hasLeft);case _:
   return null;
 
 }
@@ -213,7 +219,7 @@ return $default(_that.id,_that.name,_that.color,_that.isHost,_that.isBot);case _
 @JsonSerializable()
 
 class _RoomPlayer implements RoomPlayer {
-  const _RoomPlayer({required this.id, required this.name, required this.color, this.isHost = false, this.isBot = false});
+  const _RoomPlayer({required this.id, required this.name, required this.color, this.isHost = false, this.isBot = false, this.isReady = false, this.wantsRematch = false, this.hasLeft = false});
   factory _RoomPlayer.fromJson(Map<String, dynamic> json) => _$RoomPlayerFromJson(json);
 
 @override final  String id;
@@ -221,6 +227,12 @@ class _RoomPlayer implements RoomPlayer {
 @override final  String color;
 @override@JsonKey() final  bool isHost;
 @override@JsonKey() final  bool isBot;
+/// Before the start: ready to play (the host always is).
+@override@JsonKey() final  bool isReady;
+/// After the game: asked to play again.
+@override@JsonKey() final  bool wantsRematch;
+/// Left the room after the start.
+@override@JsonKey() final  bool hasLeft;
 
 /// Create a copy of RoomPlayer
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RoomPlayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isBot, isBot) || other.isBot == isBot));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RoomPlayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.isHost, isHost) || other.isHost == isHost)&&(identical(other.isBot, isBot) || other.isBot == isBot)&&(identical(other.isReady, isReady) || other.isReady == isReady)&&(identical(other.wantsRematch, wantsRematch) || other.wantsRematch == wantsRematch)&&(identical(other.hasLeft, hasLeft) || other.hasLeft == hasLeft));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,color,isHost,isBot);
+int get hashCode => Object.hash(runtimeType,id,name,color,isHost,isBot,isReady,wantsRematch,hasLeft);
 
 @override
 String toString() {
-  return 'RoomPlayer(id: $id, name: $name, color: $color, isHost: $isHost, isBot: $isBot)';
+  return 'RoomPlayer(id: $id, name: $name, color: $color, isHost: $isHost, isBot: $isBot, isReady: $isReady, wantsRematch: $wantsRematch, hasLeft: $hasLeft)';
 }
 
 
@@ -255,7 +267,7 @@ abstract mixin class _$RoomPlayerCopyWith<$Res> implements $RoomPlayerCopyWith<$
   factory _$RoomPlayerCopyWith(_RoomPlayer value, $Res Function(_RoomPlayer) _then) = __$RoomPlayerCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String color, bool isHost, bool isBot
+ String id, String name, String color, bool isHost, bool isBot, bool isReady, bool wantsRematch, bool hasLeft
 });
 
 
@@ -272,13 +284,16 @@ class __$RoomPlayerCopyWithImpl<$Res>
 
 /// Create a copy of RoomPlayer
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? color = null,Object? isHost = null,Object? isBot = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? color = null,Object? isHost = null,Object? isBot = null,Object? isReady = null,Object? wantsRematch = null,Object? hasLeft = null,}) {
   return _then(_RoomPlayer(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,isHost: null == isHost ? _self.isHost : isHost // ignore: cast_nullable_to_non_nullable
 as bool,isBot: null == isBot ? _self.isBot : isBot // ignore: cast_nullable_to_non_nullable
+as bool,isReady: null == isReady ? _self.isReady : isReady // ignore: cast_nullable_to_non_nullable
+as bool,wantsRematch: null == wantsRematch ? _self.wantsRematch : wantsRematch // ignore: cast_nullable_to_non_nullable
+as bool,hasLeft: null == hasLeft ? _self.hasLeft : hasLeft // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

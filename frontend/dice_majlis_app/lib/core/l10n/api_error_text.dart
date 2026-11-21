@@ -32,6 +32,16 @@ extension ApiErrorText on AppLocalizations {
       'game_not_active' => errorGameFinished,
       'stale_version' => errorTryAgain,
       'legacy_game' => errorLegacyGame,
+      'not_everyone_ready' => errorNotEveryoneReady,
+      'player_kicked' => errorPlayerKicked,
+      'room_locked' => errorRoomLocked,
+      'game_starting' => errorGameStarting,
+      'player_not_found' => errorPlayerNotFound,
+      'cannot_invite_yourself' => errorCannotInviteYourself,
+      'already_in_room' => errorAlreadyInRoom,
+      'invalid_option' => errorInvalidOption,
+      'game_not_finished' => errorGameNotFinished,
+      'room_closed' => errorRoomClosed,
       'not_authenticated' ||
       'session_revoked' ||
       'token_expired' ||

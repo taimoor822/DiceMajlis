@@ -1,8 +1,9 @@
 """
 The game app's socket channels (registered in ``GameConfig.ready``):
 
-- ``room/<room id>``: who is seated (``players_updated``) and ``game_started``.
-  Members of the room only.
+- ``room/<room id>``: who is seated (``players_updated``), how the room stands
+  (``room_updated``: status, lock, rules, host, countdown), ``player_kicked``,
+  ``game_started`` and ``rematch_started``. Members of the room only.
 - ``game/<game id>``: the game's events (``dice_rolled``, ``token_moved``, …), each
   with the state ``version``. Seated players only (spectators come in Phase 4).
 
@@ -49,8 +50,11 @@ class RoomTopic(topics.Topic):
         if room is None:
             return []
         channel = topics.Channel(self.kind, key)
+        from . import rooms  # rooms uses services, which uses this module's app
+
         events = [
             topics.event(channel, "players_updated", {"players": services.players_payload(room)}),
+            topics.event(channel, "room_updated", rooms.room_info(room)),
         ]
         if room.is_started:
             snapshot = _snapshot_data(room)

@@ -245,6 +245,42 @@ WAITING ──all seats ready──► READY ──host starts──► STARTING
 - Room state lives in Postgres, live presence in Redis; every change is broadcast on
   `room/{id}`.
 
+### What step 1.13 built ✅ (`game/rooms.py`)
+
+Decisions made while building the lifecycle above:
+
+- **Ready:** guests tap Ready; the host always is. READY = every guest ready, so a
+  host alone may start and the Majlis AI joins (casual private rooms only). A new
+  guest, a guest taking Ready back, or a rules change makes the room WAITING again;
+  taking Ready back during the countdown stops it.
+- **Start:** the host's start begins a 3-second countdown (STARTING,
+  `GAME_START_COUNTDOWN_SECONDS`); the turn-timer sweep starts the game when it runs
+  out. Nobody joins during the countdown (`game_starting`).
+- **Host controls:** remove (the account can't come back unless the host invites it
+  again), lock (invited players only), pass the host role (any time before CLOSED),
+  custom rules (WAITING/READY only).
+- **Custom rules** are each variant's `options` (`RoomOption`: key, default,
+  choices); Ludo offers turn time 15/30/60 s, captures on/off, extra turn on a six
+  on/off and "play on" (the game goes on until every place is decided). The engine
+  gets them through `new_game(options=…)`. Any change makes the room unranked when
+  ranked rooms exist (Phase 6).
+- **Invites:** by 9-digit Player ID (`RoomInvite`): the friend hears `room_invite` on
+  `user/<id>` and Home lists pending ones (`GET /api/game/invites/`). An invite lets
+  them into a locked room and is used up when they join; invites to rooms that
+  started disappear. In a locked room only the host invites. Deep links wait for a
+  web domain.
+- **Rematch:** after FINISHED, everyone still in the room (not left) says yes → a
+  **new room** with the same people and colours (and the same bots) starts its
+  countdown; the old room becomes CLOSED with `next_room`, and `rematch_started`
+  `{room_code, room_id, seats: {old seat → new seat}}` tells everyone where to go.
+  A new room keeps each game's history apart (one game per room). Leaving a finished
+  room means not waiting for you; when nobody is left it closes.
+- **Leave:** before the start the seat is freed (an empty room that never started is
+  deleted); after it the seat is kept with `has_left` (a forfeit during the game).
+- Messages on `room/<id>`: `players_updated` (with `is_ready`, `wants_rematch`,
+  `has_left`), `room_updated` (`status, is_locked, variant, options, option_choices,
+  host_id, starts_in, next_room`), `player_kicked`, `game_started`, `rematch_started`.
+
 ### Disconnect and reconnect
 
 1. Socket drops → server marks the player `disconnected`, broadcasts

@@ -26,7 +26,7 @@ from ludo_engine import GameState, TurnPhase
 from realtime import topics as realtime_topics
 from realtime.protocol import ProtocolError
 
-from . import services, timers
+from . import rooms, services, timers
 from .consumers import LobbyConsumer
 from .models import Game, GameAction, Player, Room, Token
 from .tables.ludo import token_ids_by_player
@@ -38,6 +38,7 @@ LOCAL_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemC
 @override_settings(
     GAME_BOTS_INLINE=True,
     GAME_BOT_DELAY_SECONDS=(0, 0),
+    GAME_START_COUNTDOWN_SECONDS=0,  # the host's start starts the game at once
     CHANNEL_LAYERS=IN_MEMORY_LAYER,
     CACHES=LOCAL_CACHE,
 )
@@ -89,12 +90,15 @@ class GameApiTestCase(TestCase):
         self.access[player_id] = account
         return r.data["room"]["code"], player_id
 
-    def join(self, code, color="blue", account=None):
+    def join(self, code, color="blue", account=None, ready=True):
+        """Take a seat (and, by default, say you are ready, so the host can start)."""
         account = account or self.new_account()
         r = self.post("join-room", as_account=account, code=code, color=color)
         self.assertEqual(r.status_code, 200, r.data)
         player_id = str(r.data["player"]["id"])
         self.access[player_id] = account
+        if ready:
+            rooms.set_ready(Player.objects.get(id=player_id).user, code, True)
         return player_id
 
     def start(self, code, host):
@@ -115,6 +119,10 @@ class GameApiTestCase(TestCase):
 
     def token_ids(self, code, player_id):
         return token_ids_by_player(self.game(code).room)[player_id]
+
+    def user_of(self, seat_id):
+        """The account sitting at a seat."""
+        return Player.objects.get(id=seat_id).user
 
     def dice(self, *values):
         """Script the server's dice: each roll takes the next value."""
@@ -391,9 +399,6 @@ class V1ChannelTests(GameApiTestCase):
 
         return next_event
 
-    def user_of(self, seat_id):
-        return Player.objects.get(id=seat_id).user
-
     def test_game_events_arrive_with_their_version(self):
         code, host, _ = self.two_humans()
         game = self.game(code)
@@ -410,10 +415,16 @@ class V1ChannelTests(GameApiTestCase):
         code, host = self.create_room()
         room = Room.objects.get(code=code)
         next_event = self.listen(f"room/{room.id}")
-        guest = self.join(code)
+        guest = self.join(code, ready=False)
         joined = next_event()
         self.assertEqual(joined["type"], "players_updated")
         self.assertEqual([p["id"] for p in joined["data"]["players"]], [host, guest])
+        news = next_event()
+        self.assertEqual((news["type"], news["data"]["status"]), ("room_updated", "waiting"))
+
+        rooms.set_ready(self.user_of(guest), code, True)
+        self.assertEqual([p["is_ready"] for p in next_event()["data"]["players"]], [True, True])
+        self.assertEqual(next_event()["data"]["status"], "ready")
 
         self.start(code, host)
         started = next_event()
@@ -439,8 +450,9 @@ class V1ChannelTests(GameApiTestCase):
         user = self.user_of(host)
 
         topic, channel = realtime_topics.resolve(f"room/{game.room_id}")
-        players, started = topic.initial_events(user, channel.key)
+        players, room_news, started = topic.initial_events(user, channel.key)
         self.assertEqual(players["type"], "players_updated")
+        self.assertEqual((room_news["type"], room_news["data"]["status"]), ("room_updated", "playing"))
         self.assertEqual(started["type"], "game_started")
 
         topic, channel = realtime_topics.resolve(f"game/{game.id}")
@@ -645,7 +657,7 @@ class RoomInputTests(GameApiTestCase):
 
     def test_room_codes_use_the_secure_random_generator(self):
         account = self.new_account()  # signing up uses secrets.choice too
-        with mock.patch("game.views.secrets.choice", return_value="Q") as choice:
+        with mock.patch("game.rooms.secrets.choice", return_value="Q") as choice:
             r = self.post("create-room", as_account=account)
         self.assertEqual(r.data["room"]["code"], "QQQQ")
         self.assertEqual(choice.call_count, 4)
@@ -735,8 +747,9 @@ class LeaveRoomTests(GameApiTestCase):
         r = self.post("leave-room", player_id=guest, code=code)
         self.assertEqual((r.status_code, r.data), (200, {"status": "left"}))
         self.assertFalse(Player.objects.filter(id=guest).exists())
-        self.assertEqual(self.lobby[-1]["type"], "players_updated")
-        self.assertEqual([p["id"] for p in self.lobby[-1]["players"]], [host])
+        players = [m for m in self.lobby if m["type"] == "players_updated"][-1]
+        self.assertEqual([p["id"] for p in players["players"]], [host])
+        self.assertEqual(self.lobby[-1]["status"], "ready")  # the host alone may start
 
     def test_the_host_role_passes_on_and_an_empty_room_closes(self):
         code, host = self.create_room()
@@ -864,6 +877,7 @@ class GamePlatformTests(GameApiTestCase):
         code, host = self.create_room()
         r = self.post("join-room", code=code)
         self.assertEqual((r.data["room"]["game_type"], r.data["room"]["variant"]), ("ludo", "classic"))
+        rooms.set_ready(self.user_of(str(r.data["player"]["id"])), code, True)
         self.start(code, host)
         game = self.game(code)
         self.assertEqual((game.game_type, game.variant), ("ludo", "classic"))

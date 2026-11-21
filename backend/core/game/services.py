@@ -162,12 +162,14 @@ def start_game(room: Room, host: Player) -> tuple[Game, Any]:
             player.color = COLOR_BY_SEAT[seat]
             player.save(update_fields=["color"])
 
+    variant = game_platform.get_variant(room.game_type, room.variant)
     state = game_def.new_game(
         str(room.id),
         [str(p.id) for p in players],
         variant=room.variant,
         seats=[seats[str(p.id)] for p in players],
         first_player_id=str(host.id),
+        options=variant.check_options(room.options),  # the host's custom rules
     )
     snapshot = game_def.dump(state)
     info = game_def.info(state)
@@ -264,19 +266,31 @@ def leave_room(player: Player, *, forfeit: bool = True) -> None:
     (through perform(), like every game change) unless ``forfeit`` is False.
     Already out of the game, or the game is over: nothing to do.
     """
+    from . import rooms  # rooms uses this module
+
     with transaction.atomic():
         room = Room.objects.select_for_update().filter(pk=player.room_id).first()
         if room is None:
             return
         started = room.is_started
         closed = False if started else _free_seat(room, player)
+        if not started and not closed:
+            rooms.settle(room)  # a countdown or READY may change
     if not started:
         if not closed:
-            broadcast_players(room)
+            rooms.broadcast_room(room)
         return
     if not forfeit:
         return
+    Player.objects.filter(pk=player.pk).update(has_left=True, wants_rematch=False)
+    try:
+        _forfeit(room, player)
+    finally:
+        rooms.after_leave(room.code)  # a finished room: rematch for the rest, or close
 
+
+def _forfeit(room: Room, player: Player) -> None:
+    """``player`` gives up the game (through perform(), like every game change)."""
     action = {"type": "forfeit", "player_id": str(player.id), "reason": "left"}
     for attempt in range(3):
         try:
@@ -298,10 +312,10 @@ def _free_seat(room: Room, player: Player) -> bool:
     Player.objects.filter(pk=player.pk).delete()
     successor = room.players.filter(is_bot=False).order_by("joined_at").first()
     if successor is None:
-        room.delete()
+        room.delete()  # nobody left and nothing played: nothing to keep
         return True
     if was_host:
-        Player.objects.filter(pk=successor.pk).update(is_host=True)
+        Player.objects.filter(pk=successor.pk).update(is_host=True, is_ready=True)
     return False
 
 
@@ -394,6 +408,10 @@ def perform(
         )
 
     broadcast(room_code, messages)
+    if info.finished and not old_info.finished:
+        from . import rooms  # rooms uses this module
+
+        rooms.on_game_finished(room_code)  # the room is FINISHED: rematch time
     return ActionResult(new_state, tuple(transition.events), info, next_is_bot, details)
 
 
@@ -410,6 +428,9 @@ def players_payload(room: Room) -> list[dict[str, Any]]:
             "color": p.color,
             "is_host": p.is_host,
             "is_bot": p.is_bot,
+            "is_ready": p.is_ready or p.is_host or p.is_bot,
+            "wants_rematch": p.wants_rematch,
+            "has_left": p.has_left,
         }
         for p in room.players.order_by("joined_at")
     ]
@@ -501,6 +522,10 @@ def _publish_v1(room_code: str, messages: list[dict]) -> None:
         elif kind == "game_started":
             data = {k: v for k, v in message.items() if k != "type"}
             publish(f"room/{room.id}", "game_started", data, version=data.get("version"))
+        else:
+            # Room news (room_updated, player_kicked, rematch_started, …).
+            data = {k: v for k, v in message.items() if k != "type"}
+            publish(f"room/{room.id}", kind, data)
 
 
 # ---------------------------------------------------------------------------

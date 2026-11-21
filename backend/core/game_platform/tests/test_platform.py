@@ -60,6 +60,23 @@ class RegistryTests(unittest.TestCase):
         self.assertTrue(classic.allows(2) and classic.allows(4))
         self.assertFalse(classic.allows(1) or classic.allows(5))
 
+    def test_custom_rules_are_checked_against_the_variant(self):
+        classic = gp.get_variant(gp.LUDO)
+        defaults = classic.check_options(None)
+        self.assertEqual(defaults["turn_timeout_seconds"], 30)
+        self.assertEqual(defaults["capture_enabled"], True)
+        chosen = classic.check_options({"turn_timeout_seconds": 60, "capture_enabled": False})
+        self.assertEqual((chosen["turn_timeout_seconds"], chosen["capture_enabled"]), (60, False))
+        for bad in ({"turn_timeout_seconds": 45}, {"capture_enabled": 0}, {"dice_sides": 8},
+                    {"turn_timeout_seconds": True}):
+            with self.assertRaises(gp.InvalidOption) as refused:
+                classic.check_options(bad)
+            self.assertEqual(refused.exception.code, "invalid_option")
+        with self.assertRaises(ValueError):
+            gp.RoomOption("speed", 3, (1, 2))  # the default must be a choice
+        listed = next(g for g in gp.catalog() if g["game_type"] == gp.LUDO)["variants"][0]["options"]
+        self.assertIn({"key": "turn_timeout_seconds", "default": 30, "choices": [15, 30, 60]}, listed)
+
 
 class LudoAdapterTests(unittest.TestCase):
     def setUp(self):
@@ -68,6 +85,11 @@ class LudoAdapterTests(unittest.TestCase):
 
     def test_new_game_uses_the_variant_rules_and_player_counts(self):
         self.assertEqual(self.state.rules, le.Rules())
+        custom = self.ludo.new_game(
+            "g", ["a", "b"], variant=gp.CLASSIC,
+            options={"turn_timeout_seconds": 15, "capture_enabled": False},
+        )
+        self.assertEqual((custom.rules.turn_timeout_seconds, custom.rules.capture_enabled), (15, False))
         self.assertEqual([p.seat for p in self.state.players], [0, 2])
         with self.assertRaises(le.InvalidSetup):
             self.ludo.new_game("g", ["a"], variant=gp.CLASSIC)

@@ -9,8 +9,10 @@ service, bots and the turn timer don't change.
 
 from .contract import (
     GameEngine,
+    InvalidOption,
     PlatformError,
     RandomSource,
+    RoomOption,
     ScriptedRandom,
     SecureRandom,
     TurnInfo,
@@ -36,9 +38,11 @@ __all__ = [
     "CLASSIC",
     "LUDO",
     "GameEngine",
+    "InvalidOption",
     "LudoGame",
     "PlatformError",
     "RandomSource",
+    "RoomOption",
     "ScriptedRandom",
     "SecureRandom",
     "TurnInfo",
