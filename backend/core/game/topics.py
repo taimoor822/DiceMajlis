@@ -61,6 +61,14 @@ class RoomTopic(topics.Topic):
             events.append(topics.event(channel, "game_started", snapshot, version=snapshot.get("version")))
         return events
 
+    def catch_up(self, user, key, since):
+        """
+        Back after a drop, already knowing the game (``since``): who is seated
+        and the room's news, but not the whole game: ``game/<id>`` sends only
+        what was missed (``state_delta``).
+        """
+        return [e for e in self.initial_events(user, key) if e["type"] != "game_started"]
+
 
 class GameTopic(topics.Topic):
     kind = "game"
@@ -83,6 +91,18 @@ class GameTopic(topics.Topic):
         return [
             topics.event(
                 topics.Channel(self.kind, key), "state_snapshot", snapshot, version=snapshot.get("version")
+            )
+        ]
+
+    def catch_up(self, user, key, since):
+        """Back after a drop: ``state_delta`` with the messages missed since ``since``."""
+        game = Game.objects.filter(id=key).first()
+        delta = services.game_delta(game, since) if game is not None else None
+        if delta is None:
+            return None  # too far behind: the whole state
+        return [
+            topics.event(
+                topics.Channel(self.kind, key), "state_delta", delta, version=delta["version"]
             )
         ]
 

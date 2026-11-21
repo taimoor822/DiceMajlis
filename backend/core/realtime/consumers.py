@@ -73,7 +73,7 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
         for group in getattr(self, "subscriptions", {}).values():
             await self.channel_layer.group_discard(group, self.channel_name)
         if getattr(self, "user", None) is not None:
-            await sync_to_async(presence.disconnected)(self.user.id)
+            await sync_to_async(presence.disconnected)(self.user.id, self.channel_name)
 
     # ---- incoming ------------------------------------------------------------
 
@@ -121,7 +121,7 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
         self.user = user
         self.session_id = str(session.id)
         self._checked_session_at = time.monotonic()
-        await sync_to_async(presence.connected)(user.id)
+        await sync_to_async(presence.connected)(user.id, self.channel_name)
         await self._send(protocol.ack(request.req_id, {
             "player_id": user.player_id,
             "heartbeat_seconds": settings.REALTIME_HEARTBEAT_SECONDS,
@@ -170,7 +170,7 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
                 await self._send(protocol.error(request.req_id, "session_revoked", "Signed out"))
                 await self._close(protocol.CLOSE_BAD_TOKEN)
                 return
-        await sync_to_async(presence.heartbeat)(self.user.id)
+        await sync_to_async(presence.heartbeat)(self.user.id, self.channel_name)
         await self._send(protocol.pong(request.req_id))
 
     async def _subscribe(self, request: protocol.Request) -> None:
@@ -190,7 +190,14 @@ class RealtimeConsumer(AsyncWebsocketConsumer):
         # between is missed (events carry versions, so older ones are ignored).
         await self.channel_layer.group_add(channel.group, self.channel_name)
         self.subscriptions[channel.name] = channel.group
-        initial = await database_sync_to_async(topic.initial_events)(self.user, channel.key)
+        # Coming back with the last version you saw: only what you missed,
+        # when the topic can (``catch_up``); else the whole current state.
+        since = request.data.get("since")
+        initial = None
+        if isinstance(since, int) and not isinstance(since, bool) and since >= 0:
+            initial = await database_sync_to_async(topic.catch_up)(self.user, channel.key, since)
+        if initial is None:
+            initial = await database_sync_to_async(topic.initial_events)(self.user, channel.key)
         await self._send(protocol.ack(request.req_id, {"channel": channel.name}))
         for message in initial:
             await self._send(message)

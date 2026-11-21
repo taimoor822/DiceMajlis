@@ -81,6 +81,10 @@ class RealtimeClient {
   final _pending = <String, _PendingRequest>{};
   final _channels = <String, StreamController<RealtimeMessage>>{};
 
+  /// The newest version seen per channel: after a reconnect the subscription
+  /// says `since`, so a channel that can (games) sends only what was missed.
+  final _versions = <String, int>{};
+
   static const _tokenCodes = {'invalid_token', 'token_expired'};
 
   /// Connects and stays connected until [stop].
@@ -101,6 +105,7 @@ class RealtimeClient {
       unawaited(controller.close());
     }
     _channels.clear();
+    _versions.clear();
     await connection?.close();
   }
 
@@ -116,6 +121,7 @@ class RealtimeClient {
       onCancel: () {
         if (_channels[name] != controller) return;
         _channels.remove(name);
+        _versions.remove(name);
         _unsubscribe(name);
         unawaited(controller.close());
       },
@@ -285,6 +291,11 @@ class RealtimeClient {
     _unansweredPings = 0; // anything from the server means it's there
     final channel = message.channel;
     if (channel != null) {
+      final version = message.version;
+      final seen = _versions[channel];
+      if (version != null && (seen == null || version > seen)) {
+        _versions[channel] = version;
+      }
       _channels[channel]?.add(message);
       return;
     }
@@ -302,7 +313,11 @@ class RealtimeClient {
   void _subscribe(String name) {
     final connection = _connection;
     if (connection == null || !_signedIn) return; // sent after (re)connecting
-    _send(connection, 'subscribe', {'channel': name}).then<void>(
+    final since = _versions[name];
+    _send(connection, 'subscribe', {
+      'channel': name,
+      if (since != null) 'since': since,
+    }).then<void>(
       (_) {},
       onError: (Object error) {
         if (error is RealtimeException &&

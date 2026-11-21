@@ -50,6 +50,9 @@ SEAT_BY_COLOR = {"red": 0, "blue": 1, "green": 2, "yellow": 3, "orange": 3, "amb
 JOIN_SEAT_ORDER = (0, 2, 1, 3)
 
 MAX_BOT_ACTIONS_PER_RUN = 500
+# A player who comes back gets what they missed as a delta of at most this many
+# actions; further behind, the whole state (a snapshot) is smaller.
+MAX_DELTA_ACTIONS = 200
 
 # Every server-side random choice (dice, later shuffled tiles). Tests swap it
 # for game_platform.ScriptedRandom.
@@ -398,9 +401,11 @@ def perform(
         if saved != 1:
             raise GameConflict("the game changed while this action was running")
 
-        GameAction.objects.create(game=game, version=info.version, action=resolved)
         messages, details = table_for(game.game_type).record(
             room, state, transition, deadline=deadline, now=now
+        )
+        GameAction.objects.create(
+            game=game, version=info.version, action=resolved, messages=messages
         )
         next_is_bot = (
             not info.finished
@@ -431,9 +436,50 @@ def players_payload(room: Room) -> list[dict[str, Any]]:
             "is_ready": p.is_ready or p.is_host or p.is_bot,
             "wants_rematch": p.wants_rematch,
             "has_left": p.has_left,
+            "connected": p.is_bot or p.disconnected_at is None,
         }
         for p in room.players.order_by("joined_at")
     ]
+
+
+def game_delta(game: Game, since: int) -> dict[str, Any] | None:
+    """
+    What a player at version ``since`` missed, as the messages that were
+    broadcast then (``state_delta``), or None when only a snapshot will do
+    (too far behind, ahead of the server, or actions from before 1.14).
+    """
+    if game.state is None or since < 0 or since > game.version:
+        return None
+    if game.version - since > MAX_DELTA_ACTIONS:
+        return None
+    rows = list(
+        GameAction.objects.filter(game=game, version__gt=since)
+        .order_by("version")
+        .values_list("version", "messages")
+    )
+    if len(rows) != game.version - since or any(not messages for _, messages in rows):
+        return None
+    events = [_delta_event(message, version) for version, messages in rows for message in messages]
+    return {
+        "game_id": str(game.id),
+        "from_version": since,
+        "version": game.version,
+        # The turn clock now (the missed messages carry the clock of their time).
+        "seconds_left": seconds_left(game.turn_deadline),
+        "events": events,
+    }
+
+
+def _delta_event(message: dict[str, Any], version: int) -> dict[str, Any]:
+    """One recorded message as the game channel sent it: {type, version, data}."""
+    if message["type"] == "game_event":
+        data = dict(message["payload"])
+        kind = data.pop("type")
+        version = data.pop("version", version)
+    else:
+        data = {k: v for k, v in message.items() if k != "type"}
+        kind = message["type"]
+    return {"type": kind, "version": version, "data": data}
 
 
 def game_snapshot(room: Room) -> dict[str, Any]:

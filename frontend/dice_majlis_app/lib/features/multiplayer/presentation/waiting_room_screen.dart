@@ -591,6 +591,7 @@ class _PlayerTile extends StatelessWidget {
       if (isMe) l10n.playerTagYou,
       if (isHost) l10n.playerTagHost,
       if (player.isBot) l10n.playerTagBot,
+      if (!player.connected) l10n.playerTagAway,
     ];
     final ready = isHost || player.isBot || player.isReady;
     return ListTile(

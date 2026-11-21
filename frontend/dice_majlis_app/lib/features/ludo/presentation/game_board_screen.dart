@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/api_error_text.dart';
 import '../../../core/l10n/generated/app_localizations.dart';
+import '../../../core/realtime/realtime_client.dart';
+import '../../../core/realtime/realtime_providers.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/majlis_colors.dart';
 import '../../../core/websocket/socket_providers.dart';
@@ -39,12 +41,16 @@ class _PlayerInfo {
   final bool isHost;
   final bool isBot;
 
+  /// False while the player has no live connection (their seat is kept).
+  final bool connected;
+
   const _PlayerInfo({
     required this.id,
     required this.name,
     required this.color,
     required this.isHost,
     required this.isBot,
+    this.connected = true,
   });
 
   factory _PlayerInfo.fromJson(Map<String, dynamic> json) {
@@ -54,8 +60,18 @@ class _PlayerInfo {
       color: json['color']?.toString() ?? '',
       isHost: json['is_host'] == true,
       isBot: json['is_bot'] == true,
+      connected: json['connected'] != false,
     );
   }
+
+  _PlayerInfo withConnected(bool value) => _PlayerInfo(
+    id: id,
+    name: name,
+    color: color,
+    isHost: isHost,
+    isBot: isBot,
+    connected: value,
+  );
 }
 
 /// Server sends progress 0..56 (56 = home). 100 is the pre-engine "home" value.
@@ -123,6 +139,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
   bool _isRollingDice = false;
   bool _isAnimatingMove = false;
   bool _isReconnecting = false;
+  ValueNotifier<RealtimeStatus>? _liveStatus;
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
 
@@ -159,6 +176,8 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     myPlayerId = session.playerId;
 
     _connectSocket();
+    _liveStatus = ref.read(realtimeClientProvider)?.status
+      ?..addListener(_onLiveStatus);
   }
 
   void _connectSocket() {
@@ -222,8 +241,32 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
     });
   }
 
+  /// A player dropped (their seat is kept) or came back.
+  void _applyConnection(String? playerId, {required bool connected}) {
+    final player = _playersById[playerId];
+    if (player == null || player.connected == connected) return;
+    setState(() => _playersById[player.id] = player.withConnected(connected));
+    if (player.id == myPlayerId) return;
+    _showNotice(
+      connected
+          ? _l10n.gamePlayerReconnected(player.name)
+          : _l10n.gamePlayerDisconnected(player.name),
+    );
+  }
+
+  /// This phone's own live connection: while it is down the board waits
+  /// (the server keeps the seat and the turn clock runs).
+  void _onLiveStatus() {
+    final status = _liveStatus;
+    if (!mounted || status == null) return;
+    final down = status.value != RealtimeStatus.online;
+    if (down == _isReconnecting) return;
+    setState(() => _isReconnecting = down);
+  }
+
   @override
   void dispose() {
+    _liveStatus?.removeListener(_onLiveStatus);
     _socketSubscription?.cancel();
     _reconnectTimer?.cancel();
     _turnClockTicker?.cancel();
@@ -372,6 +415,14 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
 
         case 'player_forfeited':
           _showPlayerRemoved(data);
+          break;
+
+        case 'player_disconnected':
+        case 'player_reconnected':
+          _applyConnection(
+            data['player_id']?.toString(),
+            connected: type == 'player_reconnected',
+          );
           break;
 
         case 'rematch_started':
@@ -767,6 +818,7 @@ class _GameBoardScreenState extends ConsumerState<GameBoardScreen> {
       player.name,
       if (player.isBot) _l10n.playerTagBot,
       if (isMe) _l10n.playerTagYou,
+      if (!player.connected) _l10n.playerTagAway,
     ].join(' • ');
 
     final panel = AnimatedContainer(

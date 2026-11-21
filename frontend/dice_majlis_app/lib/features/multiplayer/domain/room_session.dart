@@ -24,6 +24,9 @@ abstract class RoomPlayer with _$RoomPlayer {
 
     /// Left the room after the start.
     @Default(false) bool hasLeft,
+
+    /// False while the player has no live connection (the seat is kept).
+    @Default(true) bool connected,
   }) = _RoomPlayer;
 
   factory RoomPlayer.fromJson(Map<String, dynamic> json) =>
